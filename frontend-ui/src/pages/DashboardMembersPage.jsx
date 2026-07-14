@@ -30,9 +30,17 @@ const RESTRICTED_ROLE_SLUGS = ['directeur', 'parent', 'eleve', 'professeur'];
 export default function DashboardMembersPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
-  const { data: members, page, setPage, lastPage, search, setSearch, loading, reload } = usePaginatedList(
-    schoolId ? `/schools/${schoolId}/members` : null
-  );
+  const {
+    data: members,
+    page,
+    setPage,
+    lastPage,
+    search,
+    setSearch,
+    loading,
+    error: listError,
+    reload,
+  } = usePaginatedList(schoolId ? `/schools/${schoolId}/members` : null);
   const [roles, setRoles] = useState([]);
   const [form, setForm] = useState({ fullname: '', email: '', phone: '', role_id: '' });
   const [error, setError] = useState(null);
@@ -93,6 +101,12 @@ export default function DashboardMembersPage() {
               },
             }}
           />
+
+          {listError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {listError}
+            </Alert>
+          )}
 
           {loading ? (
             <Typography color="text.secondary">Chargement...</Typography>

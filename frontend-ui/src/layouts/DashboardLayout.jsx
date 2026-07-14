@@ -27,6 +27,9 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
 import PaymentsIcon from "@mui/icons-material/Payments";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import ScheduleIcon from "@mui/icons-material/Schedule";
 import {
     Link as RouterLink,
     Outlet,
@@ -35,6 +38,7 @@ import {
 } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSchools } from "../hooks/useSchools.js";
+import NotificationCenter from "../components/NotificationCenter.jsx";
 
 const drawerWidth = 250;
 
@@ -52,6 +56,7 @@ const DIRECTEUR_NAV_ITEMS = [
     { label: "Élèves", to: "/dashboard/students", icon: <School2Icon /> },
     { label: "Parents", to: "/dashboard/parents", icon: <FamilyRestroomIcon /> },
     { label: "Paiements", to: "/dashboard/payments", icon: <PaymentsIcon /> },
+    { label: "Justifications d'absences", to: "/dashboard/attendance-justifications", icon: <FactCheckIcon /> },
 ];
 
 const PROFESSEUR_NAV_ITEMS = [
@@ -62,6 +67,7 @@ const PROFESSEUR_NAV_ITEMS = [
         exact: true,
     },
     { label: "Mes cours", to: "/dashboard/my-assignments", icon: <MenuBookOutlinedIcon /> },
+    { label: "Mon emploi du temps", to: "/dashboard/my-timetable", icon: <ScheduleIcon /> },
 ];
 
 const PARENT_NAV_ITEMS = [
@@ -72,7 +78,22 @@ const PARENT_NAV_ITEMS = [
         exact: true,
     },
     { label: "Paiements", to: "/dashboard/my-children-payments", icon: <PaymentsIcon /> },
+    { label: "Absences de mes enfants", to: "/dashboard/my-children-attendances", icon: <EventBusyIcon /> },
 ];
+
+// Le censeur et le surveillant général valident les justifications
+// d'absences, mais ne gèrent ni les membres/profs/classes ni les paiements.
+const CENSEUR_NAV_ITEMS = [
+    {
+        label: "Vue d'ensemble",
+        to: "/dashboard",
+        icon: <DashboardIcon />,
+        exact: true,
+    },
+    { label: "Justifications d'absences", to: "/dashboard/attendance-justifications", icon: <FactCheckIcon /> },
+];
+
+const SURVEILLANT_NAV_ITEMS = CENSEUR_NAV_ITEMS;
 
 // Le secrétariat inscrit les élèves et encaisse les paiements, mais ne gère
 // ni les membres/profs/classes ni les moyens de paiement/tranches.
@@ -114,6 +135,8 @@ export default function DashboardLayout() {
         parent: PARENT_NAV_ITEMS,
         secretaire: SECRETAIRE_NAV_ITEMS,
         comptable: COMPTABLE_NAV_ITEMS,
+        censeur: CENSEUR_NAV_ITEMS,
+        surveillant: SURVEILLANT_NAV_ITEMS,
     };
     // Tant que le rôle n'est pas connu, on n'affiche que Vue d'ensemble pour
     // éviter un flash vers un lien auquel le rôle réel n'a pas accès.
@@ -261,6 +284,8 @@ export default function DashboardLayout() {
                     >
                         {user.current_school?.name ?? "Aucune école active"}
                     </Typography>
+
+                    <NotificationCenter />
 
                     <IconButton
                         onClick={(e) => setAnchorEl(e.currentTarget)}

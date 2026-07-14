@@ -1,4 +1,5 @@
 import {
+    Alert,
     Box,
     Card,
     CardContent,
@@ -22,10 +23,18 @@ import { useSchools } from "../hooks/useSchools.js";
 
 export default function DashboardOverviewPage() {
     const { user } = useAuth();
-    const { schoolUsers, loading } = useSchools();
+    const { schoolUsers, loading, error } = useSchools();
 
     if (loading)
         return <Typography color="text.secondary">Chargement...</Typography>;
+
+    if (error) {
+        return (
+            <Container maxWidth="sm">
+                <Alert severity="error">{error}</Alert>
+            </Container>
+        );
+    }
 
     const current = schoolUsers.find(
         (su) => su.school.id === user.current_school_id,

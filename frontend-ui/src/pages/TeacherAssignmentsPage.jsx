@@ -1,23 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Box, Card, CardActionArea, CardContent, Container, Grid, Typography } from '@mui/material';
+import { Alert, Button, Card, CardContent, Container, Grid, Stack, Typography } from '@mui/material';
 import { motion } from 'motion/react';
 import { Link as RouterLink } from 'react-router-dom';
-import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useApiGet } from '../hooks/useApiGet.js';
 
 export default function TeacherAssignmentsPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
-  const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!schoolId) return;
-    api
-      .get(`/schools/${schoolId}/my-assignments`)
-      .then((r) => setAssignments(r.data))
-      .finally(() => setLoading(false));
-  }, [schoolId]);
+  const { data, loading, error } = useApiGet(schoolId ? `/schools/${schoolId}/my-assignments` : null);
+  const assignments = data ?? [];
 
   if (!schoolId) {
     return (
@@ -38,19 +29,31 @@ export default function TeacherAssignmentsPage() {
         Cliquez sur un cours pour saisir les notes de vos élèves.
       </Typography>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
       <Grid container spacing={2}>
         {assignments.map((a, i) => (
           <Grid key={a.id} size={{ xs: 12, sm: 6, md: 4 }}>
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: i * 0.05 }}>
               <Card variant="outlined">
-                <CardActionArea component={RouterLink} to={`/dashboard/assignments/${a.id}/grades`} sx={{ p: 1 }}>
-                  <CardContent>
-                    <Typography variant="subtitle1">{a.subject.name}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {a.school_class.name} · {a.school_class.level?.name}
-                    </Typography>
-                  </CardContent>
-                </CardActionArea>
+                <CardContent>
+                  <Typography variant="subtitle1">{a.subject.name}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {a.school_class.name} · {a.school_class.level?.name}
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" variant="outlined" component={RouterLink} to={`/dashboard/assignments/${a.id}/grades`}>
+                      Notes
+                    </Button>
+                    <Button size="small" variant="outlined" component={RouterLink} to={`/dashboard/assignments/${a.id}/attendances`}>
+                      Absences
+                    </Button>
+                  </Stack>
+                </CardContent>
               </Card>
             </motion.div>
           </Grid>

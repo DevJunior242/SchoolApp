@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Box,
@@ -23,6 +23,7 @@ import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useApiGet } from '../hooks/useApiGet.js';
 import { usePaginatedList } from '../hooks/usePaginatedList.js';
 
 export default function DashboardClassesPage() {
@@ -30,13 +31,26 @@ export default function DashboardClassesPage() {
   const schoolId = user.current_school_id;
   const countryId = user.current_school?.country_id;
 
-  const { data: classes, page, setPage, lastPage, search, setSearch, loading, reload } = usePaginatedList(
-    schoolId ? `/schools/${schoolId}/classes` : null
-  );
+  const {
+    data: classes,
+    page,
+    setPage,
+    lastPage,
+    search,
+    setSearch,
+    loading,
+    error: listError,
+    reload,
+  } = usePaginatedList(schoolId ? `/schools/${schoolId}/classes` : null);
 
-  const [levels, setLevels] = useState([]);
-  const [teachers, setTeachers] = useState([]);
-  const [subjects, setSubjects] = useState([]);
+  const { data: levels, error: levelsError } = useApiGet('/levels', { params: countryId ? { country_id: countryId } : {} });
+  const { data: teachersData, error: teachersError } = useApiGet(schoolId ? `/schools/${schoolId}/teachers` : null, {
+    params: { per_page: 100 },
+  });
+  const teachers = teachersData?.data ?? [];
+  const { data: subjects, error: subjectsError } = useApiGet('/subjects');
+
+  const auxError = levelsError || teachersError || subjectsError;
 
   const [classModalOpen, setClassModalOpen] = useState(false);
   const [classForm, setClassForm] = useState({ name: '', level_id: '' });
@@ -47,13 +61,6 @@ export default function DashboardClassesPage() {
   const [assignForm, setAssignForm] = useState({ subject_id: '', user_id: '' });
   const [assignError, setAssignError] = useState(null);
   const [assignSubmitting, setAssignSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!schoolId) return;
-    api.get('/levels', { params: countryId ? { country_id: countryId } : {} }).then((r) => setLevels(r.data));
-    api.get(`/schools/${schoolId}/teachers`, { params: { per_page: 100 } }).then((r) => setTeachers(r.data.data));
-    api.get('/subjects').then((r) => setSubjects(r.data));
-  }, [schoolId, countryId]);
 
   function closeClassModal() {
     setClassModalOpen(false);
@@ -119,6 +126,12 @@ export default function DashboardClassesPage() {
           Ajouter une classe
         </Button>
       </Stack>
+
+      {(listError || auxError) && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {listError || auxError}
+        </Alert>
+      )}
 
       <TextField
         placeholder="Rechercher une classe..."
@@ -211,7 +224,7 @@ export default function DashboardClassesPage() {
               required
               fullWidth
             >
-              {levels.map((level) => (
+              {(levels ?? []).map((level) => (
                 <MenuItem key={level.id} value={level.id}>
                   {level.name}
                 </MenuItem>
@@ -240,7 +253,7 @@ export default function DashboardClassesPage() {
               required
               fullWidth
             >
-              {subjects.map((subject) => (
+              {(subjects ?? []).map((subject) => (
                 <MenuItem key={subject.id} value={subject.id}>
                   {subject.name}
                 </MenuItem>

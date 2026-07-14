@@ -28,9 +28,17 @@ const emptyForm = { fullname: '', email: '', phone: '' };
 export default function DashboardTeachersPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
-  const { data: teachers, page, setPage, lastPage, search, setSearch, loading, reload } = usePaginatedList(
-    schoolId ? `/schools/${schoolId}/teachers` : null
-  );
+  const {
+    data: teachers,
+    page,
+    setPage,
+    lastPage,
+    search,
+    setSearch,
+    loading,
+    error: listError,
+    reload,
+  } = usePaginatedList(schoolId ? `/schools/${schoolId}/teachers` : null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
@@ -79,6 +87,12 @@ export default function DashboardTeachersPage() {
           Ajouter un professeur
         </Button>
       </Stack>
+
+      {listError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {listError}
+        </Alert>
+      )}
 
       <TextField
         placeholder="Rechercher un professeur..."

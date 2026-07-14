@@ -20,6 +20,10 @@ import BulletinPage from './pages/BulletinPage.jsx';
 import DashboardParentsPage from './pages/DashboardParentsPage.jsx';
 import DashboardPaymentsPage from './pages/DashboardPaymentsPage.jsx';
 import ParentPaymentsPage from './pages/ParentPaymentsPage.jsx';
+import AttendanceEntryPage from './pages/AttendanceEntryPage.jsx';
+import ParentAttendancePage from './pages/ParentAttendancePage.jsx';
+import AttendanceJustificationsPage from './pages/AttendanceJustificationsPage.jsx';
+import TeacherTimetablePage from './pages/TeacherTimetablePage.jsx';
 
 function App() {
   return (
@@ -53,6 +57,10 @@ function App() {
         <Route path="parents" element={<DashboardParentsPage />} />
         <Route path="payments" element={<DashboardPaymentsPage />} />
         <Route path="my-children-payments" element={<ParentPaymentsPage />} />
+        <Route path="assignments/:assignmentId/attendances" element={<AttendanceEntryPage />} />
+        <Route path="my-children-attendances" element={<ParentAttendancePage />} />
+        <Route path="attendance-justifications" element={<AttendanceJustificationsPage />} />
+        <Route path="my-timetable" element={<TeacherTimetablePage />} />
       </Route>
     </Routes>
   );

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Avatar,
   Box,
   Card,
@@ -33,20 +34,24 @@ function calculateAge(dateString) {
 export default function DashboardParentsPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
-  const { data: parents, page, setPage, lastPage, search, setSearch, loading } = usePaginatedList(
+  const { data: parents, page, setPage, lastPage, search, setSearch, loading, error: listError } = usePaginatedList(
     schoolId ? `/schools/${schoolId}/parents` : null
   );
 
   const [selectedParent, setSelectedParent] = useState(null);
   const [children, setChildren] = useState([]);
   const [childrenLoading, setChildrenLoading] = useState(false);
+  const [childrenError, setChildrenError] = useState(null);
 
   async function openParent(parent) {
     setSelectedParent(parent);
     setChildrenLoading(true);
+    setChildrenError(null);
     try {
       const response = await api.get(`/schools/${schoolId}/parents/${parent.user.id}/children`);
       setChildren(response.data);
+    } catch (err) {
+      setChildrenError(err.response?.data?.message || 'Impossible de charger les enfants de ce parent.');
     } finally {
       setChildrenLoading(false);
     }
@@ -55,6 +60,7 @@ export default function DashboardParentsPage() {
   function closeModal() {
     setSelectedParent(null);
     setChildren([]);
+    setChildrenError(null);
   }
 
   if (!schoolId) {
@@ -73,6 +79,12 @@ export default function DashboardParentsPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Cliquez sur un parent pour voir ses enfants inscrits dans cette école.
       </Typography>
+
+      {listError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {listError}
+        </Alert>
+      )}
 
       <TextField
         placeholder="Rechercher un parent..."
@@ -127,6 +139,11 @@ export default function DashboardParentsPage() {
       <Dialog open={Boolean(selectedParent)} onClose={closeModal} fullWidth maxWidth="sm">
         <DialogTitle>Enfants de {selectedParent?.user.fullname}</DialogTitle>
         <DialogContent>
+          {childrenError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {childrenError}
+            </Alert>
+          )}
           {childrenLoading ? (
             <Typography color="text.secondary">Chargement...</Typography>
           ) : (

@@ -6,11 +6,18 @@ export function useSchools() {
   const { refreshUser } = useAuth();
   const [schoolUsers, setSchoolUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
-    const response = await api.get('/my-schools');
-    setSchoolUsers(response.data);
-    setLoading(false);
+    setError(null);
+    try {
+      const response = await api.get('/my-schools');
+      setSchoolUsers(response.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Impossible de charger vos écoles.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -27,5 +34,5 @@ export function useSchools() {
     await Promise.all([load(), refreshUser()]);
   }
 
-  return { schoolUsers, loading, createSchool, switchSchool, reload: load };
+  return { schoolUsers, loading, error, createSchool, switchSchool, reload: load };
 }

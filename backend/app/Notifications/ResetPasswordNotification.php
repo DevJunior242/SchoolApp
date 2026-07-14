@@ -14,7 +14,7 @@ class ResetPasswordNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['mail'];
+        return ['brevo'];
     }
 
     public function toMail($notifiable): MailMessage

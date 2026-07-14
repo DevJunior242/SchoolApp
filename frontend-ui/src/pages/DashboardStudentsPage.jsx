@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Avatar,
@@ -27,6 +27,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useApiGet } from '../hooks/useApiGet.js';
 import { usePaginatedList } from '../hooks/usePaginatedList.js';
 import { useSchools } from '../hooks/useSchools.js';
 
@@ -82,21 +83,20 @@ export default function DashboardStudentsPage() {
     search,
     setSearch,
     loading,
+    error: listError,
     reload,
   } = usePaginatedList(schoolId ? `/schools/${schoolId}/students` : null, { class_id: classFilter || undefined });
 
-  const [classes, setClasses] = useState([]);
+  const { data: classesData, error: classesError } = useApiGet(schoolId ? `/schools/${schoolId}/classes` : null, {
+    params: { per_page: 1000 },
+  });
+  const classes = classesData?.data ?? [];
 
   const [open, setOpen] = useState(false);
   const [batch, setBatch] = useState([emptyRow()]);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!schoolId) return;
-    api.get(`/schools/${schoolId}/classes`, { params: { per_page: 1000 } }).then((r) => setClasses(r.data.data));
-  }, [schoolId]);
 
   function updateRow(index, field, value) {
     setBatch((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
@@ -174,6 +174,12 @@ export default function DashboardStudentsPage() {
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
           {success}
+        </Alert>
+      )}
+
+      {(listError || classesError) && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {listError || classesError}
         </Alert>
       )}
 

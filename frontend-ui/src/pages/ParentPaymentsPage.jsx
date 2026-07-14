@@ -42,6 +42,7 @@ export default function ParentPaymentsPage() {
   const [methods, setMethods] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [form, setForm] = useState(emptyForm());
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -56,17 +57,25 @@ export default function ParentPaymentsPage() {
         if (r.data.length > 0) setSelectedChildId(r.data[0].id);
       }),
       api.get(`/schools/${schoolId}/payment-methods`).then((r) => setMethods(r.data)),
-    ]).finally(() => setLoading(false));
+    ])
+      .catch((err) => setLoadError(err.response?.data?.message || 'Impossible de charger vos paiements.'))
+      .finally(() => setLoading(false));
   }, [schoolId]);
 
   async function loadSummary(childId) {
-    const response = await api.get(`/schools/${schoolId}/students/${childId}/payments`);
-    setSummary(response.data);
+    setLoadError(null);
+    try {
+      const response = await api.get(`/schools/${schoolId}/students/${childId}/payments`);
+      setSummary(response.data);
+    } catch (err) {
+      setLoadError(err.response?.data?.message || "Impossible de charger le suivi de cet enfant.");
+    }
   }
 
   useEffect(() => {
     if (!selectedChildId) return;
     loadSummary(selectedChildId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChildId]);
 
   async function handleSubmit(e) {
@@ -110,6 +119,12 @@ export default function ParentPaymentsPage() {
       <Typography variant="h5" fontWeight={700} gutterBottom>
         Paiements de scolarité
       </Typography>
+
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {loadError}
+        </Alert>
+      )}
 
       {children.length > 1 && (
         <Tabs value={selectedChildId} onChange={(_, value) => setSelectedChildId(value)} sx={{ mb: 3 }}>

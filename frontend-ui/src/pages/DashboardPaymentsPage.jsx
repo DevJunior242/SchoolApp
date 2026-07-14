@@ -58,6 +58,7 @@ export default function DashboardPaymentsPage() {
   const [levels, setLevels] = useState([]);
   const [feeLevel, setFeeLevel] = useState('');
   const [feeStructures, setFeeStructures] = useState([]);
+  const [configError, setConfigError] = useState(null);
 
   const [methodModalOpen, setMethodModalOpen] = useState(false);
   const [methodForm, setMethodForm] = useState(emptyMethodForm());
@@ -84,25 +85,38 @@ export default function DashboardPaymentsPage() {
     setPage,
     lastPage,
     loading: paymentsLoading,
+    error: paymentsError,
     reload: reloadPayments,
   } = usePaginatedList(schoolId ? `/schools/${schoolId}/payments` : null, {
     status: statusFilter === '' ? undefined : statusFilter,
   });
 
   async function loadMethods() {
-    const response = await api.get(`/schools/${schoolId}/payment-methods`);
-    setMethods(response.data);
+    try {
+      const response = await api.get(`/schools/${schoolId}/payment-methods`);
+      setMethods(response.data);
+    } catch (err) {
+      setConfigError(err.response?.data?.message || 'Impossible de charger les moyens de paiement.');
+    }
   }
 
   async function loadFeeStructures(levelId) {
-    const response = await api.get(`/schools/${schoolId}/fee-structures`, { params: { level_id: levelId || undefined } });
-    setFeeStructures(response.data);
+    try {
+      const response = await api.get(`/schools/${schoolId}/fee-structures`, { params: { level_id: levelId || undefined } });
+      setFeeStructures(response.data);
+    } catch (err) {
+      setConfigError(err.response?.data?.message || 'Impossible de charger les tranches de scolarité.');
+    }
   }
 
   useEffect(() => {
     if (!schoolId) return;
     loadMethods();
-    api.get('/levels', { params: user.current_school?.country_id ? { country_id: user.current_school.country_id } : {} }).then((r) => setLevels(r.data));
+    api
+      .get('/levels', { params: user.current_school?.country_id ? { country_id: user.current_school.country_id } : {} })
+      .then((r) => setLevels(r.data))
+      .catch((err) => setConfigError(err.response?.data?.message || 'Impossible de charger les niveaux.'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
   useEffect(() => {
@@ -163,15 +177,23 @@ export default function DashboardPaymentsPage() {
       return;
     }
     const timeout = setTimeout(() => {
-      api.get(`/schools/${schoolId}/students`, { params: { search: studentSearch, per_page: 5 } }).then((r) => setStudentResults(r.data.data));
+      api
+        .get(`/schools/${schoolId}/students`, { params: { search: studentSearch, per_page: 5 } })
+        .then((r) => setStudentResults(r.data.data))
+        .catch((err) => setCollectError(err.response?.data?.message || 'Impossible de rechercher les élèves.'));
     }, 300);
     return () => clearTimeout(timeout);
   }, [collectModalOpen, studentSearch, schoolId]);
 
   async function selectStudent(schoolStudent) {
     setSelectedStudent(schoolStudent.student);
-    const response = await api.get(`/schools/${schoolId}/students/${schoolStudent.student.id}/payments`);
-    setCollectSummary(response.data);
+    setCollectError(null);
+    try {
+      const response = await api.get(`/schools/${schoolId}/students/${schoolStudent.student.id}/payments`);
+      setCollectSummary(response.data);
+    } catch (err) {
+      setCollectError(err.response?.data?.message || "Impossible de charger le suivi de cet élève.");
+    }
   }
 
   function closeCollectModal() {
@@ -244,6 +266,12 @@ export default function DashboardPaymentsPage() {
           Encaisser un paiement
         </Button>
       </Stack>
+
+      {(configError || paymentsError) && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {configError || paymentsError}
+        </Alert>
+      )}
 
       {canManageConfig && (
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -476,6 +504,7 @@ export default function DashboardPaymentsPage() {
         <DialogContent>
           {!selectedStudent ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              {collectError && <Alert severity="error">{collectError}</Alert>}
               <TextField
                 label="Rechercher un élève"
                 value={studentSearch}
@@ -508,12 +537,13 @@ export default function DashboardPaymentsPage() {
                 </Button>
               </Stack>
 
+              {collectError && <Alert severity="error" sx={{ mb: 2 }}>{collectError}</Alert>}
+
               {collectSummary && (
                 <>
                   <Alert severity={collectSummary.balance > 0 ? 'warning' : 'success'} sx={{ mb: 2 }}>
                     Solde restant : {Number(collectSummary.balance).toLocaleString()} FCFA
                   </Alert>
-                  {collectError && <Alert severity="error" sx={{ mb: 2 }}>{collectError}</Alert>}
                   {collectSuccess && <Alert severity="success" sx={{ mb: 2 }}>{collectSuccess}</Alert>}
                   <Box component="form" onSubmit={handleCollectSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField

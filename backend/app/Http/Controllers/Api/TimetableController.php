@@ -30,6 +30,27 @@ class TimetableController extends Controller
         );
     }
 
+    /**
+     * L'emploi du temps personnel du professeur connecté, toutes classes et
+     * matières confondues, dans cette école.
+     */
+    public function mine(Request $request, School $school)
+    {
+        return response()->json(
+            TimetableSlot::query()
+                ->whereHas(
+                    'classSubjectTeacher',
+                    fn ($query) => $query
+                        ->where('user_id', $request->user()->id)
+                        ->whereHas('schoolClass', fn ($q) => $q->where('school_id', $school->id))
+                )
+                ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.schoolClass'])
+                ->orderBy('day_of_week')
+                ->orderBy('start_time')
+                ->get()
+        );
+    }
+
     public function store(Request $request, School $school, SchoolClass $schoolClass)
     {
         $this->authorizeDirecteur($request, $school);

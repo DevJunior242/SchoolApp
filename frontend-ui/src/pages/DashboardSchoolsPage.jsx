@@ -1,28 +1,38 @@
+import { useState } from "react";
 import {
+    Alert,
     Box,
+    Button,
     Card,
     CardActionArea,
     CardContent,
     Chip,
-    Container,
     Grid,
     Paper,
     Stack,
     Typography,
 } from "@mui/material";
 import { motion } from "motion/react";
+import AddIcon from "@mui/icons-material/Add";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSchools } from "../hooks/useSchools.js";
+import CreateSchoolModal from "../components/CreateSchoolModal.jsx";
 
 export default function DashboardSchoolsPage() {
     const { user } = useAuth();
-    const { schoolUsers, loading, switchSchool } = useSchools();
+    const { schoolUsers, loading, error, switchSchool, reload } = useSchools();
+    const [createSchoolOpen, setCreateSchoolOpen] = useState(false);
 
     if (loading)
         return <Typography color="text.secondary">Chargement...</Typography>;
 
     return (
         <Box>
+            {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    {error}
+                </Alert>
+            )}
             <Paper
                 sx={{
                     p: { xs: 3, md: 4 },
@@ -32,12 +42,28 @@ export default function DashboardSchoolsPage() {
                     bgcolor: "rgba(255,255,255,0.03)",
                 }}
             >
-                <Typography variant="h5" fontWeight={700} gutterBottom>
-                    Mes écoles
-                </Typography>
-                <Typography color="text.secondary">
-                    Cliquez sur une école pour en faire votre école active.
-                </Typography>
+                <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={2}
+                    sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}
+                >
+                    <Box>
+                        <Typography variant="h5" fontWeight={700} gutterBottom>
+                            Mes écoles
+                        </Typography>
+                        <Typography color="text.secondary">
+                            Cliquez sur une école pour en faire votre école active.
+                        </Typography>
+                    </Box>
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => setCreateSchoolOpen(true)}
+                        sx={{ flexShrink: 0 }}
+                    >
+                        Créer une école
+                    </Button>
+                </Stack>
             </Paper>
 
             <Grid container spacing={2}>
@@ -112,6 +138,13 @@ export default function DashboardSchoolsPage() {
                     </Grid>
                 )}
             </Grid>
+
+            <CreateSchoolModal
+                open={createSchoolOpen}
+                onClose={() => setCreateSchoolOpen(false)}
+                onCreated={reload}
+                redirectToDashboard={false}
+            />
         </Box>
     );
 }

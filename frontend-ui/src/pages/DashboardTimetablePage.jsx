@@ -40,6 +40,7 @@ export default function DashboardTimetablePage() {
   const [schoolClass, setSchoolClass] = useState(null);
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ class_subject_teacher_id: '', day_of_week: '', start_time: '', end_time: '', room: '' });
@@ -52,12 +53,15 @@ export default function DashboardTimetablePage() {
   }
 
   useEffect(() => {
+    setLoadError(null);
     Promise.all([
       api
         .get(`/schools/${schoolId}/classes`, { params: { search: '', per_page: 1000 } })
         .then((r) => setSchoolClass(r.data.data.find((c) => c.id === classId))),
       loadSlots(),
-    ]).finally(() => setLoading(false));
+    ])
+      .catch((err) => setLoadError(err.response?.data?.message || "Impossible de charger l'emploi du temps."))
+      .finally(() => setLoading(false));
   }, [schoolId, classId]);
 
   function closeModal() {
@@ -106,6 +110,12 @@ export default function DashboardTimetablePage() {
           Ajouter un créneau
         </Button>
       </Stack>
+
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {loadError}
+        </Alert>
+      )}
 
       <Grid container spacing={2}>
         {DAYS.map((day) => (

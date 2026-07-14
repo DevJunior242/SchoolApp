@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Season;
 use App\Models\TimetableSlot;
 use App\Models\Grade;
+use App\Models\Attendance;
 
 class ClassSubjectTeacher extends Model
 {
@@ -49,5 +50,10 @@ class ClassSubjectTeacher extends Model
     public function grades(): HasMany
     {
         return $this->hasMany(Grade::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
     }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
@@ -36,9 +37,11 @@ const emptyForm = {
 
 export default function GradeEntryPage() {
   const { assignmentId } = useParams();
+  const [assignment, setAssignment] = useState(null);
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -49,10 +52,14 @@ export default function GradeEntryPage() {
   }
 
   useEffect(() => {
+    setLoadError(null);
     Promise.all([
+      api.get(`/assignments/${assignmentId}`).then((r) => setAssignment(r.data)),
       api.get(`/assignments/${assignmentId}/students`).then((r) => setStudents(r.data)),
       loadGrades(),
-    ]).finally(() => setLoading(false));
+    ])
+      .catch((err) => setLoadError(err.response?.data?.message || 'Impossible de charger ce cours.'))
+      .finally(() => setLoading(false));
   }, [assignmentId]);
 
   function handleTypeChange(value) {
@@ -87,6 +94,18 @@ export default function GradeEntryPage() {
       <Typography variant="h5" fontWeight={700} gutterBottom>
         Saisie des notes
       </Typography>
+      {assignment && (
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          {assignment.subject.name} · {assignment.school_class.name}
+          {assignment.school_class.level ? ` (${assignment.school_class.level.name})` : ''}
+        </Typography>
+      )}
+
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {loadError}
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 5 }}>
@@ -100,20 +119,16 @@ export default function GradeEntryPage() {
               </Alert>
             )}
             <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                select
-                label="Élève"
-                value={form.student_id}
-                onChange={(e) => setForm((prev) => ({ ...prev, student_id: e.target.value }))}
-                required
+              <Autocomplete
+                options={students}
+                getOptionLabel={(s) => s.student.fullname}
+                isOptionEqualToValue={(option, value) => option.student_id === value.student_id}
+                value={students.find((s) => s.student_id === form.student_id) ?? null}
+                onChange={(_, newValue) => setForm((prev) => ({ ...prev, student_id: newValue?.student_id ?? '' }))}
+                renderInput={(params) => <TextField {...params} label="Élève" required />}
+                noOptionsText="Aucun élève trouvé"
                 fullWidth
-              >
-                {students.map((s) => (
-                  <MenuItem key={s.id} value={s.student_id}>
-                    {s.student.fullname}
-                  </MenuItem>
-                ))}
-              </TextField>
+              />
               <TextField
                 select
                 label="Type d'évaluation"
@@ -185,7 +200,7 @@ export default function GradeEntryPage() {
                     <Box>
                       <Typography variant="subtitle2">{g.student.fullname}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {g.title || g.evaluation_type} · {g.graded_at}
+                        {g.title || g.evaluation_type} · {new Date(g.graded_at).toLocaleDateString('fr-FR')}
                       </Typography>
                     </Box>
                     <Stack direction="row" spacing={1} alignItems="center">

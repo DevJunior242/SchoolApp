@@ -21,6 +21,17 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Garde le header X-School-Id (envoyé automatiquement par axios) en phase
+  // avec l'école active, pour que le middleware backend puisse s'y fier sans
+  // que chaque page n'ait à le gérer elle-même.
+  useEffect(() => {
+    if (user?.current_school_id) {
+      localStorage.setItem('current_school_id', user.current_school_id);
+    } else {
+      localStorage.removeItem('current_school_id');
+    }
+  }, [user]);
+
   async function login(email, password) {
     const response = await api.post('/login', { email, password });
     localStorage.setItem('token', response.data.token);

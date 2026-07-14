@@ -41,6 +41,20 @@ trait AuthorizesSchoolDirecteur
         );
     }
 
+    /**
+     * Le suivi des absences (justification, validation) relève aussi du
+     * censeur et du surveillant général, pas uniquement du directeur.
+     */
+    private function authorizeAttendanceValidator(Request $request, School $school): void
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['directeur', 'censeur', 'surveillant'],
+            "Vous n'avez pas accès à la validation des absences."
+        );
+    }
+
     private function authorizeRoles(Request $request, School $school, array $slugs, string $message): void
     {
         $authorized = SchoolUser::query()

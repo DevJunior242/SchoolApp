@@ -8,6 +8,7 @@ use App\Models\SchoolStudent;
 use App\Models\ClassStudent;
 use App\Models\Grade;
 use App\Models\Payment;
+use App\Models\Attendance;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -66,5 +67,10 @@ class Student extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
     }
 }

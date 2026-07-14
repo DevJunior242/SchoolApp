@@ -1,18 +1,25 @@
-import { useState } from 'react';
-import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
-import { motion } from 'motion/react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Paper,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { motion } from "motion/react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    fullname: '',
-    email: '',
-    phone: '',
-    password: '',
-    password_confirmation: '',
+    fullname: "",
+    email: "",
+    phone: "",
+    password: "",
+    password_confirmation: "",
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -27,10 +34,14 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       await register(form);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setError(messages ? Object.values(messages).flat().join(' ') : 'Inscription impossible.');
+      setError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Inscription impossible.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -39,21 +50,21 @@ export default function RegisterPage() {
   return (
     <Box
       sx={{
-        minHeight: '80vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        minHeight: "80vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         px: 2,
         py: 4,
       }}
     >
       <motion.div
-        style={{ width: '100%', maxWidth: 380 }}
+        style={{ width: "100%", maxWidth: 380 }}
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 }, width: '100%' }}>
+        <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 }, width: "100%" }}>
           <Typography variant="h5" component="h1" gutterBottom>
             Créer un compte
           </Typography>
@@ -64,12 +75,16 @@ export default function RegisterPage() {
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             <TextField
               id="fullname"
               label="Nom complet"
               value={form.fullname}
-              onChange={handleChange('fullname')}
+              onChange={handleChange("fullname")}
               required
               fullWidth
             />
@@ -78,7 +93,7 @@ export default function RegisterPage() {
               label="Email"
               type="email"
               value={form.email}
-              onChange={handleChange('email')}
+              onChange={handleChange("email")}
               required
               fullWidth
             />
@@ -86,7 +101,7 @@ export default function RegisterPage() {
               id="phone"
               label="Téléphone"
               value={form.phone}
-              onChange={handleChange('phone')}
+              onChange={handleChange("phone")}
               fullWidth
             />
             <TextField
@@ -94,7 +109,7 @@ export default function RegisterPage() {
               label="Mot de passe"
               type="password"
               value={form.password}
-              onChange={handleChange('password')}
+              onChange={handleChange("password")}
               required
               fullWidth
             />
@@ -103,12 +118,17 @@ export default function RegisterPage() {
               label="Confirmer le mot de passe"
               type="password"
               value={form.password_confirmation}
-              onChange={handleChange('password_confirmation')}
+              onChange={handleChange("password_confirmation")}
               required
               fullWidth
             />
-            <Button type="submit" variant="contained" disabled={submitting} fullWidth>
-              {submitting ? 'Création...' : 'Créer mon compte'}
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={submitting}
+              fullWidth
+            >
+              {submitting ? "Création..." : "Créer mon compte"}
             </Button>
             <Button component={RouterLink} to="/login" variant="text" fullWidth>
               J'ai déjà un compte
