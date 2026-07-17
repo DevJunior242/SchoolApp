@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,7 +25,21 @@ class School extends Model
 
     const STATUS_ACTIVE = 1;
 
-    protected $fillable = ['country_id', 'name', 'address', 'phone', 'email', 'status'];
+    const LANGUAGE_FR = 'fr';
+
+    const LANGUAGE_EN = 'en';
+
+    protected $fillable = [
+        'country_id', 'name', 'logo', 'slogan', 'address', 'city', 'phone', 'email', 'website',
+        'status', 'language', 'currency',
+    ];
+
+    protected $appends = ['logo_url'];
+
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->logo ? asset('storage/'.$this->logo) : null);
+    }
 
     public function country(): BelongsTo
     {

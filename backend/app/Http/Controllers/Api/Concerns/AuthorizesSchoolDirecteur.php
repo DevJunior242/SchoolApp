@@ -55,6 +55,20 @@ trait AuthorizesSchoolDirecteur
         );
     }
 
+    /**
+     * La création d'événements (réunions, examens, sorties...) est déléguée
+     * au directeur, au censeur et au secrétariat.
+     */
+    private function authorizeEventManager(Request $request, School $school): void
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['directeur', 'censeur', 'secretaire'],
+            "Vous n'êtes pas autorisé à gérer les événements de cette école."
+        );
+    }
+
     private function authorizeRoles(Request $request, School $school, array $slugs, string $message): void
     {
         $authorized = SchoolUser::query()

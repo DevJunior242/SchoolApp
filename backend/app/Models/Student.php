@@ -21,7 +21,7 @@ class Student extends Model
 
     protected $fillable = [
         'user_id', 'fullname', 'date_of_birth', 'gender',
-        'birth_place', 'blood_type', 'medical_notes', 'photo',
+        'birth_place', 'blood_type', 'medical_notes', 'photo', 'matricule',
     ];
 
     protected function casts(): array
@@ -29,6 +29,31 @@ class Student extends Model
         return [
             'date_of_birth' => 'date',
         ];
+    }
+
+    /**
+     * Matricule attribué une seule fois, à vie : contrairement au matricule
+     * saisi côté SchoolStudent (propre à chaque établissement), celui-ci
+     * identifie l'élève de façon permanente, quelle que soit l'école
+     * rejointe par la suite.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Student $student) {
+            if ($student->matricule) {
+                return;
+            }
+
+            $school = request()->route('school');
+            $countryCode = $school?->country?->iso_code ?? 'XX';
+            $year = date('Y');
+
+            $sequence = static::query()
+                ->where('matricule', 'like', "ELV-{$countryCode}-{$year}-%")
+                ->count() + 1;
+
+            $student->matricule = sprintf('ELV-%s-%s-%04d', strtoupper($countryCode), $year, $sequence);
+        });
     }
 
     public function isMajeur(): bool

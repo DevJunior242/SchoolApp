@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CountrySeeder;
 use Database\Seeders\DemoSchoolSeeder;
@@ -31,6 +32,12 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'fullname' => 'Test User',
             'email' => 'test@example.com',
+        ]);
+
+        User::factory()->create([
+            'fullname' => 'Super Admin',
+            'email' => 'superadmin@eduafrique.com',
+            'role_id' => Role::query()->where('slug', 'superadmin')->firstOrFail()->id,
         ]);
     }
 }

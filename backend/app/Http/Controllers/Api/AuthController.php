@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -21,6 +22,7 @@ class AuthController extends Controller
             'phone' => ['nullable', 'string', 'max:30'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'language' => ['nullable', 'string', 'size:2'],
+            'terms_accepted' => ['required', 'accepted'],
         ]);
 
         $user = User::create([
@@ -29,12 +31,16 @@ class AuthController extends Controller
             'phone' => $validated['phone'] ?? null,
             'password' => Hash::make($validated['password']),
             'language' => $validated['language'] ?? 'fr',
+            'terms_accepted_version' => config('legal.terms_version'),
+            'terms_accepted_at' => now(),
         ]);
+
+        event(new Registered($user));
 
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
-            'user' => $user->load('currentSchool.country'),
+            'user' => $user->load(['currentSchool.country', 'role']),
             'token' => $token,
         ], 201);
     }
@@ -57,7 +63,7 @@ class AuthController extends Controller
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
-            'user' => $user->load('currentSchool.country'),
+            'user' => $user->load(['currentSchool.country', 'role']),
             'token' => $token,
         ]);
     }
@@ -71,7 +77,7 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user()->load('currentSchool.country'));
+        return response()->json($request->user()->load(['currentSchool.country', 'role']));
     }
 
     public function forgotPassword(Request $request)
@@ -112,5 +118,37 @@ class AuthController extends Controller
         }
 
         return response()->json(['message' => 'Mot de passe réinitialisé avec succès.']);
+    }
+
+    /**
+     * Route signée (pas d'authentification requise) : le lien reçu par
+     * email suffit à prouver l'identité, comme pour le reset de mot de
+     * passe. Le frontend rappelle cette route avec les mêmes paramètres
+     * (id, hash, expires, signature) que ceux générés dans l'email.
+     */
+    public function verifyEmail(Request $request, string $id)
+    {
+        $user = User::findOrFail($id);
+
+        if (! hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+            abort(403, 'Lien de vérification invalide.');
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+        }
+
+        return response()->json(['message' => 'Email vérifié avec succès.']);
+    }
+
+    public function resendVerification(Request $request)
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Cet email est déjà vérifié.']);
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return response()->json(['message' => 'Email de vérification envoyé.']);
     }
 }

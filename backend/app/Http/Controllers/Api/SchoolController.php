@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Controller;
+use App\Models\ActivationKey;
 use App\Models\Role;
 use App\Models\School;
 use App\Models\SchoolUser;
@@ -11,9 +13,13 @@ use App\Models\Season;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class SchoolController extends Controller
 {
+    use AuthorizesSchoolDirecteur;
+
     public function index()
     {
         return response()->json(
@@ -42,14 +48,23 @@ class SchoolController extends Controller
             'address' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
+            'activation_key' => ['required', 'string'],
         ]);
+
+        $activationKey = ActivationKey::query()->where('key', $validated['activation_key'])->first();
+
+        if (! $activationKey || $activationKey->status !== ActivationKey::STATUS_DISPONIBLE) {
+            throw ValidationException::withMessages([
+                'activation_key' => ["Cette clé d'activation est invalide ou déjà utilisée."],
+            ]);
+        }
 
         $user = $request->user();
         $directeurRole = Role::query()->where('slug', 'directeur')->firstOrFail();
 
-        $school = DB::transaction(function () use ($validated, $user, $directeurRole) {
+        $school = DB::transaction(function () use ($validated, $user, $directeurRole, $activationKey) {
             $school = School::query()->create([
-                ...$validated,
+                ...collect($validated)->except('activation_key')->all(),
                 'status' => School::STATUS_ACTIVE,
             ]);
 
@@ -64,10 +79,58 @@ class SchoolController extends Controller
 
             $this->createDefaultSchoolYear($school);
 
+            $activationKey->update([
+                'status' => ActivationKey::STATUS_UTILISEE,
+                'school_id' => $school->id,
+                'used_at' => now(),
+            ]);
+
             return $school;
         });
 
         return response()->json($school->load('country'), 201);
+    }
+
+    /**
+     * Détail complet d'une école pour l'écran de paramètres (le directeur
+     * uniquement, les autres rôles n'ont pas à modifier ces informations).
+     */
+    public function show(Request $request, School $school)
+    {
+        $this->authorizeDirecteur($request, $school);
+
+        return response()->json($school->load('country'));
+    }
+
+    public function update(Request $request, School $school)
+    {
+        $this->authorizeDirecteur($request, $school);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'logo' => ['nullable', 'image', 'max:2048'],
+            'slogan' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'website' => ['nullable', 'url', 'max:255'],
+            'language' => ['required', 'in:'.School::LANGUAGE_FR.','.School::LANGUAGE_EN],
+            'currency' => ['nullable', 'string', 'max:10'],
+        ]);
+
+        if ($request->hasFile('logo')) {
+            if ($school->logo) {
+                Storage::disk('public')->delete($school->logo);
+            }
+            $validated['logo'] = $request->file('logo')->store('schools/logos', 'public');
+        } else {
+            unset($validated['logo']);
+        }
+
+        $school->update($validated);
+
+        return response()->json($school->load('country'));
     }
 
     public function switchTo(Request $request, School $school)

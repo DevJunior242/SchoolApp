@@ -12,10 +12,16 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('country_id')->constrained()->cascadeOnDelete();
             $table->string('name');
+            $table->string('logo')->nullable();
+            $table->string('slogan')->nullable();
             $table->string('address')->nullable();
+            $table->string('city')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
+            $table->string('website')->nullable();
             $table->tinyInteger('status')->default(1);
+            $table->string('language', 5)->default('fr');
+            $table->string('currency', 10)->nullable();
             $table->timestamps();
         });
     }
