@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
     Alert,
     Box,
@@ -13,15 +12,15 @@ import {
     Typography,
 } from "@mui/material";
 import { motion } from "motion/react";
+import { alpha } from "@mui/material/styles";
+import { Link as RouterLink } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSchools } from "../hooks/useSchools.js";
-import CreateSchoolModal from "../components/CreateSchoolModal.jsx";
 
 export default function DashboardSchoolsPage() {
     const { user } = useAuth();
-    const { schoolUsers, loading, error, switchSchool, reload } = useSchools();
-    const [createSchoolOpen, setCreateSchoolOpen] = useState(false);
+    const { schoolUsers, loading, error, switchSchool } = useSchools();
 
     if (loading)
         return <Typography color="text.secondary">Chargement...</Typography>;
@@ -34,13 +33,13 @@ export default function DashboardSchoolsPage() {
                 </Alert>
             )}
             <Paper
-                sx={{
+                sx={(theme) => ({
                     p: { xs: 3, md: 4 },
                     mb: 3,
                     border: "1px solid",
                     borderColor: "divider",
-                    bgcolor: "rgba(255,255,255,0.03)",
-                }}
+                    bgcolor: alpha(theme.palette.text.primary, 0.03),
+                })}
             >
                 <Stack
                     direction={{ xs: "column", sm: "row" }}
@@ -56,9 +55,10 @@ export default function DashboardSchoolsPage() {
                         </Typography>
                     </Box>
                     <Button
+                        component={RouterLink}
+                        to="/create-school"
                         variant="contained"
                         startIcon={<AddIcon />}
-                        onClick={() => setCreateSchoolOpen(true)}
                         sx={{ flexShrink: 0 }}
                     >
                         Créer une école
@@ -76,11 +76,11 @@ export default function DashboardSchoolsPage() {
                         >
                             <Card
                                 variant="outlined"
-                                sx={{
+                                sx={(theme) => ({
                                     height: "100%",
-                                    bgcolor: "rgba(255,255,255,0.025)",
+                                    bgcolor: alpha(theme.palette.text.primary, 0.025),
                                     borderColor: "divider",
-                                }}
+                                })}
                             >
                                 <CardActionArea
                                     onClick={() => switchSchool(su.school.id)}
@@ -124,12 +124,12 @@ export default function DashboardSchoolsPage() {
                 {schoolUsers.length === 0 && (
                     <Grid size={12}>
                         <Paper
-                            sx={{
+                            sx={(theme) => ({
                                 p: 3,
                                 border: "1px solid",
                                 borderColor: "divider",
-                                bgcolor: "rgba(255,255,255,0.03)",
-                            }}
+                                bgcolor: alpha(theme.palette.text.primary, 0.03),
+                            })}
                         >
                             <Typography color="text.secondary">
                                 Vous n'appartenez à aucune école pour l'instant.
@@ -138,13 +138,6 @@ export default function DashboardSchoolsPage() {
                     </Grid>
                 )}
             </Grid>
-
-            <CreateSchoolModal
-                open={createSchoolOpen}
-                onClose={() => setCreateSchoolOpen(false)}
-                onCreated={reload}
-                redirectToDashboard={false}
-            />
         </Box>
     );
 }

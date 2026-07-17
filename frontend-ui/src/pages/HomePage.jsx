@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  Avatar,
   Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   Container,
   Grid,
@@ -10,6 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { motion } from "motion/react";
+import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
 import SchoolIcon from "@mui/icons-material/School";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -18,7 +22,8 @@ import PublicIcon from "@mui/icons-material/Public";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
-import CreateSchoolModal from "../components/CreateSchoolModal.jsx";
+import { useApiGet } from "../hooks/useApiGet.js";
+import EnrollmentRequestModal from "../components/EnrollmentRequestModal.jsx";
 
 const features = [
   {
@@ -72,8 +77,6 @@ const stats = [
 ];
 
 export default function HomePage() {
-  const [createSchoolOpen, setCreateSchoolOpen] = useState(false);
-
   useEffect(() => {
     if (!window.location.hash) return;
     const id = window.location.hash.slice(1);
@@ -83,28 +86,22 @@ export default function HomePage() {
     return () => clearTimeout(timeout);
   }, []);
 
-  return (
-    <>
-      <MarketingHome onCreateSchool={() => setCreateSchoolOpen(true)} />
-      <CreateSchoolModal
-        open={createSchoolOpen}
-        onClose={() => setCreateSchoolOpen(false)}
-      />
-    </>
-  );
+  return <MarketingHome />;
 }
 
-function MarketingHome({ onCreateSchool }) {
+function MarketingHome() {
   return (
     <Box sx={{ bgcolor: "background.default", color: "text.primary" }}>
       <Box
-        sx={{
+        sx={(theme) => ({
           position: "relative",
           overflow: "hidden",
           py: { xs: 8, md: 12 },
           background:
-            "radial-gradient(circle at top left, rgba(201,162,39,0.22), transparent 35%), linear-gradient(135deg, #050505 0%, #111111 100%)",
-        }}
+            theme.palette.mode === "dark"
+              ? "radial-gradient(circle at top left, rgba(201,162,39,0.22), transparent 35%), linear-gradient(135deg, #050505 0%, #111111 100%)"
+              : "radial-gradient(circle at top left, rgba(201,162,39,0.16), transparent 35%), linear-gradient(135deg, #F7F5F0 0%, #EFEAE0 100%)",
+        })}
       >
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
@@ -155,7 +152,8 @@ function MarketingHome({ onCreateSchool }) {
                   sx={{ mb: 3 }}
                 >
                   <Button
-                    onClick={onCreateSchool}
+                    component={RouterLink}
+                    to="/create-school"
                     variant="contained"
                     color="primary"
                     size="large"
@@ -181,12 +179,12 @@ function MarketingHome({ onCreateSchool }) {
                     <Paper
                       key={item.label}
                       variant="outlined"
-                      sx={{
+                      sx={(theme) => ({
                         px: 2,
                         py: 1.2,
                         minWidth: 140,
-                        bgcolor: "rgba(255,255,255,0.03)",
-                      }}
+                        bgcolor: alpha(theme.palette.text.primary, 0.03),
+                      })}
                     >
                       <Typography variant="h6" color="primary.main">
                         {item.value}
@@ -208,13 +206,13 @@ function MarketingHome({ onCreateSchool }) {
               >
                 <Paper
                   elevation={0}
-                  sx={{
+                  sx={(theme) => ({
                     p: { xs: 2.5, md: 3 },
                     border: "1px solid",
                     borderColor: "divider",
-                    bgcolor: "rgba(255,255,255,0.03)",
+                    bgcolor: alpha(theme.palette.text.primary, 0.03),
                     boxShadow: "0 20px 60px rgba(0, 0, 0, 0.35)",
-                  }}
+                  })}
                 >
                   <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                     <Chip label="Tableau de bord" color="primary" />
@@ -314,12 +312,12 @@ function MarketingHome({ onCreateSchool }) {
                         Progression du trimestre
                       </Typography>
                       <Box
-                        sx={{
+                        sx={(theme) => ({
                           height: 8,
                           borderRadius: 999,
-                          bgcolor: "rgba(255,255,255,0.08)",
+                          bgcolor: alpha(theme.palette.text.primary, 0.08),
                           overflow: "hidden",
-                        }}
+                        })}
                       >
                         <Box
                           sx={{
@@ -356,13 +354,13 @@ function MarketingHome({ onCreateSchool }) {
               >
                 <Paper
                   elevation={0}
-                  sx={{
+                  sx={(theme) => ({
                     p: 3,
                     height: "100%",
                     border: "1px solid",
                     borderColor: "divider",
-                    bgcolor: "rgba(255,255,255,0.02)",
-                  }}
+                    bgcolor: alpha(theme.palette.text.primary, 0.02),
+                  })}
                 >
                   {feature.icon}
                   <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
@@ -378,15 +376,17 @@ function MarketingHome({ onCreateSchool }) {
         </Grid>
       </Container>
 
+      <SchoolsSlider />
+
       <Box
         id="etablissements"
-        sx={{
+        sx={(theme) => ({
           py: { xs: 6, md: 8 },
           borderTop: "1px solid",
           borderColor: "divider",
-          bgcolor: "rgba(255,255,255,0.02)",
+          bgcolor: alpha(theme.palette.text.primary, 0.02),
           scrollMarginTop: 80,
-        }}
+        })}
       >
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
@@ -414,13 +414,13 @@ function MarketingHome({ onCreateSchool }) {
                   >
                     <Paper
                       variant="outlined"
-                      sx={{
+                      sx={(theme) => ({
                         p: 2.2,
                         display: "flex",
                         gap: 1.5,
                         alignItems: "flex-start",
-                        bgcolor: "rgba(255,255,255,0.03)",
-                      }}
+                        bgcolor: alpha(theme.palette.text.primary, 0.03),
+                      })}
                     >
                       {item.icon}
                       <Box>
@@ -460,7 +460,8 @@ function MarketingHome({ onCreateSchool }) {
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <Button
-                onClick={onCreateSchool}
+                component={RouterLink}
+                to="/create-school"
                 variant="contained"
                 color="primary"
                 size="large"
@@ -481,5 +482,82 @@ function MarketingHome({ onCreateSchool }) {
         </Container>
       </Box>
     </Box>
+  );
+}
+
+function SchoolsSlider() {
+  const { data: schools } = useApiGet("/schools");
+  const [selectedSchool, setSelectedSchool] = useState(null);
+
+  if (!schools || schools.length === 0) return null;
+
+  return (
+    <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <Typography variant="h4" sx={{ mb: 1, fontWeight: 700 }}>
+        Nos écoles
+      </Typography>
+      <Typography color="text.secondary" sx={{ mb: 3 }}>
+        Des établissements déjà présents sur EduAfrique. Envoyez une demande de pré-inscription en
+        quelques clics.
+      </Typography>
+
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          overflowX: "auto",
+          pb: 1,
+          scrollSnapType: "x mandatory",
+          "& > *": { scrollSnapAlign: "start", flexShrink: 0 },
+        }}
+      >
+        {schools.map((school, i) => (
+          <motion.div
+            key={school.id}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.05 }}
+          >
+            <Card
+              variant="outlined"
+              sx={(theme) => ({
+                width: 260,
+                bgcolor: alpha(theme.palette.text.primary, 0.03),
+              })}
+            >
+              <CardContent>
+                <Stack direction="row" spacing={1.5} sx={{ mb: 1.5, alignItems: "center" }}>
+                  <Avatar src={school.logo_url ?? undefined} variant="rounded">
+                    {school.name.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="subtitle1" noWrap>
+                      {school.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                      {[school.city, school.country?.name].filter(Boolean).join(", ")}
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  onClick={() => setSelectedSchool(school)}
+                >
+                  Envoyer une demande
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </Box>
+
+      <EnrollmentRequestModal
+        open={Boolean(selectedSchool)}
+        school={selectedSchool}
+        onClose={() => setSelectedSchool(null)}
+      />
+    </Container>
   );
 }

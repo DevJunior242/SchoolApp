@@ -1,6 +1,7 @@
-import { Box, Container, IconButton, Stack, Typography } from '@mui/material';
+import { Box, Container, IconButton, Link as MuiLink, Stack, Typography } from '@mui/material';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import FacebookIcon from '@mui/icons-material/Facebook';
+import { Link as RouterLink } from 'react-router-dom';
 
 const SOCIAL_LINKS = [
   { label: 'LinkedIn', icon: <LinkedInIcon />, href: 'https://www.linkedin.com/company/intellino-sarl/' },
@@ -19,6 +20,14 @@ export default function Footer() {
           <Typography variant="body2" color="text.secondary">
             © {new Date().getFullYear()} EduAfrique — Une solution Intellino.
           </Typography>
+          <Stack direction="row" spacing={2}>
+            <MuiLink component={RouterLink} to="/terms" variant="body2" color="text.secondary">
+              CGU
+            </MuiLink>
+            <MuiLink component={RouterLink} to="/privacy" variant="body2" color="text.secondary">
+              Confidentialité
+            </MuiLink>
+          </Stack>
           <Stack direction="row" spacing={1}>
             {SOCIAL_LINKS.map((link) => (
               <IconButton

@@ -30,6 +30,13 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import ScheduleIcon from "@mui/icons-material/Schedule";
+import EventIcon from "@mui/icons-material/Event";
+import SettingsIcon from "@mui/icons-material/Settings";
+import VpnKeyIcon from "@mui/icons-material/VpnKey";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import { alpha } from "@mui/material/styles";
 import {
     Link as RouterLink,
     Outlet,
@@ -37,8 +44,10 @@ import {
     useNavigate,
 } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useThemeMode } from "../context/ThemeModeContext.jsx";
 import { useSchools } from "../hooks/useSchools.js";
 import NotificationCenter from "../components/NotificationCenter.jsx";
+import VerifyEmailBanner from "../components/VerifyEmailBanner.jsx";
 
 const drawerWidth = 250;
 
@@ -50,6 +59,7 @@ const DIRECTEUR_NAV_ITEMS = [
         exact: true,
     },
     { label: "Mes écoles", to: "/dashboard/schools", icon: <ApartmentIcon /> },
+    { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
     { label: "Membres", to: "/dashboard/members", icon: <GroupsIcon /> },
     { label: "Classes", to: "/dashboard/classes", icon: <MenuBookIcon /> },
     { label: "Professeurs", to: "/dashboard/teachers", icon: <PersonIcon /> },
@@ -57,6 +67,8 @@ const DIRECTEUR_NAV_ITEMS = [
     { label: "Parents", to: "/dashboard/parents", icon: <FamilyRestroomIcon /> },
     { label: "Paiements", to: "/dashboard/payments", icon: <PaymentsIcon /> },
     { label: "Justifications d'absences", to: "/dashboard/attendance-justifications", icon: <FactCheckIcon /> },
+    { label: "Demandes d'inscription", to: "/dashboard/enrollment-requests", icon: <HowToRegIcon /> },
+    { label: "Paramètres", to: "/dashboard/settings", icon: <SettingsIcon /> },
 ];
 
 const PROFESSEUR_NAV_ITEMS = [
@@ -68,6 +80,7 @@ const PROFESSEUR_NAV_ITEMS = [
     },
     { label: "Mes cours", to: "/dashboard/my-assignments", icon: <MenuBookOutlinedIcon /> },
     { label: "Mon emploi du temps", to: "/dashboard/my-timetable", icon: <ScheduleIcon /> },
+    { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
 ];
 
 const PARENT_NAV_ITEMS = [
@@ -79,6 +92,7 @@ const PARENT_NAV_ITEMS = [
     },
     { label: "Paiements", to: "/dashboard/my-children-payments", icon: <PaymentsIcon /> },
     { label: "Absences de mes enfants", to: "/dashboard/my-children-attendances", icon: <EventBusyIcon /> },
+    { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
 ];
 
 // Le censeur et le surveillant général valident les justifications
@@ -90,10 +104,24 @@ const CENSEUR_NAV_ITEMS = [
         icon: <DashboardIcon />,
         exact: true,
     },
+    { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
     { label: "Justifications d'absences", to: "/dashboard/attendance-justifications", icon: <FactCheckIcon /> },
 ];
 
 const SURVEILLANT_NAV_ITEMS = CENSEUR_NAV_ITEMS;
+
+// Le superadmin de la plateforme n'appartient à aucune école : son rôle
+// vient de users.role_id (rôle global), pas du pivot school_users.
+const SUPERADMIN_NAV_ITEMS = [
+    {
+        label: "Vue d'ensemble",
+        to: "/dashboard",
+        icon: <DashboardIcon />,
+        exact: true,
+    },
+    { label: "Écoles", to: "/dashboard/all-schools", icon: <ApartmentIcon /> },
+    { label: "Clés d'activation", to: "/dashboard/activation-keys", icon: <VpnKeyIcon /> },
+];
 
 // Le secrétariat inscrit les élèves et encaisse les paiements, mais ne gère
 // ni les membres/profs/classes ni les moyens de paiement/tranches.
@@ -106,6 +134,8 @@ const SECRETAIRE_NAV_ITEMS = [
     },
     { label: "Élèves", to: "/dashboard/students", icon: <School2Icon /> },
     { label: "Paiements", to: "/dashboard/payments", icon: <PaymentsIcon /> },
+    { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
+    { label: "Demandes d'inscription", to: "/dashboard/enrollment-requests", icon: <HowToRegIcon /> },
 ];
 
 // Le comptable consulte les élèves et gère intégralement les paiements
@@ -119,16 +149,19 @@ const COMPTABLE_NAV_ITEMS = [
     },
     { label: "Élèves", to: "/dashboard/students", icon: <School2Icon /> },
     { label: "Paiements", to: "/dashboard/payments", icon: <PaymentsIcon /> },
+    { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
 ];
 
 export default function DashboardLayout() {
     const { user, logout } = useAuth();
+    const { mode, toggleMode } = useThemeMode();
     const { schoolUsers, loading: schoolUsersLoading } = useSchools();
     const location = useLocation();
     const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
 
+    const isSuperAdmin = user.role?.slug === "superadmin";
     const currentRole = schoolUsers.find((su) => su.school.id === user.current_school_id)?.role?.slug;
     const NAV_ITEMS_BY_ROLE = {
         professeur: PROFESSEUR_NAV_ITEMS,
@@ -139,10 +172,14 @@ export default function DashboardLayout() {
         surveillant: SURVEILLANT_NAV_ITEMS,
     };
     // Tant que le rôle n'est pas connu, on n'affiche que Vue d'ensemble pour
-    // éviter un flash vers un lien auquel le rôle réel n'a pas accès.
-    const navItems = schoolUsersLoading
-        ? [DIRECTEUR_NAV_ITEMS[0]]
-        : (NAV_ITEMS_BY_ROLE[currentRole] ?? DIRECTEUR_NAV_ITEMS);
+    // éviter un flash vers un lien auquel le rôle réel n'a pas accès. Le
+    // superadmin a un menu dédié basé sur son rôle global, indépendant des
+    // écoles auxquelles il pourrait appartenir.
+    const navItems = isSuperAdmin
+        ? SUPERADMIN_NAV_ITEMS
+        : schoolUsersLoading
+            ? [DIRECTEUR_NAV_ITEMS[0]]
+            : (NAV_ITEMS_BY_ROLE[currentRole] ?? DIRECTEUR_NAV_ITEMS);
 
     async function handleLogout() {
         setAnchorEl(null);
@@ -207,7 +244,7 @@ export default function DashboardLayout() {
                             disabled={item.disabled}
                             selected={isActive(item)}
                             onClick={() => setMobileOpen(false)}
-                            sx={{
+                            sx={(theme) => ({
                                 borderRadius: 2,
                                 px: 1.5,
                                 py: 1,
@@ -219,9 +256,9 @@ export default function DashboardLayout() {
                                     color: "primary.main",
                                 },
                                 "&:hover": {
-                                    bgcolor: "rgba(255,255,255,0.04)",
+                                    bgcolor: alpha(theme.palette.text.primary, 0.04),
                                 },
-                            }}
+                            })}
                         >
                             <ListItemIcon
                                 sx={{ minWidth: 36, color: "inherit" }}
@@ -257,14 +294,14 @@ export default function DashboardLayout() {
             <AppBar
                 position="fixed"
                 elevation={0}
-                sx={{
+                sx={(theme) => ({
                     width: { sm: `calc(100% - ${drawerWidth}px)` },
                     ml: { sm: `${drawerWidth}px` },
                     borderBottom: "1px solid",
                     borderColor: "divider",
-                    bgcolor: "rgba(5, 5, 5, 0.9)",
+                    bgcolor: alpha(theme.palette.background.default, 0.9),
                     backdropFilter: "blur(14px)",
-                }}
+                })}
             >
                 <Toolbar sx={{ gap: 1, px: { xs: 2, sm: 3 } }}>
                     <IconButton
@@ -282,8 +319,17 @@ export default function DashboardLayout() {
                         sx={{ flexGrow: 1, fontWeight: 700 }}
                         noWrap
                     >
-                        {user.current_school?.name ?? "Aucune école active"}
+                        {isSuperAdmin ? "Administration de la plateforme" : (user.current_school?.name ?? "Aucune école active")}
                     </Typography>
+
+                    <IconButton
+                        color="inherit"
+                        aria-label={mode === "dark" ? "Activer le thème clair" : "Activer le thème sombre"}
+                        onClick={toggleMode}
+                        sx={{ mr: 1 }}
+                    >
+                        {mode === "dark" ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+                    </IconButton>
 
                     <NotificationCenter />
 
@@ -371,6 +417,7 @@ export default function DashboardLayout() {
             >
                 <Toolbar />
                 <Box sx={{ px: { xs: 2, sm: 3 }, py: { xs: 3, sm: 4 } }}>
+                    <VerifyEmailBanner />
                     <Outlet />
                 </Box>
             </Box>

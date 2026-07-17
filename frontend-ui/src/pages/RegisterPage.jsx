@@ -3,6 +3,8 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
+  FormControlLabel,
   Paper,
   TextField,
   Typography,
@@ -20,6 +22,7 @@ export default function RegisterPage() {
     phone: "",
     password: "",
     password_confirmation: "",
+    terms_accepted: false,
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -122,10 +125,32 @@ export default function RegisterPage() {
               required
               fullWidth
             />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={form.terms_accepted}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, terms_accepted: e.target.checked }))
+                  }
+                />
+              }
+              label={
+                <Typography variant="body2" color="text.secondary">
+                  J'accepte les{" "}
+                  <RouterLink to="/terms" target="_blank">
+                    CGU
+                  </RouterLink>{" "}
+                  et la{" "}
+                  <RouterLink to="/privacy" target="_blank">
+                    politique de confidentialité
+                  </RouterLink>
+                </Typography>
+              }
+            />
             <Button
               type="submit"
               variant="contained"
-              disabled={submitting}
+              disabled={submitting || !form.terms_accepted}
               fullWidth
             >
               {submitting ? "Création..." : "Créer mon compte"}

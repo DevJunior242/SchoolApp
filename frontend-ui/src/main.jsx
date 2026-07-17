@@ -5,11 +5,14 @@ import { ThemeProvider, CssBaseline } from '@mui/material'
 import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
-import theme from './theme.js'
+import { ThemeModeProvider, useThemeMode } from './context/ThemeModeContext.jsx'
+import { getTheme } from './theme.js'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ThemeProvider theme={theme}>
+function ThemedApp() {
+  const { mode } = useThemeMode()
+
+  return (
+    <ThemeProvider theme={getTheme(mode)}>
       <CssBaseline />
       <BrowserRouter>
         <AuthProvider>
@@ -17,5 +20,13 @@ createRoot(document.getElementById('root')).render(
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
+  )
+}
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <ThemeModeProvider>
+      <ThemedApp />
+    </ThemeModeProvider>
   </StrictMode>,
 )

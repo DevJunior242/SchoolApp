@@ -2,11 +2,15 @@ import { Route, Routes } from 'react-router-dom';
 import PublicLayout from './layouts/PublicLayout.jsx';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import SuperAdminActivationKeysPage from './pages/SuperAdminActivationKeysPage.jsx';
+import SuperAdminSchoolsPage from './pages/SuperAdminSchoolsPage.jsx';
 import HomePage from './pages/HomePage.jsx';
+import CreateSchoolPage from './pages/CreateSchoolPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
+import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
 import DashboardOverviewPage from './pages/DashboardOverviewPage.jsx';
 import DashboardSchoolsPage from './pages/DashboardSchoolsPage.jsx';
 import DashboardMembersPage from './pages/DashboardMembersPage.jsx';
@@ -24,16 +28,25 @@ import AttendanceEntryPage from './pages/AttendanceEntryPage.jsx';
 import ParentAttendancePage from './pages/ParentAttendancePage.jsx';
 import AttendanceJustificationsPage from './pages/AttendanceJustificationsPage.jsx';
 import TeacherTimetablePage from './pages/TeacherTimetablePage.jsx';
+import DashboardEventsPage from './pages/DashboardEventsPage.jsx';
+import DashboardEnrollmentRequestsPage from './pages/DashboardEnrollmentRequestsPage.jsx';
+import DashboardSettingsPage from './pages/DashboardSettingsPage.jsx';
+import TermsPage from './pages/TermsPage.jsx';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 
 function App() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/create-school" element={<CreateSchoolPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
       </Route>
 
       <Route
@@ -61,6 +74,11 @@ function App() {
         <Route path="my-children-attendances" element={<ParentAttendancePage />} />
         <Route path="attendance-justifications" element={<AttendanceJustificationsPage />} />
         <Route path="my-timetable" element={<TeacherTimetablePage />} />
+        <Route path="events" element={<DashboardEventsPage />} />
+        <Route path="enrollment-requests" element={<DashboardEnrollmentRequestsPage />} />
+        <Route path="settings" element={<DashboardSettingsPage />} />
+        <Route path="activation-keys" element={<SuperAdminActivationKeysPage />} />
+        <Route path="all-schools" element={<SuperAdminSchoolsPage />} />
       </Route>
     </Routes>
   );
