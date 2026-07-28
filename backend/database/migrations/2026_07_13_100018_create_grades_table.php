@@ -12,6 +12,9 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('class_subject_teacher_id')->constrained('class_subject_teacher')->cascadeOnDelete();
             $table->foreignUuid('student_id')->constrained('students')->cascadeOnDelete();
+            // Contrairement à l'affectation prof (valable toute l'année), une
+            // note appartient forcément à un trimestre/semestre précis.
+            $table->foreignUuid('season_id')->constrained()->cascadeOnDelete();
             $table->string('evaluation_type');
             $table->string('title')->nullable();
             $table->decimal('score', 5, 2);

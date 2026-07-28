@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\GeneratesSeasons;
 use App\Http\Controllers\Controller;
 use App\Models\ActivationKey;
+use App\Models\Grade;
 use App\Models\Role;
 use App\Models\School;
 use App\Models\SchoolUser;
@@ -18,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 class SchoolController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, GeneratesSeasons;
 
     public function index()
     {
@@ -66,6 +68,7 @@ class SchoolController extends Controller
             $school = School::query()->create([
                 ...collect($validated)->except('activation_key')->all(),
                 'status' => School::STATUS_ACTIVE,
+                'academic_period_type' => Season::TYPE_TRIMESTRE,
             ]);
 
             SchoolUser::query()->create([
@@ -117,6 +120,7 @@ class SchoolController extends Controller
             'website' => ['nullable', 'url', 'max:255'],
             'language' => ['required', 'in:'.School::LANGUAGE_FR.','.School::LANGUAGE_EN],
             'currency' => ['nullable', 'string', 'max:10'],
+            'academic_period_type' => ['nullable', 'in:'.Season::TYPE_TRIMESTRE.','.Season::TYPE_SEMESTRE],
         ]);
 
         if ($request->hasFile('logo')) {
@@ -128,9 +132,39 @@ class SchoolController extends Controller
             unset($validated['logo']);
         }
 
+        if (! empty($validated['academic_period_type']) && $validated['academic_period_type'] !== $school->academic_period_type) {
+            $this->changeAcademicPeriodType($school, $validated['academic_period_type']);
+        }
+
         $school->update($validated);
 
         return response()->json($school->load('country'));
+    }
+
+    /**
+     * On ne régénère les trimestres/semestres de l'année en cours que si
+     * aucune note n'y est encore rattachée : sinon on risquerait de
+     * supprimer des notes déjà saisies (cascade sur seasons -> grades).
+     */
+    private function changeAcademicPeriodType(School $school, string $newType): void
+    {
+        $currentYear = $school->schoolYears()->where('is_current', true)->first();
+
+        if (! $currentYear) {
+            return;
+        }
+
+        $seasonIds = $currentYear->seasons()->pluck('id');
+        $hasGrades = Grade::query()->whereIn('season_id', $seasonIds)->exists();
+
+        if ($hasGrades) {
+            throw ValidationException::withMessages([
+                'academic_period_type' => ["Impossible de changer ce réglage : des notes existent déjà pour l'année scolaire en cours."],
+            ]);
+        }
+
+        $currentYear->seasons()->delete();
+        $this->createSeasonsForYear($school, $currentYear, $newType);
     }
 
     public function switchTo(Request $request, School $school)
@@ -183,12 +217,6 @@ class SchoolController extends Controller
             'is_current' => true,
         ]);
 
-        Season::query()->create([
-            'school_id' => $school->id,
-            'school_year_id' => $schoolYear->id,
-            'type' => Season::TYPE_TRIMESTRE,
-            'label' => 'Trimestre 1',
-            'order' => 1,
-        ]);
+        $this->createSeasonsForYear($school, $schoolYear, $school->academic_period_type);
     }
 }

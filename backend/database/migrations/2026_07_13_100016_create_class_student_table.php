@@ -12,11 +12,10 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('class_id')->constrained('classes')->cascadeOnDelete();
             $table->foreignUuid('student_id')->constrained('students')->cascadeOnDelete();
-            $table->foreignUuid('season_id')->constrained()->cascadeOnDelete();
             $table->tinyInteger('status')->default(1);
             $table->timestamps();
 
-            $table->index(['class_id', 'student_id', 'season_id']);
+            $table->index(['class_id', 'student_id']);
         });
     }
 

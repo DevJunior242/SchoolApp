@@ -9,10 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\User;
-use App\Models\Season;
 use App\Models\TimetableSlot;
 use App\Models\Grade;
 use App\Models\Attendance;
+use App\Models\CourseContent;
 
 class ClassSubjectTeacher extends Model
 {
@@ -20,7 +20,12 @@ class ClassSubjectTeacher extends Model
 
     protected $table = 'class_subject_teacher';
 
-    protected $fillable = ['class_id', 'subject_id', 'user_id', 'season_id'];
+    protected $fillable = ['class_id', 'subject_id', 'user_id', 'coefficient'];
+
+    protected function casts(): array
+    {
+        return ['coefficient' => 'decimal:2'];
+    }
 
     public function schoolClass(): BelongsTo
     {
@@ -37,11 +42,6 @@ class ClassSubjectTeacher extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function season(): BelongsTo
-    {
-        return $this->belongsTo(Season::class);
-    }
-
     public function timetableSlots(): HasMany
     {
         return $this->hasMany(TimetableSlot::class);
@@ -55,5 +55,10 @@ class ClassSubjectTeacher extends Model
     public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class);
+    }
+
+    public function courseContents(): HasMany
+    {
+        return $this->hasMany(CourseContent::class);
     }
 }

@@ -16,6 +16,8 @@ use App\Models\SchoolClass;
 use App\Models\PaymentMethod;
 use App\Models\FeeStructure;
 use App\Models\Payment;
+use App\Models\Bus;
+use App\Models\Book;
 
 class School extends Model
 {
@@ -31,7 +33,8 @@ class School extends Model
 
     protected $fillable = [
         'country_id', 'name', 'logo', 'slogan', 'address', 'city', 'phone', 'email', 'website',
-        'status', 'language', 'currency',
+        'status', 'language', 'currency', 'academic_period_type', 'cafeteria_low_balance_threshold',
+        'library_loan_duration_days',
     ];
 
     protected $appends = ['logo_url'];
@@ -82,5 +85,15 @@ class School extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function buses(): HasMany
+    {
+        return $this->hasMany(Bus::class);
+    }
+
+    public function books(): HasMany
+    {
+        return $this->hasMany(Book::class);
     }
 }

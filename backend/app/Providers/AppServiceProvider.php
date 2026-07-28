@@ -36,5 +36,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('verification-email', fn ($request) => Limit::perMinute(3)->by($request->user()?->id ?: $request->ip()));
         RateLimiter::for('activation-key-validate', fn ($request) => Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()));
         RateLimiter::for('enrollment-requests', fn ($request) => Limit::perMinute(5)->by($request->ip()));
+        RateLimiter::for('message-send', fn ($request) => Limit::perMinute(20)->by($request->user()?->id ?: $request->ip()));
     }
 }

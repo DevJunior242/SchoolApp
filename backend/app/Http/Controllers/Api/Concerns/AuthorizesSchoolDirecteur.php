@@ -29,14 +29,17 @@ trait AuthorizesSchoolDirecteur
 
     /**
      * Le comptable a aussi besoin de retrouver un élève pour encaisser un
-     * paiement en direct, sans pour autant pouvoir inscrire de nouveaux élèves.
+     * paiement en direct, sans pour autant pouvoir inscrire de nouveaux
+     * élèves ; l'infirmier a besoin de la liste pour rejoindre la fiche
+     * santé d'un élève ; le bibliothécaire en a besoin pour la recherche
+     * manuelle (badge oublié) au comptoir de prêt/retour.
      */
     private function authorizeStudentViewer(Request $request, School $school): void
     {
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'secretaire', 'comptable'],
+            ['directeur', 'secretaire', 'comptable', 'infirmier', 'bibliothecaire'],
             "Vous n'avez pas accès à la liste des élèves."
         );
     }
@@ -66,6 +69,34 @@ trait AuthorizesSchoolDirecteur
             $school,
             ['directeur', 'censeur', 'secretaire'],
             "Vous n'êtes pas autorisé à gérer les événements de cette école."
+        );
+    }
+
+    /**
+     * La messagerie "contacter l'école" est traitée par le directeur et le
+     * secrétariat, qui voient l'ensemble des fils de discussion.
+     */
+    private function authorizeMessageStaff(Request $request, School $school): void
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['directeur', 'secretaire'],
+            "Vous n'avez pas accès à la messagerie de l'école."
+        );
+    }
+
+    /**
+     * La gestion de la bibliothèque (catalogue, prêts/retours, documents
+     * numériques) est déléguée au bibliothécaire, en plus du directeur.
+     */
+    private function authorizeLibrarian(Request $request, School $school): void
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['directeur', 'bibliothecaire'],
+            "Vous n'avez pas accès à la gestion de la bibliothèque."
         );
     }
 

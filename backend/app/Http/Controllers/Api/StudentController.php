@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
 use App\Http\Controllers\Controller;
+use App\Models\BusStop;
 use App\Models\ClassStudent;
 use App\Models\ParentStudent;
 use App\Models\Role;
@@ -14,6 +15,7 @@ use App\Models\SchoolStudent;
 use App\Models\SchoolUser;
 use App\Models\Student;
 use App\Models\User;
+use App\Notifications\StudentEnrolledNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,55 @@ use Illuminate\Support\Facades\Hash;
 class StudentController extends Controller
 {
     use AuthorizesSchoolDirecteur, ResolvesMemberUser;
+
+    /**
+     * Le compte élève (majeur, avec son propre login) récupère sa propre
+     * fiche — utilisé notamment pour générer son badge cantine.
+     */
+    public function mine(Request $request, School $school)
+    {
+        $student = $request->user()->studentProfile;
+        abort_unless($student, 404);
+
+        $enrolled = ClassStudent::query()
+            ->where('student_id', $student->id)
+            ->where('status', ClassStudent::STATUS_ACTIVE)
+            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->exists();
+        abort_unless($enrolled, 404);
+
+        return response()->json($student);
+    }
+
+    /**
+     * Rattache l'élève à un arrêt de bus précis (ou le retire du ramassage
+     * scolaire si bus_stop_id est vide).
+     */
+    public function assignBusStop(Request $request, School $school, Student $student)
+    {
+        $this->authorizeStudentRegistrar($request, $school);
+
+        $validated = $request->validate([
+            'bus_stop_id' => ['nullable', 'uuid', 'exists:bus_stops,id'],
+        ]);
+
+        $schoolStudent = SchoolStudent::query()
+            ->where('school_id', $school->id)
+            ->where('student_id', $student->id)
+            ->firstOrFail();
+
+        if (! empty($validated['bus_stop_id'])) {
+            $belongsToSchool = BusStop::query()
+                ->where('id', $validated['bus_stop_id'])
+                ->whereHas('bus', fn ($query) => $query->where('school_id', $school->id))
+                ->exists();
+            abort_unless($belongsToSchool, 404);
+        }
+
+        $schoolStudent->update(['bus_stop_id' => $validated['bus_stop_id'] ?? null]);
+
+        return response()->json($schoolStudent->load('busStop'));
+    }
 
     public function index(Request $request, School $school)
     {
@@ -32,7 +83,13 @@ class StudentController extends Controller
                 ->where('school_id', $school->id)
                 ->when(
                     $request->query('search'),
-                    fn ($query, $search) => $query->whereHas('student', fn ($q) => $q->where('fullname', 'like', "%{$search}%"))
+                    // Le matricule est unique, contrairement au nom (des
+                    // élèves différents peuvent avoir des noms proches) :
+                    // chercher sur les deux évite de servir/débiter le
+                    // mauvais élève depuis la recherche manuelle de la cantine.
+                    fn ($query, $search) => $query->whereHas('student', fn ($q) => $q
+                        ->where('fullname', 'like', "%{$search}%")
+                        ->orWhere('matricule', 'like', "%{$search}%"))
                 )
                 ->when(
                     $request->query('class_id'),
@@ -49,6 +106,7 @@ class StudentController extends Controller
                         ->latest('created_at')
                         ->limit(1)
                         ->with('schoolClass'),
+                    'busStop.bus',
                 ])
                 ->paginate($request->integer('per_page', 10))
         );
@@ -156,12 +214,19 @@ class StudentController extends Controller
             ]
         );
 
-        $season = $class->schoolYear->seasons()->orderBy('order')->firstOrFail();
-
+        // L'inscription vaut pour toute l'année scolaire, pas pour un seul
+        // trimestre/semestre.
         ClassStudent::query()->updateOrCreate(
-            ['class_id' => $class->id, 'student_id' => $student->id, 'season_id' => $season->id],
+            ['class_id' => $class->id, 'student_id' => $student->id],
             ['status' => ClassStudent::STATUS_ACTIVE]
         );
+
+        // Le matricule doit atteindre le parent (et l'élève s'il a son
+        // propre compte) même s'ils ne se connectent jamais à la plateforme.
+        $parentUser->notify(new StudentEnrolledNotification($student));
+        if ($studentUser) {
+            $studentUser->notify(new StudentEnrolledNotification($student));
+        }
 
         return $student->load('user', 'parents');
     }

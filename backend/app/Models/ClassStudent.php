@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Models\SchoolClass;
 use App\Models\Student;
-use App\Models\Season;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -19,7 +18,7 @@ class ClassStudent extends Pivot
 
     const STATUS_TRANSFERRED_OUT = 2;
 
-    protected $fillable = ['class_id', 'student_id', 'season_id', 'status'];
+    protected $fillable = ['class_id', 'student_id', 'status'];
 
     public function schoolClass(): BelongsTo
     {
@@ -29,10 +28,5 @@ class ClassStudent extends Pivot
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
-    }
-
-    public function season(): BelongsTo
-    {
-        return $this->belongsTo(Season::class);
     }
 }

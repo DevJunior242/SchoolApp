@@ -41,7 +41,7 @@ class SchoolClass extends Model
     {
         return $this->belongsToMany(Student::class, 'class_student')
             ->using(ClassStudent::class)
-            ->withPivot('season_id', 'status')
+            ->withPivot('status')
             ->withTimestamps();
     }
 

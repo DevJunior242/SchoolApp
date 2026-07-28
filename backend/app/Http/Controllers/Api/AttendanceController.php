@@ -61,14 +61,13 @@ class AttendanceController extends Controller
 
         $enrolledStudentIds = ClassStudent::query()
             ->where('class_id', $assignment->class_id)
-            ->where('season_id', $assignment->season_id)
             ->pluck('student_id')
             ->all();
 
         foreach ($validated['records'] as $record) {
             if (! in_array($record['student_id'], $enrolledStudentIds, true)) {
                 throw ValidationException::withMessages([
-                    'records' => ["Un élève sélectionné n'est pas inscrit dans cette classe pour cette saison."],
+                    'records' => ["Un élève sélectionné n'est pas inscrit dans cette classe."],
                 ]);
             }
         }

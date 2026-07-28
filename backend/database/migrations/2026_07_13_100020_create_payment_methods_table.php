@@ -10,7 +10,10 @@ return new class extends Migration
     {
         Schema::create('payment_methods', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('school_id')->constrained()->cascadeOnDelete();
+            // Nullable : un moyen de paiement sans école est un moyen de
+            // paiement plateforme (abonnement marketplace, géré par le
+            // superadmin), pas un moyen de paiement d'école.
+            $table->foreignUuid('school_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('number')->nullable();
             $table->text('instructions')->nullable();

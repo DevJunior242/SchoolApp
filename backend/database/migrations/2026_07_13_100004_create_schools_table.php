@@ -22,6 +22,7 @@ return new class extends Migration
             $table->tinyInteger('status')->default(1);
             $table->string('language', 5)->default('fr');
             $table->string('currency', 10)->nullable();
+            $table->string('academic_period_type', 10)->default('trimestre');
             $table->timestamps();
         });
     }

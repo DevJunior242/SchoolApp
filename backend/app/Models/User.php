@@ -23,6 +23,7 @@ use App\Models\SchoolUser;
 use App\Models\Student;
 use App\Models\ParentStudent;
 use App\Models\ClassSubjectTeacher;
+use App\Models\ServiceProvider;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 
@@ -63,6 +64,11 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function studentProfile(): HasOne
     {
         return $this->hasOne(Student::class);
+    }
+
+    public function serviceProvider(): HasOne
+    {
+        return $this->hasOne(ServiceProvider::class);
     }
 
     public function childStudents(): BelongsToMany

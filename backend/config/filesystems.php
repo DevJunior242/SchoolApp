@@ -47,6 +47,37 @@ return [
             'report' => false,
         ],
 
+        // Documents médicaux : jamais servi via une route publique (pas de
+        // `serve`), contrairement au disque `local` par défaut. L'accès ne
+        // passe que par un contrôleur qui vérifie l'autorisation avant de
+        // streamer le fichier.
+        'health' => [
+            'driver' => 'local',
+            'root' => storage_path('app/health'),
+            'throw' => false,
+            'report' => false,
+        ],
+
+        // Documents numériques de la bibliothèque : même logique que le
+        // disque `health`, pas de `serve` public — l'accès (et la
+        // restriction par niveau) passe uniquement par le contrôleur.
+        'library' => [
+            'driver' => 'local',
+            'root' => storage_path('app/library'),
+            'throw' => false,
+            'report' => false,
+        ],
+
+        // Contenus de cours (devoirs/examens en PDF) : même isolation que
+        // `health`/`library`, accès uniquement via un contrôleur qui
+        // vérifie l'appartenance à la classe avant de streamer le fichier.
+        'courses' => [
+            'driver' => 'local',
+            'root' => storage_path('app/courses'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

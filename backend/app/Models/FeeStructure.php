@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\School;
 use App\Models\Level;
+use App\Models\Season;
 use App\Models\SchoolYear;
 use App\Models\Payment;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -15,7 +16,13 @@ class FeeStructure extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['school_id', 'level_id', 'school_year_id', 'label', 'amount', 'due_date', 'order'];
+    const CATEGORY_TUITION = 1;
+
+    const CATEGORY_CAFETERIA_SUBSCRIPTION = 2;
+
+    protected $fillable = [
+        'school_id', 'level_id', 'season_id', 'school_year_id', 'category', 'label', 'amount', 'due_date', 'order',
+    ];
 
     protected function casts(): array
     {
@@ -33,6 +40,11 @@ class FeeStructure extends Model
     public function level(): BelongsTo
     {
         return $this->belongsTo(Level::class);
+    }
+
+    public function season(): BelongsTo
+    {
+        return $this->belongsTo(Season::class);
     }
 
     public function schoolYear(): BelongsTo

@@ -13,10 +13,13 @@ return new class extends Migration
             $table->foreignUuid('class_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('subject_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignUuid('season_id')->constrained()->cascadeOnDelete();
+            // Le poids de la matière dans la moyenne générale de la classe
+            // (ex: Maths coef 4, Musique coef 1) — propre à cette affectation
+            // classe+matière, pas à la matière elle-même.
+            $table->decimal('coefficient', 4, 2)->default(1);
             $table->timestamps();
 
-            $table->index(['class_id', 'subject_id', 'user_id', 'season_id'], 'cst_class_subject_user_season_idx');
+            $table->index(['class_id', 'subject_id', 'user_id'], 'cst_class_subject_user_idx');
         });
     }
 

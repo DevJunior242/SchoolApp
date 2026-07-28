@@ -9,11 +9,22 @@ use App\Models\ClassStudent;
 use App\Models\Grade;
 use App\Models\Payment;
 use App\Models\Attendance;
+use App\Models\StudentAllergy;
+use App\Models\StudentHealthDocument;
+use App\Models\StudentHealthProfile;
+use App\Models\StudentMedicalVisit;
+use App\Models\StudentMedication;
+use App\Models\StudentVaccination;
+use App\Models\StudentWallet;
+use App\Models\CafeteriaMealService;
+use App\Models\BookLoan;
+use App\Models\BookReservation;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Student extends Model
 {
@@ -97,5 +108,55 @@ class Student extends Model
     public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class);
+    }
+
+    public function healthProfile(): HasOne
+    {
+        return $this->hasOne(StudentHealthProfile::class);
+    }
+
+    public function allergies(): HasMany
+    {
+        return $this->hasMany(StudentAllergy::class);
+    }
+
+    public function vaccinations(): HasMany
+    {
+        return $this->hasMany(StudentVaccination::class);
+    }
+
+    public function medicalVisits(): HasMany
+    {
+        return $this->hasMany(StudentMedicalVisit::class);
+    }
+
+    public function medications(): HasMany
+    {
+        return $this->hasMany(StudentMedication::class);
+    }
+
+    public function healthDocuments(): HasMany
+    {
+        return $this->hasMany(StudentHealthDocument::class);
+    }
+
+    public function wallet(): HasOne
+    {
+        return $this->hasOne(StudentWallet::class);
+    }
+
+    public function mealServices(): HasMany
+    {
+        return $this->hasMany(CafeteriaMealService::class);
+    }
+
+    public function bookLoans(): HasMany
+    {
+        return $this->hasMany(BookLoan::class);
+    }
+
+    public function bookReservations(): HasMany
+    {
+        return $this->hasMany(BookReservation::class);
     }
 }

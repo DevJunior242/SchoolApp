@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\BusStop;
 use App\Models\School;
 use App\Models\Student;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -18,7 +19,7 @@ class SchoolStudent extends Model
 
     const STATUS_LEFT = 2;
 
-    protected $fillable = ['school_id', 'student_id', 'matricule', 'admission_date', 'previous_school', 'status'];
+    protected $fillable = ['school_id', 'student_id', 'bus_stop_id', 'matricule', 'admission_date', 'previous_school', 'status'];
 
     protected function casts(): array
     {
@@ -35,5 +36,10 @@ class SchoolStudent extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    public function busStop(): BelongsTo
+    {
+        return $this->belongsTo(BusStop::class);
     }
 }

@@ -22,6 +22,9 @@ class ClassTeacherController extends Controller
         $validated = $request->validate([
             'subject_id' => ['required', 'uuid', 'exists:subjects,id'],
             'user_id' => ['required', 'uuid'],
+            // Poids de la matière dans la moyenne générale de cette classe
+            // (ex: Maths coef 4, Musique coef 1).
+            'coefficient' => ['nullable', 'numeric', 'min:0.1', 'max:20'],
         ]);
 
         $isTeacherInSchool = SchoolUser::query()
@@ -36,16 +39,18 @@ class ClassTeacherController extends Controller
             ]);
         }
 
-        $season = $schoolClass->schoolYear->seasons()->orderBy('order')->firstOrFail();
-
+        // L'affectation est valable pour toute l'année scolaire, pas pour
+        // un seul trimestre/semestre : un prof n'est pas réassigné à chaque
+        // période, seules les notes le sont (via leur propre season_id).
         $assignment = ClassSubjectTeacher::query()->updateOrCreate(
             [
                 'class_id' => $schoolClass->id,
                 'subject_id' => $validated['subject_id'],
                 'user_id' => $validated['user_id'],
-                'season_id' => $season->id,
             ],
-            []
+            [
+                'coefficient' => $validated['coefficient'] ?? 1,
+            ]
         );
 
         return response()->json($assignment->load('subject', 'teacher'), 201);

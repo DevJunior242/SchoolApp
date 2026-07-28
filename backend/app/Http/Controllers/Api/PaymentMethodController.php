@@ -76,4 +76,62 @@ class PaymentMethodController extends Controller
 
         abort_unless($belongs, 403, "Vous n'appartenez pas à cette école.");
     }
+
+    /**
+     * Mêmes lignes (Orange Money, virement...), mais sans école : les
+     * moyens de paiement de l'abonnement marketplace, gérés par le
+     * superadmin plutôt qu'un directeur d'école.
+     */
+    public function platformIndex()
+    {
+        return response()->json(
+            PaymentMethod::query()
+                ->whereNull('school_id')
+                ->where('is_active', true)
+                ->get()
+        );
+    }
+
+    public function adminIndex()
+    {
+        return response()->json(PaymentMethod::query()->whereNull('school_id')->get());
+    }
+
+    public function adminStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'number' => ['nullable', 'string', 'max:50'],
+            'instructions' => ['nullable', 'string'],
+        ]);
+
+        $method = PaymentMethod::query()->create([...$validated, 'school_id' => null]);
+
+        return response()->json($method, 201);
+    }
+
+    public function adminUpdate(Request $request, PaymentMethod $paymentMethod)
+    {
+        abort_if($paymentMethod->school_id !== null, 404);
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'number' => ['nullable', 'string', 'max:50'],
+            'instructions' => ['nullable', 'string'],
+            'is_active' => ['sometimes', 'boolean'],
+        ]);
+
+        $paymentMethod->update($validated);
+
+        return response()->json($paymentMethod);
+    }
+
+    public function adminDestroy(PaymentMethod $paymentMethod)
+    {
+        abort_if($paymentMethod->school_id !== null, 404);
+
+        $paymentMethod->delete();
+
+        return response()->json(status: 204);
+    }
 }

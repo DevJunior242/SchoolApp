@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ResolvesEventAudience;
 use App\Http\Controllers\Controller;
 use App\Models\ClassStudent;
 use App\Models\ClassSubjectTeacher;
 use App\Models\Event;
-use App\Models\ParentStudent;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\SchoolUser;
-use App\Models\Student;
 use App\Models\User;
 use App\Notifications\SchoolEventNotification;
 use Illuminate\Http\Request;
@@ -19,6 +18,7 @@ use Illuminate\Http\Request;
 class EventController extends Controller
 {
     use AuthorizesSchoolDirecteur;
+    use ResolvesEventAudience;
 
     private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire', 'comptable'];
 
@@ -117,37 +117,11 @@ class EventController extends Controller
 
     private function notifyConcernedUsers(Event $event, School $school, string $creatorId): void
     {
-        if ($event->class_id) {
-            $userIds = $this->classAudienceUserIds($event->class_id);
-        } else {
-            $userIds = SchoolUser::query()->where('school_id', $school->id)->pluck('user_id')->all();
-        }
-
+        $userIds = $this->eventAudienceUserIds($event, $school);
         $recipients = User::query()->whereIn('id', $userIds)->where('id', '!=', $creatorId)->get();
 
         foreach ($recipients as $recipient) {
             $recipient->notify(new SchoolEventNotification($event));
         }
-    }
-
-    private function classAudienceUserIds(string $classId): array
-    {
-        $activeStudentIds = ClassStudent::query()
-            ->where('class_id', $classId)
-            ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->pluck('student_id');
-
-        $parentIds = ParentStudent::query()
-            ->whereIn('student_id', $activeStudentIds)
-            ->pluck('parent_user_id');
-
-        $teacherIds = ClassSubjectTeacher::query()->where('class_id', $classId)->pluck('user_id');
-
-        $studentUserIds = Student::query()
-            ->whereIn('id', $activeStudentIds)
-            ->whereNotNull('user_id')
-            ->pluck('user_id');
-
-        return $parentIds->merge($teacherIds)->merge($studentUserIds)->unique()->values()->all();
     }
 }

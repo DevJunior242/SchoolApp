@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\ClassSubjectTeacher;
+use App\Models\Season;
 use App\Models\Student;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -31,7 +32,7 @@ class Grade extends Model
     ];
 
     protected $fillable = [
-        'class_subject_teacher_id', 'student_id', 'evaluation_type',
+        'class_subject_teacher_id', 'student_id', 'season_id', 'evaluation_type',
         'title', 'score', 'max_score', 'coefficient', 'graded_at',
     ];
 
@@ -53,5 +54,10 @@ class Grade extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    public function season(): BelongsTo
+    {
+        return $this->belongsTo(Season::class);
     }
 }

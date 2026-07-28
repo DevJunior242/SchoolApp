@@ -8,8 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\School;
 use App\Models\SchoolYear;
-use App\Models\ClassStudent;
-use App\Models\ClassSubjectTeacher;
+use App\Models\Grade;
 
 class Season extends Model
 {
@@ -39,13 +38,8 @@ class Season extends Model
         return $this->belongsTo(SchoolYear::class);
     }
 
-    public function classStudents(): HasMany
+    public function grades(): HasMany
     {
-        return $this->hasMany(ClassStudent::class);
-    }
-
-    public function classSubjectTeachers(): HasMany
-    {
-        return $this->hasMany(ClassSubjectTeacher::class);
+        return $this->hasMany(Grade::class);
     }
 }
