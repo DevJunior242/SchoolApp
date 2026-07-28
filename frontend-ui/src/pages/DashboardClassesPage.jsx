@@ -58,7 +58,7 @@ export default function DashboardClassesPage() {
   const [classSubmitting, setClassSubmitting] = useState(false);
 
   const [assignClass, setAssignClass] = useState(null);
-  const [assignForm, setAssignForm] = useState({ subject_id: '', user_id: '' });
+  const [assignForm, setAssignForm] = useState({ subject_id: '', user_id: '', coefficient: '1' });
   const [assignError, setAssignError] = useState(null);
   const [assignSubmitting, setAssignSubmitting] = useState(false);
 
@@ -85,7 +85,7 @@ export default function DashboardClassesPage() {
 
   function closeAssignModal() {
     setAssignClass(null);
-    setAssignForm({ subject_id: '', user_id: '' });
+    setAssignForm({ subject_id: '', user_id: '', coefficient: '1' });
     setAssignError(null);
   }
 
@@ -179,7 +179,7 @@ export default function DashboardClassesPage() {
                     {c.class_subject_teachers.map((assignment) => (
                       <Chip
                         key={assignment.id}
-                        label={`${assignment.subject.name} · ${assignment.teacher.fullname}`}
+                        label={`${assignment.subject.name} · ${assignment.teacher.fullname} (coef. ${assignment.coefficient})`}
                         size="small"
                       />
                     ))}
@@ -274,6 +274,16 @@ export default function DashboardClassesPage() {
                 </MenuItem>
               ))}
             </TextField>
+            <TextField
+              label="Coefficient de la matière"
+              type="number"
+              value={assignForm.coefficient}
+              onChange={(e) => setAssignForm((prev) => ({ ...prev, coefficient: e.target.value }))}
+              helperText="Poids de cette matière dans la moyenne générale de la classe (ex: 4 pour Maths, 1 pour Musique)."
+              slotProps={{ htmlInput: { min:1, max: 20, step: 0.5 } }}
+              required
+              fullWidth
+            />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeAssignModal}>Annuler</Button>

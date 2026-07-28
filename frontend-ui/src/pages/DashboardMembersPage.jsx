@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   Alert,
   Avatar,
@@ -15,17 +15,23 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material';
-import { motion } from 'motion/react';
-import SearchIcon from '@mui/icons-material/Search';
-import api from '../api/axios.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
-import { usePaginatedList } from '../hooks/usePaginatedList.js';
+} from "@mui/material";
+import { motion } from "motion/react";
+import SearchIcon from "@mui/icons-material/Search";
+import api from "../api/axios.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { usePaginatedList } from "../hooks/usePaginatedList.js";
 
 // Directeur (unique, désigné à la création de l'école), parent/élève
 // (rattachés via l'inscription des élèves) et professeur (page dédiée)
 // ne sont pas attribuables ici.
-const RESTRICTED_ROLE_SLUGS = ['directeur', 'parent', 'eleve', 'professeur'];
+const RESTRICTED_ROLE_SLUGS = [
+  "directeur",
+  "parent",
+  "eleve",
+  "professeur",
+  "superadmin",
+];
 
 export default function DashboardMembersPage() {
   const { user } = useAuth();
@@ -42,12 +48,23 @@ export default function DashboardMembersPage() {
     reload,
   } = usePaginatedList(schoolId ? `/schools/${schoolId}/members` : null);
   const [roles, setRoles] = useState([]);
-  const [form, setForm] = useState({ fullname: '', email: '', phone: '', role_id: '' });
+  const [form, setForm] = useState({
+    fullname: "",
+    email: "",
+    phone: "",
+    role_id: "",
+  });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    api.get('/roles').then((r) => setRoles(r.data.filter((role) => !RESTRICTED_ROLE_SLUGS.includes(role.slug))));
+    api
+      .get("/roles")
+      .then((r) =>
+        setRoles(
+          r.data.filter((role) => !RESTRICTED_ROLE_SLUGS.includes(role.slug)),
+        ),
+      );
   }, []);
 
   async function handleSubmit(e) {
@@ -57,10 +74,14 @@ export default function DashboardMembersPage() {
     try {
       await api.post(`/schools/${schoolId}/members`, form);
       reload();
-      setForm({ fullname: '', email: '', phone: '', role_id: '' });
+      setForm({ fullname: "", email: "", phone: "", role_id: "" });
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setError(messages ? Object.values(messages).flat().join(' ') : "Impossible d'ajouter ce membre.");
+      setError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Impossible d'ajouter ce membre.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -68,7 +89,7 @@ export default function DashboardMembersPage() {
 
   if (!schoolId) {
     return (
-      <Box sx={{ py: 8, textAlign: 'center' }}>
+      <Box sx={{ py: 8, textAlign: "center" }}>
         <Typography color="text.secondary">Aucune école active.</Typography>
       </Box>
     );
@@ -80,7 +101,8 @@ export default function DashboardMembersPage() {
         Membres
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Ajoutez un membre par email ou téléphone. S'il a déjà un compte, il est simplement rattaché à cette école.
+        Ajoutez un membre par email ou téléphone. S'il a déjà un compte, il est
+        simplement rattaché à cette école.
       </Typography>
 
       <Grid container spacing={4}>
@@ -113,16 +135,30 @@ export default function DashboardMembersPage() {
           ) : (
             <Stack spacing={2}>
               {members.map((m, i) => (
-                <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: i * 0.03 }}>
+                <motion.div
+                  key={m.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: i * 0.03 }}
+                >
                   <Card variant="outlined">
-                    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>{m.user.fullname.charAt(0).toUpperCase()}</Avatar>
+                    <CardContent
+                      sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                    >
+                      <Avatar sx={{ bgcolor: "primary.main" }}>
+                        {m.user.fullname.charAt(0).toUpperCase()}
+                      </Avatar>
                       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                         <Typography variant="subtitle1" noWrap>
                           {m.user.fullname}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" noWrap>
-                          {m.user.email} {m.user.phone ? `· ${m.user.phone}` : ''}
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          noWrap
+                        >
+                          {m.user.email}{" "}
+                          {m.user.phone ? `· ${m.user.phone}` : ""}
                         </Typography>
                       </Box>
                       <Chip label={m.role?.name} size="small" />
@@ -130,13 +166,22 @@ export default function DashboardMembersPage() {
                   </Card>
                 </motion.div>
               ))}
-              {members.length === 0 && <Typography color="text.secondary">Aucun membre trouvé.</Typography>}
+              {members.length === 0 && (
+                <Typography color="text.secondary">
+                  Aucun membre trouvé.
+                </Typography>
+              )}
             </Stack>
           )}
 
           {lastPage > 1 && (
             <Stack alignItems="center" sx={{ mt: 3 }}>
-              <Pagination count={lastPage} page={page} onChange={(_, value) => setPage(value)} color="primary" />
+              <Pagination
+                count={lastPage}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+              />
             </Stack>
           )}
         </Grid>
@@ -151,32 +196,44 @@ export default function DashboardMembersPage() {
                 {error}
               </Alert>
             )}
-            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box
+              component="form"
+              onSubmit={handleSubmit}
+              sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+            >
               <TextField
                 label="Email"
                 type="email"
                 value={form.email}
-                onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, email: e.target.value }))
+                }
                 fullWidth
               />
               <TextField
                 label="Téléphone"
                 value={form.phone}
-                onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, phone: e.target.value }))
+                }
                 fullWidth
               />
               <TextField
                 label="Nom complet"
                 helperText="Requis uniquement si le membre n'a pas encore de compte"
                 value={form.fullname}
-                onChange={(e) => setForm((prev) => ({ ...prev, fullname: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, fullname: e.target.value }))
+                }
                 fullWidth
               />
               <TextField
                 select
                 label="Rôle"
                 value={form.role_id}
-                onChange={(e) => setForm((prev) => ({ ...prev, role_id: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, role_id: e.target.value }))
+                }
                 required
                 fullWidth
               >
@@ -187,7 +244,7 @@ export default function DashboardMembersPage() {
                 ))}
               </TextField>
               <Button type="submit" variant="contained" disabled={submitting}>
-                {submitting ? 'Ajout...' : 'Ajouter'}
+                {submitting ? "Ajout..." : "Ajouter"}
               </Button>
             </Box>
           </Paper>

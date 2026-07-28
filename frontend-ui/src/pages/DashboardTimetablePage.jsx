@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -15,21 +15,21 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material';
-import { motion } from 'motion/react';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { Link as RouterLink, useParams } from 'react-router-dom';
-import api from '../api/axios.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
+} from "@mui/material";
+import { motion } from "motion/react";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { Link as RouterLink, useParams } from "react-router-dom";
+import api from "../api/axios.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const DAYS = [
-  { value: 1, label: 'Lundi' },
-  { value: 2, label: 'Mardi' },
-  { value: 3, label: 'Mercredi' },
-  { value: 4, label: 'Jeudi' },
-  { value: 5, label: 'Vendredi' },
-  { value: 6, label: 'Samedi' },
+  { value: 1, label: "Lundi" },
+  { value: 2, label: "Mardi" },
+  { value: 3, label: "Mercredi" },
+  { value: 4, label: "Jeudi" },
+  { value: 5, label: "Vendredi" },
+  { value: 6, label: "Samedi" },
 ];
 
 export default function DashboardTimetablePage() {
@@ -43,12 +43,20 @@ export default function DashboardTimetablePage() {
   const [loadError, setLoadError] = useState(null);
 
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ class_subject_teacher_id: '', day_of_week: '', start_time: '', end_time: '', room: '' });
+  const [form, setForm] = useState({
+    class_subject_teacher_id: "",
+    day_of_week: "",
+    start_time: "",
+    end_time: "",
+    room: "",
+  });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function loadSlots() {
-    const response = await api.get(`/schools/${schoolId}/classes/${classId}/timetable`);
+    const response = await api.get(
+      `/schools/${schoolId}/classes/${classId}/timetable`,
+    );
     setSlots(response.data);
   }
 
@@ -56,17 +64,30 @@ export default function DashboardTimetablePage() {
     setLoadError(null);
     Promise.all([
       api
-        .get(`/schools/${schoolId}/classes`, { params: { search: '', per_page: 1000 } })
+        .get(`/schools/${schoolId}/classes`, {
+          params: { search: "", per_page: 1000 },
+        })
         .then((r) => setSchoolClass(r.data.data.find((c) => c.id === classId))),
       loadSlots(),
     ])
-      .catch((err) => setLoadError(err.response?.data?.message || "Impossible de charger l'emploi du temps."))
+      .catch((err) =>
+        setLoadError(
+          err.response?.data?.message ||
+            "Impossible de charger l'emploi du temps.",
+        ),
+      )
       .finally(() => setLoading(false));
   }, [schoolId, classId]);
 
   function closeModal() {
     setOpen(false);
-    setForm({ class_subject_teacher_id: '', day_of_week: '', start_time: '', end_time: '', room: '' });
+    setForm({
+      class_subject_teacher_id: "",
+      day_of_week: "",
+      start_time: "",
+      end_time: "",
+      room: "",
+    });
     setError(null);
   }
 
@@ -80,14 +101,20 @@ export default function DashboardTimetablePage() {
       closeModal();
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setError(messages ? Object.values(messages).flat().join(' ') : 'Impossible de créer ce créneau.');
+      setError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Impossible de créer ce créneau.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleDelete(slotId) {
-    await api.delete(`/schools/${schoolId}/classes/${classId}/timetable/${slotId}`);
+    await api.delete(
+      `/schools/${schoolId}/classes/${classId}/timetable/${slotId}`,
+    );
     await loadSlots();
   }
 
@@ -99,14 +126,29 @@ export default function DashboardTimetablePage() {
         ← Retour aux classes
       </Button>
 
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
         <Box>
           <Typography variant="h5" fontWeight={700}>
             Emploi du temps — {schoolClass?.name}
           </Typography>
-          <Typography color="text.secondary">{schoolClass?.level?.name}</Typography>
+          <Typography color="text.secondary">
+            {schoolClass?.level?.name}
+          </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setOpen(true)}
+        >
           Ajouter un créneau
         </Button>
       </Stack>
@@ -127,23 +169,47 @@ export default function DashboardTimetablePage() {
               {slots
                 .filter((s) => s.day_of_week === day.value)
                 .map((slot, i) => (
-                  <motion.div key={slot.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}>
+                  <motion.div
+                    key={slot.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.03 }}
+                  >
                     <Card variant="outlined">
-                      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                        <Stack
+                          direction="row"
+                          sx={{
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                          }}
+                        >
                           <Box sx={{ minWidth: 0 }}>
                             <Typography variant="body2" fontWeight={600} noWrap>
-                              {slot.class_subject_teacher.subject.name}
+                              {slot.class_subject_teacher?.subject?.name}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary" display="block" noWrap>
-                              {slot.class_subject_teacher.teacher.fullname}
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                              noWrap
+                            >
+                              {slot.class_subject_teacher?.teacher?.fullname}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
-                              {slot.room ? ` · ${slot.room}` : ''}
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                            >
+                              {slot.start_time.slice(0, 5)}–
+                              {slot.end_time.slice(0, 5)}
+                              {slot.room ? ` · ${slot.room}` : ""}
                             </Typography>
                           </Box>
-                          <IconButton size="small" onClick={() => handleDelete(slot.id)}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDelete(slot.id)}
+                          >
                             <DeleteIcon fontSize="inherit" />
                           </IconButton>
                         </Stack>
@@ -151,7 +217,8 @@ export default function DashboardTimetablePage() {
                     </Card>
                   </motion.div>
                 ))}
-              {slots.filter((s) => s.day_of_week === day.value).length === 0 && (
+              {slots.filter((s) => s.day_of_week === day.value).length ===
+                0 && (
                 <Typography variant="caption" color="text.secondary">
                   —
                 </Typography>
@@ -164,19 +231,26 @@ export default function DashboardTimetablePage() {
       <Dialog open={open} onClose={closeModal} fullWidth maxWidth="xs">
         <DialogTitle>Ajouter un créneau</DialogTitle>
         <Box component="form" onSubmit={handleSubmit}>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             {error && <Alert severity="error">{error}</Alert>}
             <TextField
               select
               label="Matière · Professeur"
               value={form.class_subject_teacher_id}
-              onChange={(e) => setForm((prev) => ({ ...prev, class_subject_teacher_id: e.target.value }))}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  class_subject_teacher_id: e.target.value,
+                }))
+              }
               required
               fullWidth
             >
               {(schoolClass?.class_subject_teachers ?? []).map((a) => (
                 <MenuItem key={a.id} value={a.id}>
-                  {a.subject.name} · {a.teacher.fullname}
+                  {a.subject?.name} · {a.teacher?.fullname}
                 </MenuItem>
               ))}
             </TextField>
@@ -184,7 +258,9 @@ export default function DashboardTimetablePage() {
               select
               label="Jour"
               value={form.day_of_week}
-              onChange={(e) => setForm((prev) => ({ ...prev, day_of_week: e.target.value }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, day_of_week: e.target.value }))
+              }
               required
               fullWidth
             >
@@ -199,7 +275,9 @@ export default function DashboardTimetablePage() {
                 label="Début"
                 type="time"
                 value={form.start_time}
-                onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, start_time: e.target.value }))
+                }
                 slotProps={{ inputLabel: { shrink: true } }}
                 required
                 fullWidth
@@ -208,7 +286,9 @@ export default function DashboardTimetablePage() {
                 label="Fin"
                 type="time"
                 value={form.end_time}
-                onChange={(e) => setForm((prev) => ({ ...prev, end_time: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, end_time: e.target.value }))
+                }
                 slotProps={{ inputLabel: { shrink: true } }}
                 required
                 fullWidth
@@ -217,14 +297,16 @@ export default function DashboardTimetablePage() {
             <TextField
               label="Salle"
               value={form.room}
-              onChange={(e) => setForm((prev) => ({ ...prev, room: e.target.value }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, room: e.target.value }))
+              }
               fullWidth
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeModal}>Annuler</Button>
             <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? 'Ajout...' : 'Ajouter'}
+              {submitting ? "Ajout..." : "Ajouter"}
             </Button>
           </DialogActions>
         </Box>

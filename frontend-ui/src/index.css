@@ -30,10 +30,16 @@ a {
     body * {
         visibility: hidden;
     }
-    #receipt-print, #receipt-print * {
+    #receipt-print, #receipt-print *,
+    #bulletin-print, #bulletin-print *,
+    #qr-badge-print, #qr-badge-print *,
+    #book-copy-label-print, #book-copy-label-print * {
         visibility: visible;
     }
-    #receipt-print {
+    #receipt-print,
+    #bulletin-print,
+    #qr-badge-print,
+    #book-copy-label-print {
         position: absolute;
         top: 0;
         left: 0;

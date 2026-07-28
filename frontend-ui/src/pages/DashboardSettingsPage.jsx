@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Alert, Avatar, Box, Button, Grid, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import { Link as RouterLink } from 'react-router-dom';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
@@ -10,8 +11,16 @@ const LANGUAGE_OPTIONS = [
   { value: 'en', label: 'English' },
 ];
 
+const PERIOD_TYPE_OPTIONS = [
+  { value: 'trimestre', label: 'Trimestres (3 périodes)' },
+  { value: 'semestre', label: 'Semestres (2 périodes)' },
+];
+
 function emptyForm() {
-  return { name: '', slogan: '', address: '', city: '', phone: '', email: '', website: '', language: 'fr', currency: '' };
+  return {
+    name: '', slogan: '', address: '', city: '', phone: '', email: '', website: '',
+    language: 'fr', currency: '', academic_period_type: 'trimestre',
+  };
 }
 
 export default function DashboardSettingsPage() {
@@ -50,6 +59,7 @@ export default function DashboardSettingsPage() {
       website: school.website ?? '',
       language: school.language ?? 'fr',
       currency: school.currency ?? '',
+      academic_period_type: school.academic_period_type ?? 'trimestre',
     });
     setFormInitialized(true);
   }
@@ -98,6 +108,19 @@ export default function DashboardSettingsPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Informations générales, langue et devise utilisées par {school?.name}.
       </Typography>
+
+      <Alert
+        severity="info"
+        sx={{ mb: 3 }}
+        action={
+          <Button component={RouterLink} to="/dashboard/school-year" color="inherit" size="small">
+            Année scolaire
+          </Button>
+        }
+      >
+        Trimestres, semestres, dates des périodes ou démarrage d'une nouvelle année scolaire : c'est
+        dans cette section.
+      </Alert>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -228,6 +251,22 @@ export default function DashboardSettingsPage() {
               fullWidth
             />
           </Stack>
+
+          <TextField
+            select
+            label="Découpage de l'année scolaire"
+            value={form.academic_period_type}
+            onChange={(e) => setForm((prev) => ({ ...prev, academic_period_type: e.target.value }))}
+            helperText="Chaque pays a sa propre convention. Ce réglage ne peut plus être changé une fois que des notes ont été saisies pour l'année en cours."
+            required
+            fullWidth
+          >
+            {PERIOD_TYPE_OPTIONS.map((p) => (
+              <MenuItem key={p.value} value={p.value}>
+                {p.label}
+              </MenuItem>
+            ))}
+          </TextField>
 
           <Button type="submit" variant="contained" disabled={submitting} sx={{ alignSelf: 'flex-start' }}>
             {submitting ? 'Enregistrement...' : 'Enregistrer'}

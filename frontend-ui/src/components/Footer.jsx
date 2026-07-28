@@ -21,6 +21,9 @@ export default function Footer() {
             © {new Date().getFullYear()} EduAfrique — Une solution Intellino.
           </Typography>
           <Stack direction="row" spacing={2}>
+            <MuiLink component={RouterLink} to="/devenir-prestataire" variant="body2" color="text.secondary">
+              Devenir prestataire
+            </MuiLink>
             <MuiLink component={RouterLink} to="/terms" variant="body2" color="text.secondary">
               CGU
             </MuiLink>

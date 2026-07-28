@@ -33,6 +33,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
 import SuperAdminOverviewPage from "./SuperAdminOverviewPage.jsx";
+import ProviderProfilePage from "./ProviderProfilePage.jsx";
 
 const STAFF_ROLE_SLUGS = ["directeur", "censeur", "surveillant", "secretaire", "comptable"];
 
@@ -93,6 +94,12 @@ export default function DashboardOverviewPage() {
         return <SuperAdminOverviewPage />;
     }
 
+    // Le prestataire n'a pas d'école non plus : son "Vue d'ensemble" est
+    // directement sa fiche (statut, abonnement), pas ce résumé d'école.
+    if (user.role?.slug === "prestataire") {
+        return <ProviderProfilePage />;
+    }
+
     if (loading)
         return <Typography color="text.secondary">Chargement...</Typography>;
 
@@ -140,12 +147,12 @@ export default function DashboardOverviewPage() {
         {
             icon: <ToggleOnIcon color="primary" />,
             label: "Statut",
-            value: current.status === 1 ? "Actif" : "Inactif",
+            value: current?.status === 1 ? "Actif" : "Inactif",
         },
         {
             icon: <PublicIcon color="primary" />,
             label: "Pays",
-            value: current.school.country?.name,
+            value: current?.school?.country?.name,
         },
         {
             icon: <Diversity3Icon color="primary" />,
@@ -188,7 +195,7 @@ export default function DashboardOverviewPage() {
                             Bienvenue {user.fullname}
                         </Typography>
                         <Typography color="text.secondary">
-                            {current.school.name}
+                            {current.school?.name}
                         </Typography>
                     </Box>
                     <Chip label="École active" color="primary" />

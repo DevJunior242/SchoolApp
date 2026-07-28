@@ -1,26 +1,36 @@
-import { useState } from 'react';
-import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
-import { motion } from 'motion/react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
-
+import { useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Paper,
+  TextField,
+  Typography,
+  IconButton,
+} from "@mui/material";
+import { motion } from "motion/react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+import InputAdornment from "@mui/material/InputAdornment";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
       await login(email, password);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch {
-      setError('Identifiants invalides.');
+      setError("Identifiants invalides.");
     } finally {
       setSubmitting(false);
     }
@@ -29,20 +39,20 @@ export default function LoginPage() {
   return (
     <Box
       sx={{
-        minHeight: '80vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        minHeight: "80vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         px: 2,
       }}
     >
       <motion.div
-        style={{ width: '100%', maxWidth: 360 }}
+        style={{ width: "100%", maxWidth: 360 }}
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 }, width: '100%' }}>
+        <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 }, width: "100%" }}>
           <Typography variant="h5" component="h1" gutterBottom>
             Connexion
           </Typography>
@@ -53,7 +63,11 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             <TextField
               id="email"
               label="Email"
@@ -66,19 +80,54 @@ export default function LoginPage() {
             <TextField
               id="password"
               label="Mot de passe"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               fullWidth
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword((show) => !show)}
+                        edge="end"
+                        aria-label={
+                          showPassword
+                            ? "Masquer le mot de passe"
+                            : "Afficher le mot de passe"
+                        }
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
             />
-            <Button type="submit" variant="contained" disabled={submitting} fullWidth>
-              {submitting ? 'Connexion...' : 'Se connecter'}
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={submitting}
+              fullWidth
+            >
+              {submitting ? "Connexion..." : "Se connecter"}
             </Button>
-            <Button component={RouterLink} to="/forgot-password" variant="text" size="small" fullWidth>
+            <Button
+              component={RouterLink}
+              to="/forgot-password"
+              variant="text"
+              size="small"
+              fullWidth
+            >
               Mot de passe oublié ?
             </Button>
-            <Button component={RouterLink} to="/register" variant="text" fullWidth>
+            <Button
+              component={RouterLink}
+              to="/register"
+              variant="text"
+              fullWidth
+            >
               Créer un compte
             </Button>
           </Box>

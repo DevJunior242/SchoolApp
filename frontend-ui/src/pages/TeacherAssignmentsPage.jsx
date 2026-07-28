@@ -41,16 +41,19 @@ export default function TeacherAssignmentsPage() {
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: i * 0.05 }}>
               <Card variant="outlined">
                 <CardContent>
-                  <Typography variant="subtitle1">{a.subject.name}</Typography>
+                  <Typography variant="subtitle1">{a.subject?.name}</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {a.school_class.name} · {a.school_class.level?.name}
+                    {a.school_class?.name} · {a.school_class?.level?.name}
                   </Typography>
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
                     <Button size="small" variant="outlined" component={RouterLink} to={`/dashboard/assignments/${a.id}/grades`}>
                       Notes
                     </Button>
                     <Button size="small" variant="outlined" component={RouterLink} to={`/dashboard/assignments/${a.id}/attendances`}>
                       Absences
+                    </Button>
+                    <Button size="small" variant="outlined" component={RouterLink} to={`/dashboard/assignments/${a.id}/course-contents`}>
+                      Contenu
                     </Button>
                   </Stack>
                 </CardContent>

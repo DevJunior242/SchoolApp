@@ -254,13 +254,13 @@ export default function ParentPaymentsPage() {
                 <Card key={p.id} variant="outlined">
                   <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle2">{p.fee_structure.label}</Typography>
+                      <Typography variant="subtitle2">{p.fee_structure?.label}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {Number(p.amount).toLocaleString()} FCFA · {p.payment_method.name}
+                        {Number(p.amount).toLocaleString()} FCFA · {p.payment_method?.name}
                         {p.transaction_id ? ` · Réf. ${p.transaction_id}` : ''}
                       </Typography>
                     </Box>
-                    <Chip label={STATUS_LABELS[p.status].label} color={STATUS_LABELS[p.status].color} size="small" />
+                    <Chip label={STATUS_LABELS[p.status].label} color={STATUS_LABELS[p.status]?.color} size="small" />
                     {p.status === 1 && (
                       <Button size="small" startIcon={<DownloadIcon />} onClick={() => setReceiptPayment(p)}>
                         Reçu
@@ -293,15 +293,15 @@ export default function ParentPaymentsPage() {
                 </Stack>
                 <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                   <Typography color="text.secondary">Tranche</Typography>
-                  <Typography fontWeight={600}>{receiptPayment.fee_structure.label}</Typography>
+                  <Typography fontWeight={600}>{receiptPayment.fee_structure?.label}</Typography>
                 </Stack>
                 <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                   <Typography color="text.secondary">Montant</Typography>
-                  <Typography fontWeight={600}>{Number(receiptPayment.amount).toLocaleString()} FCFA</Typography>
+                  <Typography fontWeight={600}>{Number(receiptPayment?.amount).toLocaleString()} FCFA</Typography>
                 </Stack>
                 <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                   <Typography color="text.secondary">Moyen de paiement</Typography>
-                  <Typography fontWeight={600}>{receiptPayment.payment_method.name}</Typography>
+                  <Typography fontWeight={600}>{receiptPayment.payment_method?.name}</Typography>
                 </Stack>
                 {receiptPayment.transaction_id && (
                   <Stack direction="row" sx={{ justifyContent: 'space-between' }}>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Alert,
   Avatar,
@@ -19,37 +19,37 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material';
-import { motion } from 'motion/react';
-import { Link as RouterLink } from 'react-router-dom';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
-import api from '../api/axios.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useApiGet } from '../hooks/useApiGet.js';
-import { usePaginatedList } from '../hooks/usePaginatedList.js';
-import { useSchools } from '../hooks/useSchools.js';
+} from "@mui/material";
+import { motion } from "motion/react";
+import { Link as RouterLink } from "react-router-dom";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import SearchIcon from "@mui/icons-material/Search";
+import api from "../api/axios.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useApiGet } from "../hooks/useApiGet.js";
+import { usePaginatedList } from "../hooks/usePaginatedList.js";
+import { useSchools } from "../hooks/useSchools.js";
 
 const RELATIONSHIPS = [
-  { value: 'pere', label: 'Père' },
-  { value: 'mere', label: 'Mère' },
-  { value: 'tuteur', label: 'Tuteur / Tutrice' },
-  { value: 'autre', label: 'Autre' },
+  { value: "pere", label: "Père" },
+  { value: "mere", label: "Mère" },
+  { value: "tuteur", label: "Tuteur / Tutrice" },
+  { value: "autre", label: "Autre" },
 ];
 
 function emptyRow() {
   return {
-    fullname: '',
-    date_of_birth: '',
-    gender: '',
-    class_id: '',
+    fullname: "",
+    date_of_birth: "",
+    gender: "",
+    class_id: "",
     wantsOwnAccount: false,
-    student_email: '',
-    parent_fullname: '',
-    parent_email: '',
-    parent_phone: '',
-    parent_relationship: '',
+    student_email: "",
+    parent_fullname: "",
+    parent_email: "",
+    parent_phone: "",
+    parent_relationship: "",
   };
 }
 
@@ -71,10 +71,21 @@ export default function DashboardStudentsPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
   const { schoolUsers } = useSchools();
-  const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role?.slug;
-  const canRegister = ['directeur', 'secretaire'].includes(currentRole);
+  const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role
+    ?.slug;
+  const canRegister = ["directeur", "secretaire"].includes(currentRole);
+  const canSeeHealth = ["directeur", "infirmier"].includes(currentRole);
+  // Seul le directeur peut consulter le bulletin depuis cette liste (le
+  // parent y accède via sa propre page) : secrétaire/comptable/infirmier
+  // recevaient un 403 silencieux en cliquant, le bouton ne doit pas leur
+  // être montré.
+  const canSeeBulletin = currentRole === "directeur";
+  const canSeeCafeteria = ["directeur", "comptable", "secretaire"].includes(
+    currentRole,
+  );
+  const canAssignBus = ["directeur", "secretaire"].includes(currentRole);
 
-  const [classFilter, setClassFilter] = useState('');
+  const [classFilter, setClassFilter] = useState("");
   const {
     data: students,
     page,
@@ -85,12 +96,46 @@ export default function DashboardStudentsPage() {
     loading,
     error: listError,
     reload,
-  } = usePaginatedList(schoolId ? `/schools/${schoolId}/students` : null, { class_id: classFilter || undefined });
-
-  const { data: classesData, error: classesError } = useApiGet(schoolId ? `/schools/${schoolId}/classes` : null, {
-    params: { per_page: 1000 },
+  } = usePaginatedList(schoolId ? `/schools/${schoolId}/students` : null, {
+    class_id: classFilter || undefined,
   });
+
+  const { data: classesData, error: classesError } = useApiGet(
+    schoolId ? `/schools/${schoolId}/classes` : null,
+    {
+      params: { per_page: 1000 },
+    },
+  );
   const classes = classesData?.data ?? [];
+
+  const { data: buses } = useApiGet(
+    canAssignBus && schoolId ? `/schools/${schoolId}/buses` : null,
+  );
+  const [busDialogStudent, setBusDialogStudent] = useState(null);
+  const [selectedStopId, setSelectedStopId] = useState("");
+  const [busSubmitting, setBusSubmitting] = useState(false);
+
+  function openBusDialog(schoolStudent) {
+    setBusDialogStudent(schoolStudent);
+    setSelectedStopId(schoolStudent.bus_stop_id ?? "");
+  }
+
+  async function handleAssignBusStop(e) {
+    e.preventDefault();
+    setBusSubmitting(true);
+    try {
+      await api.put(
+        `/schools/${schoolId}/students/${busDialogStudent.student.id}/bus-stop`,
+        {
+          bus_stop_id: selectedStopId || null,
+        },
+      );
+      await reload();
+      setBusDialogStudent(null);
+    } finally {
+      setBusSubmitting(false);
+    }
+  }
 
   const [open, setOpen] = useState(false);
   const [batch, setBatch] = useState([emptyRow()]);
@@ -99,7 +144,9 @@ export default function DashboardStudentsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   function updateRow(index, field, value) {
-    setBatch((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+    setBatch((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+    );
   }
 
   function addRow() {
@@ -141,7 +188,11 @@ export default function DashboardStudentsPage() {
       closeModal();
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setError(messages ? Object.values(messages).flat().join(' ') : "Impossible d'inscrire ces élèves.");
+      setError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Impossible d'inscrire ces élèves.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -149,7 +200,7 @@ export default function DashboardStudentsPage() {
 
   if (!schoolId) {
     return (
-      <Box sx={{ py: 8, textAlign: 'center' }}>
+      <Box sx={{ py: 8, textAlign: "center" }}>
         <Typography color="text.secondary">Aucune école active.</Typography>
       </Box>
     );
@@ -157,22 +208,42 @@ export default function DashboardStudentsPage() {
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 2 }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 1,
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
         <Box>
           <Typography variant="h5" fontWeight={700}>
             Élèves
           </Typography>
-          <Typography color="text.secondary">En dessous de 18 ans, l'élève n'a pas de compte : c'est le parent qui gère.</Typography>
+          <Typography color="text.secondary">
+            En dessous de 18 ans, l'élève n'a pas de compte : c'est le parent
+            qui gère.
+          </Typography>
         </Box>
         {canRegister && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpen(true)}
+          >
             Inscrire des élèves
           </Button>
         )}
       </Stack>
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+        <Alert
+          severity="success"
+          sx={{ mb: 2 }}
+          onClose={() => setSuccess(null)}
+        >
           {success}
         </Alert>
       )}
@@ -183,7 +254,11 @@ export default function DashboardStudentsPage() {
         </Alert>
       )}
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, mt: 2 }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        sx={{ mb: 3, mt: 2 }}
+      >
         <TextField
           placeholder="Rechercher un élève..."
           value={search}
@@ -222,35 +297,93 @@ export default function DashboardStudentsPage() {
           {students.map((s, i) => {
             const studentClass = currentClassOf(s);
             return (
-              <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: i * 0.03 }}>
+              <motion.div
+                key={s.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: i * 0.03 }}
+              >
                 <Card variant="outlined">
-                  <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>{s.student.fullname.charAt(0).toUpperCase()}</Avatar>
+                  <CardContent
+                    sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                  >
+                    <Avatar sx={{ bgcolor: "primary.main" }}>
+                      {s.student?.fullname.charAt(0).toUpperCase()}
+                    </Avatar>
                     <Box sx={{ minWidth: 0, flexGrow: 1 }}>
                       <Typography variant="subtitle1" noWrap>
-                        {s.student.fullname} {s.student.user ? '' : '(mineur)'}
+                        {s.student?.fullname}{" "}
+                        {s.student?.user ? "" : "(mineur)"}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" noWrap>
-                        {studentClass ? studentClass.name : 'Aucune classe'} · {s.student.parents.map((p) => p.fullname).join(', ')}
+                        {studentClass ? studentClass?.name : "Aucune classe"} ·{" "}
+                        {s.student?.parents.map((p) => p.fullname).join(", ")}
                       </Typography>
                     </Box>
-                    <Button component={RouterLink} to={`/dashboard/students/${s.student.id}/bulletin`} size="small">
-                      Bulletin
-                    </Button>
+                    {canSeeBulletin && (
+                      <Button
+                        component={RouterLink}
+                        to={`/dashboard/students/${s.student.id}/bulletin`}
+                        size="small"
+                      >
+                        Bulletin
+                      </Button>
+                    )}
+                    {canSeeHealth && (
+                      <Button
+                        component={RouterLink}
+                        to={`/dashboard/students/${s.student.id}/health`}
+                        size="small"
+                      >
+                        Santé
+                      </Button>
+                    )}
+                    {canSeeCafeteria && (
+                      <>
+                        <Button
+                          component={RouterLink}
+                          to={`/dashboard/students/${s.student.id}/wallet`}
+                          state={{ fullname: s.student?.fullname }}
+                          size="small"
+                        >
+                          Portefeuille
+                        </Button>
+                        <Button
+                          component={RouterLink}
+                          to={`/dashboard/students/${s.student.id}/qr-badge`}
+                          state={{ fullname: s.student?.fullname }}
+                          size="small"
+                        >
+                          Badge QR
+                        </Button>
+                      </>
+                    )}
+                    {canAssignBus && (
+                      <Button size="small" onClick={() => openBusDialog(s)}>
+                        {s.bus_stop ? s.bus_stop?.label : "Bus"}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
             );
           })}
           {students.length === 0 && (
-            <Typography color="text.secondary">Aucun élève ne correspond à cette recherche.</Typography>
+            <Typography color="text.secondary">
+              Aucun élève ne correspond à cette recherche.
+            </Typography>
           )}
         </Stack>
       )}
 
       {lastPage > 1 && (
         <Stack alignItems="center" sx={{ mt: 3 }}>
-          <Pagination count={lastPage} page={page} onChange={(_, value) => setPage(value)} color="primary" />
+          <Pagination
+            count={lastPage}
+            page={page}
+            onChange={(_, value) => setPage(value)}
+            color="primary"
+          />
         </Stack>
       )}
 
@@ -272,23 +405,38 @@ export default function DashboardStudentsPage() {
                 return (
                   <Card key={index} variant="outlined">
                     <CardContent>
-                      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Stack
+                        direction="row"
+                        sx={{
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mb: 2,
+                        }}
+                      >
                         <Typography variant="subtitle2">
                           Élève #{index + 1} {age !== null && `· ${age} ans`}
                         </Typography>
                         {batch.length > 1 && (
-                          <IconButton size="small" onClick={() => removeRow(index)}>
+                          <IconButton
+                            size="small"
+                            onClick={() => removeRow(index)}
+                          >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         )}
                       </Stack>
 
                       <Stack spacing={2}>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          spacing={2}
+                        >
                           <TextField
                             label="Nom complet"
                             value={row.fullname}
-                            onChange={(e) => updateRow(index, 'fullname', e.target.value)}
+                            onChange={(e) =>
+                              updateRow(index, "fullname", e.target.value)
+                            }
                             required
                             fullWidth
                           />
@@ -296,7 +444,9 @@ export default function DashboardStudentsPage() {
                             label="Date de naissance"
                             type="date"
                             value={row.date_of_birth}
-                            onChange={(e) => updateRow(index, 'date_of_birth', e.target.value)}
+                            onChange={(e) =>
+                              updateRow(index, "date_of_birth", e.target.value)
+                            }
                             slotProps={{ inputLabel: { shrink: true } }}
                             required
                             fullWidth
@@ -305,7 +455,9 @@ export default function DashboardStudentsPage() {
                             select
                             label="Genre"
                             value={row.gender}
-                            onChange={(e) => updateRow(index, 'gender', e.target.value)}
+                            onChange={(e) =>
+                              updateRow(index, "gender", e.target.value)
+                            }
                             required
                             fullWidth
                           >
@@ -318,7 +470,9 @@ export default function DashboardStudentsPage() {
                           select
                           label="Classe"
                           value={row.class_id}
-                          onChange={(e) => updateRow(index, 'class_id', e.target.value)}
+                          onChange={(e) =>
+                            updateRow(index, "class_id", e.target.value)
+                          }
                           required
                           fullWidth
                         >
@@ -335,7 +489,13 @@ export default function DashboardStudentsPage() {
                               control={
                                 <Checkbox
                                   checked={row.wantsOwnAccount}
-                                  onChange={(e) => updateRow(index, 'wantsOwnAccount', e.target.checked)}
+                                  onChange={(e) =>
+                                    updateRow(
+                                      index,
+                                      "wantsOwnAccount",
+                                      e.target.checked,
+                                    )
+                                  }
                                 />
                               }
                               label="Élève majeur : créer son propre compte"
@@ -345,7 +505,13 @@ export default function DashboardStudentsPage() {
                                 label="Email de l'élève"
                                 type="email"
                                 value={row.student_email}
-                                onChange={(e) => updateRow(index, 'student_email', e.target.value)}
+                                onChange={(e) =>
+                                  updateRow(
+                                    index,
+                                    "student_email",
+                                    e.target.value,
+                                  )
+                                }
                                 required
                                 fullWidth
                               />
@@ -356,18 +522,33 @@ export default function DashboardStudentsPage() {
                         <Typography variant="body2" color="text.secondary">
                           Parent / tuteur (obligatoire)
                         </Typography>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          spacing={2}
+                        >
                           <TextField
                             label="Nom du parent"
                             value={row.parent_fullname}
-                            onChange={(e) => updateRow(index, 'parent_fullname', e.target.value)}
+                            onChange={(e) =>
+                              updateRow(
+                                index,
+                                "parent_fullname",
+                                e.target.value,
+                              )
+                            }
                             fullWidth
                           />
                           <TextField
                             select
                             label="Lien de parenté"
                             value={row.parent_relationship}
-                            onChange={(e) => updateRow(index, 'parent_relationship', e.target.value)}
+                            onChange={(e) =>
+                              updateRow(
+                                index,
+                                "parent_relationship",
+                                e.target.value,
+                              )
+                            }
                             required
                             fullWidth
                           >
@@ -378,18 +559,25 @@ export default function DashboardStudentsPage() {
                             ))}
                           </TextField>
                         </Stack>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          spacing={2}
+                        >
                           <TextField
                             label="Email du parent"
                             type="email"
                             value={row.parent_email}
-                            onChange={(e) => updateRow(index, 'parent_email', e.target.value)}
+                            onChange={(e) =>
+                              updateRow(index, "parent_email", e.target.value)
+                            }
                             fullWidth
                           />
                           <TextField
                             label="Téléphone du parent"
                             value={row.parent_phone}
-                            onChange={(e) => updateRow(index, 'parent_phone', e.target.value)}
+                            onChange={(e) =>
+                              updateRow(index, "parent_phone", e.target.value)
+                            }
                             fullWidth
                           />
                         </Stack>
@@ -399,7 +587,11 @@ export default function DashboardStudentsPage() {
                 );
               })}
 
-              <Button startIcon={<AddIcon />} onClick={addRow} sx={{ alignSelf: 'flex-start' }}>
+              <Button
+                startIcon={<AddIcon />}
+                onClick={addRow}
+                sx={{ alignSelf: "flex-start" }}
+              >
                 Ajouter un élève
               </Button>
             </Stack>
@@ -407,7 +599,47 @@ export default function DashboardStudentsPage() {
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeModal}>Annuler</Button>
             <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? 'Inscription...' : `Inscrire ${batch.length > 1 ? `(${batch.length})` : ''}`}
+              {submitting
+                ? "Inscription..."
+                : `Inscrire ${batch.length > 1 ? `(${batch.length})` : ""}`}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(busDialogStudent)}
+        onClose={() => setBusDialogStudent(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>
+          Arrêt de bus — {busDialogStudent?.student?.fullname}
+        </DialogTitle>
+        <Box component="form" onSubmit={handleAssignBusStop}>
+          <DialogContent>
+            <TextField
+              select
+              label="Arrêt"
+              value={selectedStopId}
+              onChange={(e) => setSelectedStopId(e.target.value)}
+              fullWidth
+              helperText="Laissez vide si l'élève ne prend pas le bus scolaire"
+            >
+              <MenuItem value="">Aucun</MenuItem>
+              {(buses ?? []).flatMap((bus) =>
+                (bus.stops ?? []).map((stop) => (
+                  <MenuItem key={stop.id} value={stop.id}>
+                    {bus.label} — {stop.label}
+                  </MenuItem>
+                )),
+              )}
+            </TextField>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setBusDialogStudent(null)}>Annuler</Button>
+            <Button type="submit" variant="contained" disabled={busSubmitting}>
+              {busSubmitting ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </DialogActions>
         </Box>

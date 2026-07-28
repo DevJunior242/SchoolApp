@@ -1,5 +1,16 @@
-import { Alert, Box, Card, CardContent, Grid, Stack, Typography } from '@mui/material';
-import { motion } from 'motion/react';
+import {
+  Alert,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
 
@@ -28,6 +39,21 @@ export default function TeacherTimetablePage() {
 
   if (loading) return <p>Chargement...</p>;
 
+  // Une ligne par créneau horaire distinct, pour aligner visuellement les
+  // cours qui ont lieu au même moment sur des jours différents.
+  const timeRanges = [...new Set(slots.map((s) => `${s.start_time}-${s.end_time}`))]
+    .sort()
+    .map((range) => {
+      const [start_time, end_time] = range.split('-');
+      return { start_time, end_time };
+    });
+
+  function slotAt(day, start_time, end_time) {
+    return slots.find(
+      (s) => s.day_of_week === day && s.start_time === start_time && s.end_time === end_time
+    );
+  }
+
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} gutterBottom>
@@ -43,42 +69,61 @@ export default function TeacherTimetablePage() {
         </Alert>
       )}
 
-      <Grid container spacing={2}>
-        {DAYS.map((day) => (
-          <Grid key={day.value} size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              {day.label}
-            </Typography>
-            <Stack spacing={1}>
-              {slots
-                .filter((s) => s.day_of_week === day.value)
-                .map((slot, i) => (
-                  <motion.div key={slot.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}>
-                    <Card variant="outlined">
-                      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                        <Typography variant="body2" fontWeight={600} noWrap>
-                          {slot.class_subject_teacher.subject.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block" noWrap>
-                          {slot.class_subject_teacher.school_class.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
-                          {slot.room ? ` · ${slot.room}` : ''}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
+      {timeRanges.length === 0 ? (
+        <Typography color="text.secondary">Aucun cours planifié pour l'instant.</Typography>
+      ) : (
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Horaire</TableCell>
+                {DAYS.map((day) => (
+                  <TableCell key={day.value} align="center" sx={{ fontWeight: 700 }}>
+                    {day.label}
+                  </TableCell>
                 ))}
-              {slots.filter((s) => s.day_of_week === day.value).length === 0 && (
-                <Typography variant="caption" color="text.secondary">
-                  —
-                </Typography>
-              )}
-            </Stack>
-          </Grid>
-        ))}
-      </Grid>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {timeRanges.map((range) => (
+                <TableRow key={`${range.start_time}-${range.end_time}`}>
+                  <TableCell sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>
+                    {range.start_time.slice(0, 5)}–{range.end_time.slice(0, 5)}
+                  </TableCell>
+                  {DAYS.map((day) => {
+                    const slot = slotAt(day.value, range.start_time, range.end_time);
+                    return (
+                      <TableCell key={day.value} align="center" sx={{ minWidth: 130 }}>
+                        {slot ? (
+                          <Box
+                            sx={(theme) => ({
+                              p: 1,
+                              borderRadius: 1,
+                              bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            })}
+                          >
+                            <Typography variant="body2" fontWeight={600} noWrap>
+                              {slot.class_subject_teacher.subject.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                              {slot.class_subject_teacher.school_class.name}
+                              {slot.room ? ` · ${slot.room}` : ''}
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            —
+                          </Typography>
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Box>
   );
 }

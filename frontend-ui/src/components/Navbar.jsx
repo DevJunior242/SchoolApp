@@ -114,6 +114,15 @@ export default function Navbar() {
         </Box>
 
         <Box sx={{ display: { xs: "none", md: "flex" }, gap: 1 }}>
+          <Button
+            component={RouterLink}
+            to="/devenir-prestataire"
+            color="inherit"
+            size="small"
+            sx={{ px: 2, fontSize: "0.875rem" }}
+          >
+            Devenir prestataire
+          </Button>
           {user ? (
             <>
               <Button
@@ -208,6 +217,13 @@ export default function Navbar() {
               <ListItemText primary={link.label} />
             </ListItemButton>
           ))}
+          <ListItemButton
+            component={RouterLink}
+            to="/devenir-prestataire"
+            onClick={() => setMobileOpen(false)}
+          >
+            <ListItemText primary="Devenir prestataire" />
+          </ListItemButton>
         </List>
         <Divider />
         <List sx={{ py: 1 }}>

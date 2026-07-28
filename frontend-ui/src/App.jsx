@@ -26,11 +26,35 @@ import DashboardPaymentsPage from './pages/DashboardPaymentsPage.jsx';
 import ParentPaymentsPage from './pages/ParentPaymentsPage.jsx';
 import AttendanceEntryPage from './pages/AttendanceEntryPage.jsx';
 import ParentAttendancePage from './pages/ParentAttendancePage.jsx';
+import ParentBulletinsPage from './pages/ParentBulletinsPage.jsx';
 import AttendanceJustificationsPage from './pages/AttendanceJustificationsPage.jsx';
 import TeacherTimetablePage from './pages/TeacherTimetablePage.jsx';
 import DashboardEventsPage from './pages/DashboardEventsPage.jsx';
 import DashboardEnrollmentRequestsPage from './pages/DashboardEnrollmentRequestsPage.jsx';
 import DashboardSettingsPage from './pages/DashboardSettingsPage.jsx';
+import DashboardSchoolYearPage from './pages/DashboardSchoolYearPage.jsx';
+import DashboardMessagesPage from './pages/DashboardMessagesPage.jsx';
+import EventRecapPage from './pages/EventRecapPage.jsx';
+import StudentHealthPage from './pages/StudentHealthPage.jsx';
+import HealthDashboardPage from './pages/HealthDashboardPage.jsx';
+import StudentWalletPage from './pages/StudentWalletPage.jsx';
+import StudentQrBadgePage from './pages/StudentQrBadgePage.jsx';
+import DashboardCafeteriaPage from './pages/DashboardCafeteriaPage.jsx';
+import ParentCafeteriaPage from './pages/ParentCafeteriaPage.jsx';
+import StudentSelfBadgePage from './pages/StudentSelfBadgePage.jsx';
+import DashboardBusesPage from './pages/DashboardBusesPage.jsx';
+import BusDriverTripPage from './pages/BusDriverTripPage.jsx';
+import ParentBusTrackingPage from './pages/ParentBusTrackingPage.jsx';
+import DashboardLibraryPage from './pages/DashboardLibraryPage.jsx';
+import MyLibraryPage from './pages/MyLibraryPage.jsx';
+import ParentLibraryPage from './pages/ParentLibraryPage.jsx';
+import AssignmentCourseContentPage from './pages/AssignmentCourseContentPage.jsx';
+import MyCoursesPage from './pages/MyCoursesPage.jsx';
+import ParentCoursesPage from './pages/ParentCoursesPage.jsx';
+import DashboardMarketplacePage from './pages/DashboardMarketplacePage.jsx';
+import SuperAdminMarketplacePage from './pages/SuperAdminMarketplacePage.jsx';
+import ProviderItemsPage from './pages/ProviderItemsPage.jsx';
+import BecomeProviderPage from './pages/BecomeProviderPage.jsx';
 import TermsPage from './pages/TermsPage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 
@@ -45,6 +69,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/devenir-prestataire" element={<BecomeProviderPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
       </Route>
@@ -67,16 +92,39 @@ function App() {
         <Route path="my-assignments" element={<TeacherAssignmentsPage />} />
         <Route path="assignments/:assignmentId/grades" element={<GradeEntryPage />} />
         <Route path="students/:studentId/bulletin" element={<BulletinPage />} />
+        <Route path="students/:studentId/health" element={<StudentHealthPage />} />
+        <Route path="students/:studentId/wallet" element={<StudentWalletPage />} />
+        <Route path="students/:studentId/qr-badge" element={<StudentQrBadgePage />} />
+        <Route path="my-children-cafeteria" element={<ParentCafeteriaPage />} />
+        <Route path="my-badge" element={<StudentSelfBadgePage />} />
+        <Route path="buses" element={<DashboardBusesPage />} />
+        <Route path="my-bus-trip" element={<BusDriverTripPage />} />
+        <Route path="my-children-bus" element={<ParentBusTrackingPage />} />
+        <Route path="library" element={<DashboardLibraryPage />} />
+        <Route path="my-library" element={<MyLibraryPage />} />
+        <Route path="my-children-library" element={<ParentLibraryPage />} />
+        <Route path="assignments/:assignmentId/course-contents" element={<AssignmentCourseContentPage />} />
+        <Route path="my-courses" element={<MyCoursesPage />} />
+        <Route path="my-children-courses" element={<ParentCoursesPage />} />
+        <Route path="marketplace" element={<DashboardMarketplacePage />} />
+        <Route path="marketplace-moderation" element={<SuperAdminMarketplacePage />} />
+        <Route path="my-marketplace-items" element={<ProviderItemsPage />} />
+        <Route path="cafeteria" element={<DashboardCafeteriaPage />} />
+        <Route path="health" element={<HealthDashboardPage />} />
         <Route path="parents" element={<DashboardParentsPage />} />
         <Route path="payments" element={<DashboardPaymentsPage />} />
         <Route path="my-children-payments" element={<ParentPaymentsPage />} />
         <Route path="assignments/:assignmentId/attendances" element={<AttendanceEntryPage />} />
         <Route path="my-children-attendances" element={<ParentAttendancePage />} />
+        <Route path="my-children-bulletins" element={<ParentBulletinsPage />} />
         <Route path="attendance-justifications" element={<AttendanceJustificationsPage />} />
         <Route path="my-timetable" element={<TeacherTimetablePage />} />
         <Route path="events" element={<DashboardEventsPage />} />
+        <Route path="events/:eventId/recap" element={<EventRecapPage />} />
         <Route path="enrollment-requests" element={<DashboardEnrollmentRequestsPage />} />
         <Route path="settings" element={<DashboardSettingsPage />} />
+        <Route path="school-year" element={<DashboardSchoolYearPage />} />
+        <Route path="messages" element={<DashboardMessagesPage />} />
         <Route path="activation-keys" element={<SuperAdminActivationKeysPage />} />
         <Route path="all-schools" element={<SuperAdminSchoolsPage />} />
       </Route>

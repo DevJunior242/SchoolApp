@@ -96,7 +96,7 @@ export default function DashboardSchoolsPage() {
                                         >
                                             <Box>
                                                 <Typography variant="subtitle1">
-                                                    {su.school.name}
+                                                    {su.school?.name}
                                                 </Typography>
                                                 <Typography
                                                     variant="body2"

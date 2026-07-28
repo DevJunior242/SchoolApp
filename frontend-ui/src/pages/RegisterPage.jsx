@@ -5,6 +5,7 @@ import {
   Button,
   Checkbox,
   FormControlLabel,
+  IconButton,
   Paper,
   TextField,
   Typography,
@@ -12,7 +13,9 @@ import {
 import { motion } from "motion/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-
+import InputAdornment from "@mui/material/InputAdornment";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -26,7 +29,9 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] =
+    useState(false);
   function handleChange(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
   }
@@ -107,7 +112,7 @@ export default function RegisterPage() {
               onChange={handleChange("phone")}
               fullWidth
             />
-            <TextField
+            {/* <TextField
               id="password"
               label="Mot de passe"
               type="password"
@@ -115,8 +120,36 @@ export default function RegisterPage() {
               onChange={handleChange("password")}
               required
               fullWidth
-            />
+            /> */}
             <TextField
+              id="password"
+              label="Mot de passe"
+              type={showPassword ? "text" : "password"}
+              value={form.password}
+              onChange={handleChange("password")}
+              required
+              fullWidth
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword((show) => !show)}
+                        edge="end"
+                        aria-label={
+                          showPassword
+                            ? "Masquer le mot de passe"
+                            : "Afficher le mot de passe"
+                        }
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            {/* <TextField
               id="password_confirmation"
               label="Confirmer le mot de passe"
               type="password"
@@ -124,13 +157,50 @@ export default function RegisterPage() {
               onChange={handleChange("password_confirmation")}
               required
               fullWidth
+            /> */}
+            <TextField
+              id="password_confirmation"
+              label="Confirmer le mot de passe"
+              type={showPasswordConfirmation ? "text" : "password"}
+              value={form.password_confirmation}
+              onChange={handleChange("password_confirmation")}
+              required
+              fullWidth
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() =>
+                          setShowPasswordConfirmation((show) => !show)
+                        }
+                        edge="end"
+                        aria-label={
+                          showPasswordConfirmation
+                            ? "Masquer le mot de passe"
+                            : "Afficher le mot de passe"
+                        }
+                      >
+                        {showPasswordConfirmation ? (
+                          <VisibilityOff />
+                        ) : (
+                          <Visibility />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
             />
             <FormControlLabel
               control={
                 <Checkbox
                   checked={form.terms_accepted}
                   onChange={(e) =>
-                    setForm((prev) => ({ ...prev, terms_accepted: e.target.checked }))
+                    setForm((prev) => ({
+                      ...prev,
+                      terms_accepted: e.target.checked,
+                    }))
                   }
                 />
               }

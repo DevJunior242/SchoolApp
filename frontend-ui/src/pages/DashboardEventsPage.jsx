@@ -17,8 +17,10 @@ import {
   Typography,
 } from '@mui/material';
 import { motion } from 'motion/react';
+import { Link as RouterLink } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PhotoLibraryOutlinedIcon from '@mui/icons-material/PhotoLibraryOutlined';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
@@ -143,6 +145,14 @@ export default function DashboardEventsPage() {
                       </Typography>
                     )}
                   </Box>
+                  <IconButton
+                    size="small"
+                    component={RouterLink}
+                    to={`/dashboard/events/${ev.id}/recap`}
+                    aria-label="Récap de l'événement"
+                  >
+                    <PhotoLibraryOutlinedIcon fontSize="small" />
+                  </IconButton>
                   {canManage && (
                     <IconButton size="small" onClick={() => handleDelete(ev.id)}>
                       <DeleteIcon fontSize="small" />
