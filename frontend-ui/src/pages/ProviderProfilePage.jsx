@@ -348,7 +348,7 @@ export default function ProviderProfilePage() {
                     <Typography variant="body2" sx={{ flexGrow: 1 }}>
                       {Number(p.amount).toLocaleString()}
                       {p.plan
-                        ? ` (${PERIOD_LABELS[p.plan.period] ?? p.plan?.period})`
+                        ? ` (${PERIOD_LABELS[p.plan?.period] ?? p.plan?.period})`
                         : ""}{" "}
                       — {new Date(p.created_at).toLocaleDateString("fr-FR")}
                     </Typography>

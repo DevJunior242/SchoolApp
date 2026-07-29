@@ -22,5 +22,3 @@ api.interceptors.request.use((config) => {
 });
 
 export default api;
-
-//betreizupevei-5806

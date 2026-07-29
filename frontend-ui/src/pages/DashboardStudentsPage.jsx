@@ -14,6 +14,7 @@ import {
   FormControlLabel,
   IconButton,
   InputAdornment,
+  Menu,
   MenuItem,
   Pagination,
   Stack,
@@ -24,6 +25,7 @@ import { motion } from "motion/react";
 import { Link as RouterLink } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SearchIcon from "@mui/icons-material/Search";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -118,6 +120,21 @@ export default function DashboardStudentsPage() {
   function openBusDialog(schoolStudent) {
     setBusDialogStudent(schoolStudent);
     setSelectedStopId(schoolStudent.bus_stop_id ?? "");
+  }
+
+  // Menu "trois points" par élève : regroupe Bulletin/Santé/Portefeuille/
+  // Badge/Bus, trop nombreux pour tenir en boutons côte à côte sur mobile.
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [menuStudent, setMenuStudent] = useState(null);
+
+  function openActionsMenu(e, schoolStudent) {
+    setMenuAnchor(e.currentTarget);
+    setMenuStudent(schoolStudent);
+  }
+
+  function closeActionsMenu() {
+    setMenuAnchor(null);
+    setMenuStudent(null);
   }
 
   async function handleAssignBusStop(e) {
@@ -320,48 +337,16 @@ export default function DashboardStudentsPage() {
                         {s.student?.parents.map((p) => p.fullname).join(", ")}
                       </Typography>
                     </Box>
-                    {canSeeBulletin && (
-                      <Button
-                        component={RouterLink}
-                        to={`/dashboard/students/${s.student.id}/bulletin`}
+                    {(canSeeBulletin ||
+                      canSeeHealth ||
+                      canSeeCafeteria ||
+                      canAssignBus) && (
+                      <IconButton
                         size="small"
+                        onClick={(e) => openActionsMenu(e, s)}
                       >
-                        Bulletin
-                      </Button>
-                    )}
-                    {canSeeHealth && (
-                      <Button
-                        component={RouterLink}
-                        to={`/dashboard/students/${s.student.id}/health`}
-                        size="small"
-                      >
-                        Santé
-                      </Button>
-                    )}
-                    {canSeeCafeteria && (
-                      <>
-                        <Button
-                          component={RouterLink}
-                          to={`/dashboard/students/${s.student.id}/wallet`}
-                          state={{ fullname: s.student?.fullname }}
-                          size="small"
-                        >
-                          Portefeuille
-                        </Button>
-                        <Button
-                          component={RouterLink}
-                          to={`/dashboard/students/${s.student.id}/qr-badge`}
-                          state={{ fullname: s.student?.fullname }}
-                          size="small"
-                        >
-                          Badge QR
-                        </Button>
-                      </>
-                    )}
-                    {canAssignBus && (
-                      <Button size="small" onClick={() => openBusDialog(s)}>
-                        {s.bus_stop ? s.bus_stop?.label : "Bus"}
-                      </Button>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
                     )}
                   </CardContent>
                 </Card>
@@ -375,6 +360,57 @@ export default function DashboardStudentsPage() {
           )}
         </Stack>
       )}
+
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeActionsMenu}>
+        {canSeeBulletin && (
+          <MenuItem
+            component={RouterLink}
+            to={`/dashboard/students/${menuStudent?.student?.id}/bulletin`}
+            onClick={closeActionsMenu}
+          >
+            Bulletin
+          </MenuItem>
+        )}
+        {canSeeHealth && (
+          <MenuItem
+            component={RouterLink}
+            to={`/dashboard/students/${menuStudent?.student?.id}/health`}
+            onClick={closeActionsMenu}
+          >
+            Santé
+          </MenuItem>
+        )}
+        {canSeeCafeteria && (
+          <MenuItem
+            component={RouterLink}
+            to={`/dashboard/students/${menuStudent?.student?.id}/wallet`}
+            state={{ fullname: menuStudent?.student?.fullname }}
+            onClick={closeActionsMenu}
+          >
+            Portefeuille
+          </MenuItem>
+        )}
+        {canSeeCafeteria && (
+          <MenuItem
+            component={RouterLink}
+            to={`/dashboard/students/${menuStudent?.student?.id}/qr-badge`}
+            state={{ fullname: menuStudent?.student?.fullname }}
+            onClick={closeActionsMenu}
+          >
+            Badge QR
+          </MenuItem>
+        )}
+        {canAssignBus && (
+          <MenuItem
+            onClick={() => {
+              openBusDialog(menuStudent);
+              closeActionsMenu();
+            }}
+          >
+            {menuStudent?.bus_stop ? menuStudent.bus_stop?.label : "Bus"}
+          </MenuItem>
+        )}
+      </Menu>
 
       {lastPage > 1 && (
         <Stack alignItems="center" sx={{ mt: 3 }}>
