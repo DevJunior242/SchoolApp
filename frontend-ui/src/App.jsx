@@ -55,6 +55,7 @@ import DashboardMarketplacePage from './pages/DashboardMarketplacePage.jsx';
 import SuperAdminMarketplacePage from './pages/SuperAdminMarketplacePage.jsx';
 import ProviderItemsPage from './pages/ProviderItemsPage.jsx';
 import BecomeProviderPage from './pages/BecomeProviderPage.jsx';
+import DashboardAiAssistantPage from './pages/DashboardAiAssistantPage.jsx';
 import TermsPage from './pages/TermsPage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 
@@ -109,6 +110,7 @@ function App() {
         <Route path="marketplace" element={<DashboardMarketplacePage />} />
         <Route path="marketplace-moderation" element={<SuperAdminMarketplacePage />} />
         <Route path="my-marketplace-items" element={<ProviderItemsPage />} />
+        <Route path="ai-assistant" element={<DashboardAiAssistantPage />} />
         <Route path="cafeteria" element={<DashboardCafeteriaPage />} />
         <Route path="health" element={<HealthDashboardPage />} />
         <Route path="parents" element={<DashboardParentsPage />} />

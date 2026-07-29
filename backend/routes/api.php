@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ActivationKeyController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AiAssistantController;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
@@ -194,6 +195,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/students/{student}/payments', [PaymentController::class, 'forStudent']);
         Route::get('/schools/{school}/students/{student}/attendances', [AttendanceController::class, 'forStudent']);
         Route::get('/schools/{school}/attendances/pending-justifications', [AttendanceController::class, 'pendingJustifications']);
+        Route::get('/schools/{school}/students/risk-report', [AiAssistantController::class, 'riskReport']);
 
         Route::get('/schools/{school}/messages/unread-count', [MessageController::class, 'unreadCount']);
         Route::get('/schools/{school}/messages', [MessageController::class, 'index']);
@@ -266,6 +268,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/students/{student}/payments', [PaymentController::class, 'store']);
             Route::post('/schools/{school}/payments/{payment}/confirm', [PaymentController::class, 'confirm']);
             Route::post('/schools/{school}/payments/{payment}/reject', [PaymentController::class, 'reject']);
+
+            Route::post('/schools/{school}/ai/ask', [AiAssistantController::class, 'ask']);
 
             Route::post('/schools/{school}/attendances/{attendance}/justify', [AttendanceController::class, 'justify']);
             Route::post('/schools/{school}/attendances/{attendance}/approve-justification', [AttendanceController::class, 'approveJustification']);

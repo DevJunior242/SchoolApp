@@ -45,6 +45,7 @@ import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import LocalLibraryIcon from "@mui/icons-material/LocalLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import StorefrontIcon from "@mui/icons-material/Storefront";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { alpha } from "@mui/material/styles";
@@ -86,6 +87,7 @@ const DIRECTEUR_NAV_ITEMS = [
     { label: "Bus scolaire", to: "/dashboard/buses", icon: <DirectionsBusIcon /> },
     { label: "Bibliothèque", to: "/dashboard/library", icon: <LocalLibraryIcon /> },
     { label: "Marketplace", to: "/dashboard/marketplace", icon: <StorefrontIcon /> },
+    { label: "Assistant IA", to: "/dashboard/ai-assistant", icon: <SmartToyIcon /> },
     { label: "Paramètres", to: "/dashboard/settings", icon: <SettingsIcon /> },
 ];
 
