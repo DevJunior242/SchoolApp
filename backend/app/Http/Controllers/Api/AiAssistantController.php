@@ -9,6 +9,7 @@ use App\Models\School;
 use App\Services\Ai\SchoolAssistantService;
 use App\Services\StudentRiskService;
 use Illuminate\Http\Request;
+use Throwable;
 
 class AiAssistantController extends Controller
 {
@@ -33,6 +34,15 @@ class AiAssistantController extends Controller
             $answer = $assistant->ask($school, $validated['question']);
         } catch (AiNotConfiguredException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            // Erreurs du fournisseur IA (limite de débit, panne, quota
+            // dépassé...) : jamais de trace brute renvoyée au client, un
+            // message actionnable à la place.
+            report($e);
+
+            return response()->json([
+                'message' => "L'assistant IA est momentanément indisponible (quota ou limite de débit atteinte). Réessayez dans quelques instants.",
+            ], 503);
         }
 
         return response()->json(['answer' => $answer]);

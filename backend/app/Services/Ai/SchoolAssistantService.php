@@ -34,9 +34,19 @@ class SchoolAssistantService
     private const SYSTEM_PROMPT = <<<'TXT'
 Tu es l'assistant de direction d'une école africaine. Tu ne dois JAMAIS
 inventer de chiffres : réponds uniquement à partir des données renvoyées
-par l'outil que tu as appelé. Si les données ne permettent pas de répondre,
-dis-le clairement plutôt que de deviner. Réponds en français, en quelques
-phrases, sur un ton professionnel.
+par l'outil que tu as appelé. Réponds en français, en quelques phrases,
+sur un ton professionnel.
+
+Important : une liste vide renvoyée par un outil (ex: "eleves_a_risque": [])
+signifie qu'il n'y a AUCUN élève/paiement concerné en ce moment, pas que
+les données sont indisponibles. Dans ce cas, annonce-le positivement
+(ex: "Aucun élève ne présente de risque élevé ou moyen actuellement.").
+Si l'outil renvoie une clé "error", explique ce message tel quel au
+directeur (ex: élève ou classe introuvable).
+
+Si la question ne concerne pas la gestion de l'école (élèves, notes,
+absences, paiements, classes, événements), n'appelle aucun outil et
+réponds directement, brièvement.
 TXT;
 
     private const EVENT_TYPE_LABELS = [
@@ -61,7 +71,7 @@ TXT;
             ['role' => 'user', 'content' => $question],
         ];
 
-        $first = $this->client->chat($messages, $this->toolDefinitions(), 'required');
+        $first = $this->client->chat($messages, $this->toolDefinitions(), 'auto');
         $toolCalls = $first['tool_calls'] ?? [];
 
         if ($toolCalls === []) {
@@ -305,40 +315,40 @@ TXT;
         return [
             $this->tool(
                 'eleves_a_risque',
-                "Retourne la liste des élèves présentant un risque moyen ou élevé d'abandon scolaire (absences, moyenne, retards, impayés), triée par score décroissant.",
+                "Utilise cet outil UNIQUEMENT quand la question porte sur le risque d'ABANDON scolaire ou les élèves en DIFFICULTÉ de façon générale (combinaison absences+moyenne+retards+impayés). Ne pas utiliser pour une question qui porte spécifiquement sur les paiements/frais de scolarité, ou sur la moyenne d'une classe : ce sont d'autres outils. Retourne la liste des élèves à risque moyen ou élevé, triée par score décroissant.",
                 []
             ),
             $this->tool(
                 'paiements_en_retard',
-                'Retourne la liste des élèves ayant des paiements en retard (échéances dépassées non couvertes par un paiement confirmé).',
+                "Utilise cet outil quand la question porte spécifiquement sur les PAIEMENTS, FRAIS DE SCOLARITÉ ou IMPAYÉS (ex: \"qui n'a pas payé ?\", \"paiements en retard\"). Retourne la liste des élèves ayant des échéances de paiement dépassées non couvertes par un paiement confirmé.",
                 []
             ),
             $this->tool(
                 'absences_eleve',
-                "Retourne le nombre et les dates d'absence d'un élève précis, désigné par son nom.",
+                "Utilise cet outil quand la question porte sur les absences d'UN élève précis, désigné par son nom (pas une classe entière, pas la liste des élèves à risque). Retourne le nombre et les dates d'absence de cet élève.",
                 ['nom_eleve' => ['type' => 'string', 'description' => "Nom (ou partie du nom) de l'élève concerné."]],
                 ['nom_eleve']
             ),
             $this->tool(
                 'moyenne_eleve',
-                "Retourne la moyenne générale et les indicateurs (absences, retards) d'un élève précis, désigné par son nom.",
+                "Utilise cet outil quand la question porte sur la moyenne/les notes d'UN élève précis, désigné par son nom (pas une classe entière). Retourne sa moyenne générale et ses indicateurs (absences, retards).",
                 ['nom_eleve' => ['type' => 'string', 'description' => "Nom (ou partie du nom) de l'élève concerné."]],
                 ['nom_eleve']
             ),
             $this->tool(
                 'moyenne_classe',
-                "Retourne la moyenne générale et l'effectif d'une classe précise, désignée par son nom.",
-                ['nom_classe' => ['type' => 'string', 'description' => "Nom (ou partie du nom) de la classe concernée."]],
+                "Utilise cet outil quand la question porte sur la moyenne d'une CLASSE ENTIÈRE désignée par son nom (ex: \"6ème A\"), pas sur un élève individuel. Le paramètre nom_classe est obligatoire et doit être extrait de la question. Retourne la moyenne générale de la classe et son effectif.",
+                ['nom_classe' => ['type' => 'string', 'description' => "Nom (ou partie du nom) de la classe concernée, ex: '6ème A'."]],
                 ['nom_classe']
             ),
             $this->tool(
                 'resume_ecole',
-                "Retourne les chiffres clés de l'école : nombre d'élèves, d'enseignants, de classes, paiements en attente/confirmés, absences du jour, justifications en attente.",
+                "Utilise cet outil pour une vue d'ensemble générale de l'école (chiffres clés) : nombre d'élèves, d'enseignants, de classes, paiements en attente/confirmés (montants globaux, pas la liste des élèves concernés), absences du jour, justifications en attente.",
                 []
             ),
             $this->tool(
                 'effectifs_par_classe',
-                "Retourne le nombre d'élèves actifs dans chaque classe de l'année scolaire en cours.",
+                "Utilise cet outil quand la question porte sur le NOMBRE D'ÉLÈVES par classe (effectifs), pas sur les moyennes ni les élèves à risque. Retourne le nombre d'élèves actifs dans chaque classe de l'année scolaire en cours.",
                 []
             ),
             $this->tool(
@@ -358,7 +368,10 @@ TXT;
                 'description' => $description,
                 'parameters' => [
                     'type' => 'object',
-                    'properties' => $properties,
+                    // (object) force l'encodage JSON en "{}" plutôt qu'en "[]"
+                    // quand $properties est vide : Groq valide le schéma plus
+                    // strictement qu'OpenAI et rejette un tableau à cet endroit.
+                    'properties' => (object) $properties,
                     'required' => $required,
                 ],
             ],
