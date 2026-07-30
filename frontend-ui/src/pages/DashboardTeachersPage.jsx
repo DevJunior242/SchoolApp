@@ -63,7 +63,7 @@ export default function DashboardTeachersPage() {
       setError(
         messages
           ? Object.values(messages).flat().join(" ")
-          : "Impossible d'ajouter ce professeur.",
+          : err.response?.data?.message || "Impossible d'ajouter ce professeur.",
       );
     } finally {
       setSubmitting(false);

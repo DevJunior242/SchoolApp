@@ -66,6 +66,7 @@ class SchoolMemberController extends Controller
         }
 
         $user = $this->resolveUser($validated);
+        $this->guardAgainstOverwritingDirecteur($school, $user);
 
         $schoolUser = SchoolUser::query()->updateOrCreate(
             [

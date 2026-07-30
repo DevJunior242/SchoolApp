@@ -43,6 +43,7 @@ class TeacherController extends Controller
 
         $professeurRole = Role::query()->where('slug', 'professeur')->firstOrFail();
         $user = $this->resolveUser($validated);
+        $this->guardAgainstOverwritingDirecteur($school, $user);
 
         $schoolUser = SchoolUser::query()->updateOrCreate(
             [

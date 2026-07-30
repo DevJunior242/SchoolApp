@@ -80,7 +80,7 @@ export default function DashboardMembersPage() {
       setError(
         messages
           ? Object.values(messages).flat().join(" ")
-          : "Impossible d'ajouter ce membre.",
+          : err.response?.data?.message || "Impossible d'ajouter ce membre.",
       );
     } finally {
       setSubmitting(false);
