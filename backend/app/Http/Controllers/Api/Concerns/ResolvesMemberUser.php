@@ -46,22 +46,27 @@ trait ResolvesMemberUser
 
     /**
      * L'ajout/invitation d'un membre fait un updateOrCreate sur (school_id,
-     * user_id) : si la personne visée a déjà un rôle à cette école, ce rôle
-     * serait silencieusement écrasé. Vécu en conditions réelles — un
-     * directeur a perdu son rôle en invitant quelqu'un avec sa propre
-     * adresse email, son compte est repassé "professeur" sans avertissement
-     * et il a perdu l'accès à tout son tableau de bord. On bloque
-     * spécifiquement l'écrasement du rôle directeur, qui est unique et
-     * désigné à la création de l'école.
+     * user_id) : si la personne visée (retrouvée par email OU téléphone, cf.
+     * resolveUser) a déjà un rôle DIFFÉRENT à cette école, ce rôle serait
+     * silencieusement écrasé. Vécu en conditions réelles — un directeur a
+     * perdu son rôle en invitant quelqu'un avec sa propre adresse email, son
+     * compte est repassé "professeur" sans avertissement et il a perdu
+     * l'accès à tout son tableau de bord. Règle générale : un compte n'a
+     * qu'un seul rôle par école, jamais deux ; réinviter avec le même rôle
+     * reste sans effet (idempotent), mais un rôle différent est refusé.
      */
-    private function guardAgainstOverwritingDirecteur(School $school, User $user): void
+    private function guardAgainstRoleConflict(School $school, User $user, string $newRoleId): void
     {
-        $isDirecteur = SchoolUser::query()
+        $existing = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $user->id)
-            ->whereHas('role', fn ($query) => $query->where('slug', 'directeur'))
-            ->exists();
+            ->with('role')
+            ->first();
 
-        abort_if($isDirecteur, 422, "Ce compte est déjà directeur de cette école : son rôle ne peut pas être changé via cet écran.");
+        if (! $existing || $existing->role_id === $newRoleId) {
+            return;
+        }
+
+        abort(422, "Ce compte a déjà le rôle « {$existing->role->name} » à cette école : il ne peut pas avoir deux rôles en même temps. Retirez-le d'abord de son rôle actuel si vous voulez le changer.");
     }
 }

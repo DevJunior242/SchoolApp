@@ -66,7 +66,7 @@ class SchoolMemberController extends Controller
         }
 
         $user = $this->resolveUser($validated);
-        $this->guardAgainstOverwritingDirecteur($school, $user);
+        $this->guardAgainstRoleConflict($school, $user, $validated['role_id']);
 
         $schoolUser = SchoolUser::query()->updateOrCreate(
             [
