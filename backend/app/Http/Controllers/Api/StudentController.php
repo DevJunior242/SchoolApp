@@ -186,6 +186,11 @@ class StudentController extends Controller
         );
 
         $parentRole = Role::query()->where('slug', 'parent')->firstOrFail();
+        // Le parent est retrouvé par email/téléphone (ResolvesMemberUser) :
+        // s'il a déjà un autre rôle à cette école (ex: le directeur inscrit
+        // son propre enfant avec sa propre adresse email), on ne l'écrase
+        // pas silencieusement.
+        $this->guardAgainstRoleConflict($school, $parentUser, $parentRole->id);
         SchoolUser::query()->updateOrCreate(
             ['school_id' => $school->id, 'user_id' => $parentUser->id],
             ['role_id' => $parentRole->id, 'status' => SchoolUser::STATUS_ACTIVE]

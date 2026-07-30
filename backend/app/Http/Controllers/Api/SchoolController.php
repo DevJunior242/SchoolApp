@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Api\Concerns\GeneratesSeasons;
+use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
 use App\Http\Controllers\Controller;
 use App\Models\ActivationKey;
 use App\Models\Grade;
@@ -20,7 +21,7 @@ use Illuminate\Validation\ValidationException;
 
 class SchoolController extends Controller
 {
-    use AuthorizesSchoolDirecteur, GeneratesSeasons;
+    use AuthorizesSchoolDirecteur, GeneratesSeasons, ResolvesMemberUser;
 
     public function index()
     {
@@ -185,6 +186,8 @@ class SchoolController extends Controller
         $validated = $request->validate([
             'role_id' => ['required', 'uuid', 'exists:roles,id'],
         ]);
+
+        $this->guardAgainstRoleConflict($school, $request->user(), $validated['role_id']);
 
         $schoolUser = SchoolUser::query()->updateOrCreate(
             [
