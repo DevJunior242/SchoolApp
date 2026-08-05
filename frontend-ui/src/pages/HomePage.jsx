@@ -99,8 +99,8 @@ function MarketingHome() {
           py: { xs: 8, md: 12 },
           background:
             theme.palette.mode === "dark"
-              ? "radial-gradient(circle at top left, rgba(201,162,39,0.22), transparent 35%), linear-gradient(135deg, #050505 0%, #111111 100%)"
-              : "radial-gradient(circle at top left, rgba(201,162,39,0.16), transparent 35%), linear-gradient(135deg, #F7F5F0 0%, #EFEAE0 100%)",
+              ? `radial-gradient(circle at top left, ${alpha(theme.palette.primary.main, 0.28)}, transparent 35%), linear-gradient(135deg, #0F0D0C 0%, #171310 100%)`
+              : `radial-gradient(circle at top left, ${alpha(theme.palette.primary.main, 0.16)}, transparent 35%), linear-gradient(135deg, #F7F5F0 0%, #EFEAE0 100%)`,
         })}
       >
         <Container maxWidth="lg">
@@ -111,13 +111,18 @@ function MarketingHome() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ mb: 2, alignItems: "center" }}
+                <Typography
+                  variant="overline"
+                  sx={{
+                    display: "block",
+                    mb: 2,
+                    letterSpacing: 3,
+                    fontWeight: 700,
+                    color: "primary.main",
+                  }}
                 >
-                  <Chip label="Plateforme éducative" color="primary" />
-                </Stack>
+                  Intelligence · Innovation — pour les écoles africaines
+                </Typography>
 
                 <Typography
                   variant="h2"
@@ -248,11 +253,11 @@ function MarketingHome() {
                       <Grid size={{ xs: 4 }}>
                         <Paper
                           variant="outlined"
-                          sx={{
+                          sx={(theme) => ({
                             p: 1.2,
                             textAlign: "center",
-                            bgcolor: "rgba(201,162,39,0.08)",
-                          }}
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          })}
                         >
                           <Typography variant="h6" color="primary.main">
                             24
@@ -265,11 +270,11 @@ function MarketingHome() {
                       <Grid size={{ xs: 4 }}>
                         <Paper
                           variant="outlined"
-                          sx={{
+                          sx={(theme) => ({
                             p: 1.2,
                             textAlign: "center",
-                            bgcolor: "rgba(201,162,39,0.08)",
-                          }}
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          })}
                         >
                           <Typography variant="h6" color="primary.main">
                             318
@@ -282,11 +287,11 @@ function MarketingHome() {
                       <Grid size={{ xs: 4 }}>
                         <Paper
                           variant="outlined"
-                          sx={{
+                          sx={(theme) => ({
                             p: 1.2,
                             textAlign: "center",
-                            bgcolor: "rgba(201,162,39,0.08)",
-                          }}
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          })}
                         >
                           <Typography variant="h6" color="primary.main">
                             12
@@ -444,12 +449,12 @@ function MarketingHome() {
         <Container maxWidth="md">
           <Paper
             elevation={0}
-            sx={{
+            sx={(theme) => ({
               p: { xs: 3, md: 4 },
               border: "1px solid",
               borderColor: "divider",
-              bgcolor: "rgba(201,162,39,0.08)",
-            }}
+              bgcolor: alpha(theme.palette.primary.main, 0.08),
+            })}
           >
             <Typography variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
               Prêt à moderniser votre établissement ?
