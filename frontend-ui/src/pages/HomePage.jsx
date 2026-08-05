@@ -121,7 +121,7 @@ function MarketingHome() {
                     color: "primary.main",
                   }}
                 >
-                  Intelligence · Innovation — pour les écoles africaines
+                  Intelligence · Innovation — pour les écoles du Burkina Faso
                 </Typography>
 
                 <Typography
@@ -135,7 +135,11 @@ function MarketingHome() {
                     mb: 2,
                   }}
                 >
-                  La plateforme qui structure l’éducation moderne
+                  La gestion scolaire,{" "}
+                  <Box component="span" sx={{ color: "primary.main" }}>
+                    intelligente
+                  </Box>{" "}
+                  et pensée pour le terrain
                 </Typography>
                 <Typography
                   variant="h6"
@@ -166,8 +170,7 @@ function MarketingHome() {
                     Créer mon école
                   </Button>
                   <Button
-                    component={RouterLink}
-                    to="/login"
+                    href="#features"
                     variant="outlined"
                     size="large"
                     sx={{
@@ -175,7 +178,7 @@ function MarketingHome() {
                       borderColor: "divider",
                     }}
                   >
-                    Se connecter
+                    Voir les fonctionnalités
                   </Button>
                 </Stack>
 
@@ -244,7 +247,7 @@ function MarketingHome() {
                           Établissement
                         </Typography>
                         <Typography variant="subtitle1" fontWeight={700}>
-                          Lycée Moderne de Dakar
+                          Lycée Notre-Dame de Bobo
                         </Typography>
                       </Box>
                       <Chip label="Actif" color="primary" size="small" />
@@ -260,10 +263,10 @@ function MarketingHome() {
                           })}
                         >
                           <Typography variant="h6" color="primary.main">
-                            24
+                            31
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Classes
+                            Cours
                           </Typography>
                         </Paper>
                       </Grid>
@@ -277,7 +280,7 @@ function MarketingHome() {
                           })}
                         >
                           <Typography variant="h6" color="primary.main">
-                            318
+                            742
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             Élèves
@@ -294,7 +297,7 @@ function MarketingHome() {
                           })}
                         >
                           <Typography variant="h6" color="primary.main">
-                            12
+                            28
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             Enseignants
@@ -307,6 +310,7 @@ function MarketingHome() {
                         borderTop: "1px solid",
                         borderColor: "divider",
                         pt: 2,
+                        mb: 2,
                       }}
                     >
                       <Typography
@@ -333,8 +337,49 @@ function MarketingHome() {
                         />
                       </Box>
                     </Box>
+                    <Box
+                      sx={{
+                        borderTop: "1px solid",
+                        borderColor: "divider",
+                        pt: 2,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
+                        Paiements de scolarité — ce mois
+                      </Typography>
+                      <Stack spacing={0.75}>
+                        {[
+                          { label: "Orange Money", value: "1 240 000 FCFA" },
+                          { label: "Moov Money", value: "860 000 FCFA" },
+                          { label: "Espèces suivies", value: "410 000 FCFA" },
+                        ].map((row) => (
+                          <Stack
+                            key={row.label}
+                            direction="row"
+                            sx={{ justifyContent: "space-between" }}
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              {row.label}
+                            </Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              {row.value}
+                            </Typography>
+                          </Stack>
+                        ))}
+                      </Stack>
+                    </Box>
                   </Box>
                 </Paper>
+                <Chip
+                  label="📶 Fonctionne hors-ligne — synchronisation auto"
+                  variant="outlined"
+                  size="small"
+                  sx={{ mt: 2 }}
+                />
               </motion.div>
             </Grid>
           </Grid>
@@ -346,8 +391,11 @@ function MarketingHome() {
         maxWidth="lg"
         sx={{ py: { xs: 6, md: 8 }, scrollMarginTop: 80 }}
       >
-        <Typography variant="h4" sx={{ mb: 3, fontWeight: 700 }}>
-          Pourquoi cette plateforme
+        <Typography variant="h4" sx={{ mb: 1, fontWeight: 700 }}>
+          Tout ce qu'il faut pour piloter un établissement
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          Pensé pour les réalités du terrain
         </Typography>
         <Grid container spacing={3}>
           {features.map((feature, i) => (
@@ -397,7 +445,7 @@ function MarketingHome() {
           <Grid container spacing={4} alignItems="center">
             <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="h4" sx={{ mb: 2, fontWeight: 700 }}>
-                Pensée pour les établissements qui veulent aller plus loin
+                Une confiance qui se construit établissement par établissement
               </Typography>
               <Typography color="text.secondary" sx={{ maxWidth: 560 }}>
                 Que vous soyez une école, un groupe scolaire ou une direction
@@ -442,6 +490,48 @@ function MarketingHome() {
               </Stack>
             </Grid>
           </Grid>
+        </Container>
+      </Box>
+
+      <Box sx={{ py: { xs: 6, md: 8 } }}>
+        <Container maxWidth="md">
+          <Paper
+            variant="outlined"
+            sx={(theme) => ({
+              p: { xs: 3, md: 4 },
+              textAlign: "center",
+              bgcolor: alpha(theme.palette.text.primary, 0.02),
+            })}
+          >
+            <Typography variant="h6" sx={{ mb: 2, fontStyle: "italic" }}>
+              « Témoignage à venir — à remplacer par le retour d'un
+              établissement qui utilise réellement la plateforme »
+            </Typography>
+            <Typography color="text.secondary">
+              — [Nom, fonction — Établissement]
+            </Typography>
+          </Paper>
+        </Container>
+      </Box>
+
+      <Box
+        sx={{ py: { xs: 6, md: 8 }, borderTop: "1px solid", borderColor: "divider" }}
+      >
+        <Container maxWidth="md">
+          <Typography variant="h4" sx={{ mb: 3, fontWeight: 700 }}>
+            Discutons de votre établissement
+          </Typography>
+          <Stack spacing={1}>
+            <Typography color="text.secondary">
+              📍 [Ville], [Pays]
+            </Typography>
+            <Typography color="text.secondary">
+              📞 [Téléphone à renseigner]
+            </Typography>
+            <Typography color="text.secondary">
+              ✉️ [email de contact à renseigner]
+            </Typography>
+          </Stack>
         </Container>
       </Box>
 
@@ -498,6 +588,12 @@ function SchoolsSlider() {
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+      <Typography
+        variant="overline"
+        sx={{ display: "block", letterSpacing: 2, fontWeight: 700, color: "primary.main" }}
+      >
+        Déjà utilisé par des établissements à travers le pays
+      </Typography>
       <Typography variant="h4" sx={{ mb: 1, fontWeight: 700 }}>
         Nos écoles
       </Typography>
