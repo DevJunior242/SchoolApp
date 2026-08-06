@@ -75,7 +75,17 @@ export default function ChatWidget({ anchorEl, onClose, schoolId, onRead }) {
       onClose={onClose}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      slotProps={{ paper: { sx: { width: 360, height: 460, display: 'flex', flexDirection: 'column' } } }}
+      slotProps={{
+        paper: {
+          sx: {
+            width: { xs: 'calc(100vw - 24px)', sm: 360 },
+            maxWidth: 400,
+            height: { xs: 'min(75vh, 460px)', sm: 460 },
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        },
+      }}
     >
       <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" fontWeight={700}>
