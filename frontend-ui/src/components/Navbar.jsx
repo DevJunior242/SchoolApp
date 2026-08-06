@@ -19,6 +19,7 @@ import { alpha } from "@mui/material/styles";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useThemeMode } from "../context/ThemeModeContext.jsx";
+import intellinoMark from "../assets/intellino-mark.svg";
 
 const SECTION_LINKS = [
   { label: "Fonctionnalités", id: "features" },
@@ -81,21 +82,24 @@ export default function Navbar() {
         >
           <Box
             component="img"
-            src="/Intellino-logo.png"
+            src={intellinoMark}
             alt="Intellino"
-            sx={{ height: 32, width: "auto", display: "block", rounded: "50%" }}
+            sx={{ height: 32, width: 32, display: "block", borderRadius: "8px" }}
           />
           <Typography
             sx={{
               fontWeight: 800,
-              color: "primary.main",
+              color: "text.primary",
               fontSize: { xs: "1.05rem", sm: "1.2rem" },
               whiteSpace: "nowrap",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
+              letterSpacing: "0.01em",
             }}
           >
-            EduAfrique
+            Intell
+            <Box component="span" sx={{ color: "primary.main" }}>
+              i
+            </Box>
+            no
           </Typography>
         </Box>
 
