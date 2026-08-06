@@ -4,7 +4,6 @@ import {
     Button,
     Card,
     CardContent,
-    Chip,
     Container,
     Grid,
     Link as MuiLink,
@@ -15,10 +14,7 @@ import {
 import { motion } from "motion/react";
 import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
-import PublicIcon from "@mui/icons-material/Public";
-import Diversity3Icon from "@mui/icons-material/Diversity3";
-import BadgeIcon from "@mui/icons-material/Badge";
-import ToggleOnIcon from "@mui/icons-material/ToggleOn";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import School2Icon from "@mui/icons-material/School";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import PersonIcon from "@mui/icons-material/Person";
@@ -138,111 +134,57 @@ export default function DashboardOverviewPage() {
         );
     }
 
-    const stats = [
-        {
-            icon: <BadgeIcon color="primary" />,
-            label: "Rôle",
-            value: current.role?.name,
-        },
-        {
-            icon: <ToggleOnIcon color="primary" />,
-            label: "Statut",
-            value: current?.status === 1 ? "Actif" : "Inactif",
-        },
-        {
-            icon: <PublicIcon color="primary" />,
-            label: "Pays",
-            value: current?.school?.country?.name,
-        },
-        {
-            icon: <Diversity3Icon color="primary" />,
-            label: "Écoles rejointes",
-            value: schoolUsers.length,
-        },
-    ];
-
     return (
         <Box>
-            <Paper
-                sx={(theme) => ({
-                    p: { xs: 3, md: 4 },
-                    mb: 3,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    bgcolor: alpha(theme.palette.text.primary, 0.03),
-                })}
-            >
-                <Stack
-                    direction={{ xs: "column", md: "row" }}
-                    spacing={2}
-                    sx={{
-                        justifyContent: "space-between",
-                        alignItems: { xs: "flex-start", md: "center" },
-                    }}
+            <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>
+                Vue d'ensemble
+            </Typography>
+
+            {current.role?.slug === "directeur" && (
+                <Paper
+                    variant="outlined"
+                    sx={(theme) => ({
+                        p: { xs: 2.5, md: 3 },
+                        mb: 3,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        flexWrap: "wrap",
+                        borderColor: alpha(theme.palette.primary.main, 0.5),
+                        bgcolor: alpha(theme.palette.primary.main, 0.06),
+                    })}
                 >
-                    <Box>
-                        <Typography
-                            variant="caption"
-                            sx={{
-                                color: "primary.main",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.12em",
-                            }}
-                        >
-                            Tableau de bord
-                        </Typography>
-                        <Typography variant="h4" fontWeight={700} gutterBottom>
-                            Bienvenue {user.fullname}
-                        </Typography>
-                        <Typography color="text.secondary">
-                            {current.school?.name}
+                    <Box
+                        sx={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 2,
+                            bgcolor: "background.paper",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                        }}
+                    >
+                        <AutoAwesomeIcon color="primary" />
+                    </Box>
+                    <Box sx={{ flexGrow: 1, minWidth: 220 }}>
+                        <Typography fontWeight={700}>Assistant IA Intellino</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            « Combien d'élèves ont un solde impayé ce mois ? » — posez vos
+                            questions en langage naturel.
                         </Typography>
                     </Box>
-                    <Chip label="École active" color="primary" />
-                </Stack>
-            </Paper>
-
-            <Grid container spacing={3}>
-                {stats.map((stat, i) => (
-                    <Grid key={stat.label} size={{ xs: 12, sm: 6, md: 3 }}>
-                        <motion.div
-                            initial={{ opacity: 0, y: 16 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.08 }}
-                        >
-                            <Card
-                                variant="outlined"
-                                sx={(theme) => ({
-                                    height: "100%",
-                                    bgcolor: alpha(theme.palette.text.primary, 0.025),
-                                    borderColor: "divider",
-                                })}
-                            >
-                                <CardContent>
-                                    <Stack
-                                        direction="row"
-                                        spacing={1.5}
-                                        sx={{ alignItems: "center" }}
-                                    >
-                                        {stat.icon}
-                                        <Box>
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                            >
-                                                {stat.label}
-                                            </Typography>
-                                            <Typography variant="h6">
-                                                {stat.value}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    </Grid>
-                ))}
-            </Grid>
+                    <Button
+                        component={RouterLink}
+                        to="/dashboard/ai-assistant"
+                        variant="contained"
+                        color="primary"
+                    >
+                        Ouvrir l'assistant
+                    </Button>
+                </Paper>
+            )}
 
             {isStaff && summaryError && (
                 <Alert severity="error" sx={{ mt: 3 }}>
