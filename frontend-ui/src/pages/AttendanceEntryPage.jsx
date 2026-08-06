@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   MenuItem,
   Paper,
   Stack,
@@ -15,6 +16,13 @@ import { motion } from 'motion/react';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import api from '../api/axios.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
+import {
+  cacheRoster,
+  flushAttendanceQueue,
+  getCachedRoster,
+  getQueuedCount,
+  queueAttendance,
+} from '../offline/attendanceQueue.js';
 
 const STATUS_OPTIONS = [
   { value: 1, label: 'Présent' },
@@ -29,7 +37,9 @@ function todayISO() {
 export default function AttendanceEntryPage() {
   const { assignmentId } = useParams();
   const { data: studentsData, loading, error: studentsError } = useApiGet(`/assignments/${assignmentId}/students`);
-  const students = studentsData ?? [];
+  // Hors-ligne (ou juste après une panne), on retombe sur la dernière liste
+  // d'élèves connue pour cette classe plutôt que sur un écran vide.
+  const students = studentsData ?? getCachedRoster(assignmentId) ?? [];
   const [date, setDate] = useState(todayISO());
   const [statuses, setStatuses] = useState({});
   const [loadingAttendance, setLoadingAttendance] = useState(false);
@@ -37,6 +47,21 @@ export default function AttendanceEntryPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [queuedCount, setQueuedCount] = useState(() => getQueuedCount());
+
+  useEffect(() => {
+    if (studentsData) cacheRoster(assignmentId, studentsData);
+  }, [assignmentId, studentsData]);
+
+  useEffect(() => {
+    async function trySync() {
+      const { remaining } = await flushAttendanceQueue();
+      setQueuedCount(remaining);
+    }
+    trySync();
+    window.addEventListener('online', trySync);
+    return () => window.removeEventListener('online', trySync);
+  }, []);
 
   async function loadAttendance(forDate) {
     setLoadingAttendance(true);
@@ -69,16 +94,24 @@ export default function AttendanceEntryPage() {
     setError(null);
     setSuccess(null);
     setSubmitting(true);
+    const records = students.map((s) => ({
+      student_id: s.student_id,
+      status: statuses[s.student_id] ?? 1,
+    }));
     try {
-      const records = students.map((s) => ({
-        student_id: s.student_id,
-        status: statuses[s.student_id] ?? 1,
-      }));
       await api.post(`/assignments/${assignmentId}/attendances`, { date, records });
       setSuccess('Présences enregistrées.');
     } catch (err) {
-      const messages = err.response?.data?.errors;
-      setError(messages ? Object.values(messages).flat().join(' ') : "Impossible d'enregistrer les présences.");
+      if (!err.response) {
+        // Pas de réponse serveur : on considère que c'est un problème réseau,
+        // pas une erreur de saisie. On garde les présences en local.
+        queueAttendance({ assignmentId, date, records });
+        setQueuedCount(getQueuedCount());
+        setSuccess('Pas de connexion : présences enregistrées localement, envoi automatique dès le retour du réseau.');
+      } else {
+        const messages = err.response?.data?.errors;
+        setError(messages ? Object.values(messages).flat().join(' ') : "Impossible d'enregistrer les présences.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -92,13 +125,27 @@ export default function AttendanceEntryPage() {
         ← Retour à mes cours
       </Button>
 
-      <Typography variant="h5" fontWeight={700} gutterBottom>
-        Saisie des présences
-      </Typography>
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
+        <Typography variant="h5" fontWeight={700}>
+          Saisie des présences
+        </Typography>
+        {queuedCount > 0 && (
+          <Chip
+            size="small"
+            color="warning"
+            label={`${queuedCount} en attente d'envoi`}
+          />
+        )}
+      </Stack>
 
-      {studentsError && (
+      {studentsError && !getCachedRoster(assignmentId) && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {studentsError}
+        </Alert>
+      )}
+      {studentsError && getCachedRoster(assignmentId) && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Connexion indisponible : liste des élèves affichée depuis le cache local.
         </Alert>
       )}
 
