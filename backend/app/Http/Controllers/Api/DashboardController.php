@@ -22,6 +22,9 @@ class DashboardController extends Controller
     {
         $this->authorizeRoles($request, $school, self::STAFF_ROLE_SLUGS, "Vous n'avez pas accès à ce résumé.");
 
-        return response()->json($summaryService->summary($school));
+        return response()->json([
+            ...$summaryService->summary($school),
+            'recent_activity' => $summaryService->recentActivity($school),
+        ]);
     }
 }

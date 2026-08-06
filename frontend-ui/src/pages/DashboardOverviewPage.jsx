@@ -18,6 +18,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import School2Icon from "@mui/icons-material/School";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import PersonIcon from "@mui/icons-material/Person";
+import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -32,6 +33,22 @@ import SuperAdminOverviewPage from "./SuperAdminOverviewPage.jsx";
 import ProviderProfilePage from "./ProviderProfilePage.jsx";
 
 const STAFF_ROLE_SLUGS = ["directeur", "censeur", "surveillant", "secretaire", "comptable"];
+
+const ACTIVITY_ICONS = {
+    payment: <PaymentsIcon fontSize="small" />,
+    enrollment: <PersonAddAltIcon fontSize="small" />,
+    justification: <FactCheckIcon fontSize="small" />,
+};
+
+function timeAgo(dateString) {
+    const diffMs = Date.now() - new Date(dateString).getTime();
+    const minutes = Math.max(1, Math.round(diffMs / 60000));
+    if (minutes < 60) return `Il y a ${minutes} min`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `Il y a ${hours} h`;
+    const days = Math.round(hours / 24);
+    return `Il y a ${days} j`;
+}
 
 const QUICK_ACTIONS_BY_ROLE = {
     directeur: [
@@ -285,33 +302,91 @@ export default function DashboardOverviewPage() {
                 </>
             )}
 
-            {quickActions.length > 0 && (
-                <Paper
-                    sx={(theme) => ({
-                        mt: 3,
-                        p: { xs: 3, md: 4 },
-                        border: "1px solid",
-                        borderColor: "divider",
-                        bgcolor: alpha(theme.palette.text.primary, 0.03),
-                    })}
-                >
-                    <Typography variant="h6" gutterBottom>
-                        Actions rapides
-                    </Typography>
-                    <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", gap: 1.5 }}>
-                        {quickActions.map((action) => (
-                            <Button
-                                key={action.label}
-                                component={RouterLink}
-                                to={action.to}
-                                variant="outlined"
-                                startIcon={action.icon}
+            {(summary?.recent_activity?.length > 0 || quickActions.length > 0) && (
+                <Grid container spacing={3} sx={{ mt: 0.5 }}>
+                    {summary?.recent_activity?.length > 0 && (
+                        <Grid size={{ xs: 12, md: quickActions.length > 0 ? 7 : 12 }}>
+                            <Paper
+                                sx={(theme) => ({
+                                    p: { xs: 3, md: 4 },
+                                    height: "100%",
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    bgcolor: alpha(theme.palette.text.primary, 0.03),
+                                })}
                             >
-                                {action.label}
-                            </Button>
-                        ))}
-                    </Stack>
-                </Paper>
+                                <Typography variant="h6" gutterBottom>
+                                    Activité récente
+                                </Typography>
+                                <Stack divider={<Box sx={{ borderTop: "1px solid", borderColor: "divider" }} />}>
+                                    {summary.recent_activity.map((event, i) => (
+                                        <Stack
+                                            key={`${event.type}-${event.at}-${i}`}
+                                            direction="row"
+                                            spacing={1.5}
+                                            sx={{ alignItems: "flex-start", py: 1.25 }}
+                                        >
+                                            <Box
+                                                sx={(theme) => ({
+                                                    width: 32,
+                                                    height: 32,
+                                                    borderRadius: 1.5,
+                                                    flexShrink: 0,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.15),
+                                                    color: "primary.main",
+                                                })}
+                                            >
+                                                {ACTIVITY_ICONS[event.type] ?? <FactCheckIcon fontSize="small" />}
+                                            </Box>
+                                            <Box sx={{ minWidth: 0 }}>
+                                                <Typography variant="body2" fontWeight={600}>
+                                                    {event.label}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {timeAgo(event.at)}
+                                                </Typography>
+                                            </Box>
+                                        </Stack>
+                                    ))}
+                                </Stack>
+                            </Paper>
+                        </Grid>
+                    )}
+
+                    {quickActions.length > 0 && (
+                        <Grid size={{ xs: 12, md: summary?.recent_activity?.length > 0 ? 5 : 12 }}>
+                            <Paper
+                                sx={(theme) => ({
+                                    p: { xs: 3, md: 4 },
+                                    height: "100%",
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    bgcolor: alpha(theme.palette.text.primary, 0.03),
+                                })}
+                            >
+                                <Typography variant="h6" gutterBottom>
+                                    Actions rapides
+                                </Typography>
+                                <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", gap: 1.5 }}>
+                                    {quickActions.map((action) => (
+                                        <Button
+                                            key={action.label}
+                                            component={RouterLink}
+                                            to={action.to}
+                                            variant="outlined"
+                                            startIcon={action.icon}
+                                        >
+                                            {action.label}
+                                        </Button>
+                                    ))}
+                                </Stack>
+                            </Paper>
+                        </Grid>
+                    )}
+                </Grid>
             )}
         </Box>
     );
