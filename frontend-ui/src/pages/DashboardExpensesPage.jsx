@@ -264,7 +264,8 @@ export default function DashboardExpensesPage() {
                     {Number(expense.amount).toLocaleString()} FCFA
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {expense.expense_date} · {expense.supplier_name || "Sans fournisseur"}
+                    {new Date(expense.expense_date).toLocaleDateString("fr-FR")} ·{" "}
+                    {expense.supplier_name || "Sans fournisseur"}
                     {expense.treasury_account?.name ? ` · ${expense.treasury_account.name}` : ""}
                   </Typography>
                 </Box>
