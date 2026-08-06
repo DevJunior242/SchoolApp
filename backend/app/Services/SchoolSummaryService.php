@@ -9,6 +9,7 @@ use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\SchoolStudent;
 use App\Models\SchoolUser;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -55,16 +56,78 @@ class SchoolSummaryService
             ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query->where('school_id', $school->id))
             ->count();
 
+        $pendingAmount = (clone $pendingPayments)->sum('amount');
+
+        $thisMonthAttendanceRate = $this->attendanceRateFor($school, now());
+        $lastMonthAttendanceRate = $this->attendanceRateFor($school, now()->subMonthNoOverflow());
+
         return [
             'students_count' => $studentsCount,
+            'students_growth_pct' => $this->studentsGrowthPct($school, $studentsCount),
             'teachers_count' => $teachersCount,
             'classes_count' => $classesCount,
             'payments_pending_count' => (clone $pendingPayments)->count(),
-            'payments_pending_amount' => (clone $pendingPayments)->sum('amount'),
+            'payments_pending_amount' => $pendingAmount,
             'payments_confirmed_amount' => $confirmedAmount,
+            // % du montant déclaré (confirmé + en attente) qui est déjà
+            // confirmé — null si rien n'a encore été déclaré ce cycle.
+            'payments_collection_rate' => $this->ratePct($confirmedAmount, $confirmedAmount + $pendingAmount),
             'attendance_pending_justifications' => $pendingJustifications,
             'attendance_today_absent' => $todayAbsent,
+            // Présent + en retard compté comme "présent" (convention courante
+            // d'un taux de présence), sur le mois en cours.
+            'attendance_rate' => $thisMonthAttendanceRate,
+            'attendance_rate_trend_pt' => $thisMonthAttendanceRate !== null && $lastMonthAttendanceRate !== null
+                ? round($thisMonthAttendanceRate - $lastMonthAttendanceRate, 1)
+                : null,
         ];
+    }
+
+    /**
+     * Croissance de l'effectif ce mois-ci : élèves admis ce mois rapportés à
+     * l'effectif du mois précédent. Basé sur SchoolStudent::admission_date,
+     * déjà renseigné à l'inscription — pas de nouvelle donnée à tracer.
+     */
+    private function studentsGrowthPct(School $school, int $currentCount): ?float
+    {
+        $admittedThisMonth = SchoolStudent::query()
+            ->where('school_id', $school->id)
+            ->where('status', SchoolStudent::STATUS_ACTIVE)
+            ->whereBetween('admission_date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->count();
+
+        $previousCount = $currentCount - $admittedThisMonth;
+
+        return $this->ratePct($admittedThisMonth, $previousCount);
+    }
+
+    /**
+     * % de présence (présent + retard compté présent) sur le mois du
+     * moment donné, tous niveaux confondus pour l'école.
+     */
+    private function attendanceRateFor(School $school, Carbon $month): ?float
+    {
+        $records = Attendance::query()
+            ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereBetween('date', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
+            ->get(['status']);
+
+        if ($records->isEmpty()) {
+            return null;
+        }
+
+        $present = $records->whereIn('status', [Attendance::STATUS_PRESENT, Attendance::STATUS_RETARD])->count();
+
+        return $this->ratePct($present, $records->count());
+    }
+
+    private function ratePct(int|float $numerator, int|float $denominator): ?float
+    {
+        if ($denominator <= 0) {
+            return null;
+        }
+
+        return round(($numerator / $denominator) * 100, 1);
     }
 
     /**

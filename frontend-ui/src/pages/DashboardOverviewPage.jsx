@@ -259,16 +259,37 @@ export default function DashboardOverviewPage() {
                     </Typography>
                     <Grid container spacing={3}>
                         {[
-                            { icon: <School2Icon color="primary" />, label: "Élèves", value: summary.students_count },
+                            {
+                                icon: <School2Icon color="primary" />,
+                                label: "Élèves inscrits",
+                                value: summary.students_count,
+                                trend: summary.students_growth_pct != null
+                                    ? { text: `+${summary.students_growth_pct}% ce mois`, color: "success.main" }
+                                    : null,
+                            },
                             { icon: <PersonIcon color="primary" />, label: "Professeurs", value: summary.teachers_count },
                             { icon: <MenuBookIcon color="primary" />, label: "Classes", value: summary.classes_count },
                             { icon: <EventBusyIcon color="primary" />, label: "Absences aujourd'hui", value: summary.attendance_today_absent },
                             {
                                 icon: <PaymentsIcon color="primary" />,
-                                label: "Paiements confirmés",
+                                label: "Paiements (Mobile Money inclus)",
                                 value: `${Number(summary.payments_confirmed_amount).toLocaleString()} FCFA`,
+                                trend: summary.payments_collection_rate != null
+                                    ? { text: `${summary.payments_collection_rate}% collectés`, color: "primary.main" }
+                                    : null,
                             },
-                        ].map((stat, i) => (
+                            summary.attendance_rate != null && {
+                                icon: <FactCheckIcon color="primary" />,
+                                label: "Taux de présence",
+                                value: `${summary.attendance_rate}%`,
+                                trend: summary.attendance_rate_trend_pt != null
+                                    ? {
+                                        text: `${summary.attendance_rate_trend_pt >= 0 ? "+" : ""}${summary.attendance_rate_trend_pt} pt`,
+                                        color: summary.attendance_rate_trend_pt >= 0 ? "success.main" : "error.main",
+                                    }
+                                    : null,
+                            },
+                        ].filter(Boolean).map((stat, i) => (
                             <Grid key={stat.label} size={{ xs: 12, sm: 6, md: 4 }}>
                                 <motion.div
                                     initial={{ opacity: 0, y: 16 }}
@@ -291,6 +312,11 @@ export default function DashboardOverviewPage() {
                                                         {stat.label}
                                                     </Typography>
                                                     <Typography variant="h6">{stat.value}</Typography>
+                                                    {stat.trend && (
+                                                        <Typography variant="caption" sx={{ color: stat.trend.color, fontWeight: 600 }}>
+                                                            {stat.trend.text}
+                                                        </Typography>
+                                                    )}
                                                 </Box>
                                             </Stack>
                                         </CardContent>
