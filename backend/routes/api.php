@@ -25,23 +25,25 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EnrollmentRequestController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventRecapController;
+use App\Http\Controllers\Api\ExpenseCategoryController;
+use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\FeeStructureController;
 use App\Http\Controllers\Api\GradeController;
-use App\Http\Controllers\Api\MarketplacePlanController;
 use App\Http\Controllers\Api\HealthDashboardController;
 use App\Http\Controllers\Api\LevelController;
+use App\Http\Controllers\Api\MarketplacePlanController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\FeeStructureController;
 use App\Http\Controllers\Api\ParentController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SchoolMemberController;
+use App\Http\Controllers\Api\SchoolYearController;
 use App\Http\Controllers\Api\SeasonController;
 use App\Http\Controllers\Api\ServiceProviderController;
 use App\Http\Controllers\Api\ServiceProviderItemController;
-use App\Http\Controllers\Api\SchoolYearController;
 use App\Http\Controllers\Api\StudentAllergyController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\StudentHealthDocumentController;
@@ -53,6 +55,8 @@ use App\Http\Controllers\Api\StudentWalletController;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\TimetableController;
+use App\Http\Controllers\Api\TreasuryAccountController;
+use App\Http\Controllers\Api\TreasuryMovementController;
 use Illuminate\Support\Facades\Route;
 
 // Routes publiques sensibles (pas d'authentification) : throttle par IP,
@@ -193,6 +197,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/fee-structures', [FeeStructureController::class, 'index']);
         Route::get('/schools/{school}/payments', [PaymentController::class, 'index']);
         Route::get('/schools/{school}/students/{student}/payments', [PaymentController::class, 'forStudent']);
+        Route::get('/schools/{school}/expense-categories', [ExpenseCategoryController::class, 'index']);
+        Route::get('/schools/{school}/expenses', [ExpenseController::class, 'index']);
+        Route::get('/schools/{school}/expenses/{expense}/receipt', [ExpenseController::class, 'downloadReceipt']);
+        Route::get('/schools/{school}/treasury-accounts', [TreasuryAccountController::class, 'index']);
+        Route::get('/schools/{school}/treasury-accounts/{treasuryAccount}/movements', [TreasuryMovementController::class, 'index']);
         Route::get('/schools/{school}/students/{student}/attendances', [AttendanceController::class, 'forStudent']);
         Route::get('/schools/{school}/attendances/pending-justifications', [AttendanceController::class, 'pendingJustifications']);
         Route::get('/schools/{school}/students/risk-report', [AiAssistantController::class, 'riskReport']);
@@ -268,6 +277,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/students/{student}/payments', [PaymentController::class, 'store']);
             Route::post('/schools/{school}/payments/{payment}/confirm', [PaymentController::class, 'confirm']);
             Route::post('/schools/{school}/payments/{payment}/reject', [PaymentController::class, 'reject']);
+
+            Route::post('/schools/{school}/expense-categories', [ExpenseCategoryController::class, 'store']);
+            Route::put('/schools/{school}/expense-categories/{expenseCategory}', [ExpenseCategoryController::class, 'update']);
+            Route::delete('/schools/{school}/expense-categories/{expenseCategory}', [ExpenseCategoryController::class, 'destroy']);
+
+            Route::post('/schools/{school}/expenses', [ExpenseController::class, 'store']);
+            Route::post('/schools/{school}/expenses/{expense}/confirm', [ExpenseController::class, 'confirm']);
+            Route::post('/schools/{school}/expenses/{expense}/reject', [ExpenseController::class, 'reject']);
+
+            Route::post('/schools/{school}/treasury-accounts', [TreasuryAccountController::class, 'store']);
+            Route::put('/schools/{school}/treasury-accounts/{treasuryAccount}', [TreasuryAccountController::class, 'update']);
+            Route::delete('/schools/{school}/treasury-accounts/{treasuryAccount}', [TreasuryAccountController::class, 'destroy']);
+            Route::post('/schools/{school}/treasury-accounts/{treasuryAccount}/movements', [TreasuryMovementController::class, 'store']);
 
             Route::post('/schools/{school}/ai/ask', [AiAssistantController::class, 'ask']);
 

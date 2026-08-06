@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use App\Models\EnrollmentRequest;
+use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\School;
 use App\Models\SchoolClass;
@@ -58,6 +59,15 @@ class SchoolSummaryService
 
         $pendingAmount = (clone $pendingPayments)->sum('amount');
 
+        $pendingExpenses = Expense::query()
+            ->where('school_id', $school->id)
+            ->where('status', Expense::STATUS_PENDING);
+
+        $confirmedExpensesAmount = Expense::query()
+            ->where('school_id', $school->id)
+            ->where('status', Expense::STATUS_CONFIRMED)
+            ->sum('amount');
+
         $thisMonthAttendanceRate = $this->attendanceRateFor($school, now());
         $lastMonthAttendanceRate = $this->attendanceRateFor($school, now()->subMonthNoOverflow());
 
@@ -72,6 +82,10 @@ class SchoolSummaryService
             // % du montant déclaré (confirmé + en attente) qui est déjà
             // confirmé — null si rien n'a encore été déclaré ce cycle.
             'payments_collection_rate' => $this->ratePct($confirmedAmount, $confirmedAmount + $pendingAmount),
+            'expenses_pending_count' => (clone $pendingExpenses)->count(),
+            'expenses_pending_amount' => (clone $pendingExpenses)->sum('amount'),
+            'expenses_confirmed_amount' => $confirmedExpensesAmount,
+            'net_result' => $confirmedAmount - $confirmedExpensesAmount,
             'attendance_pending_justifications' => $pendingJustifications,
             'attendance_today_absent' => $todayAbsent,
             // Présent + en retard compté comme "présent" (convention courante
@@ -132,9 +146,9 @@ class SchoolSummaryService
 
     /**
      * Fil d'activité récente : uniquement des événements réellement tracés
-     * en base (paiements confirmés, demandes d'inscription, absences
-     * justifiées). Pas de "bulletin généré" ni de compteur de questions à
-     * l'assistant IA ici — ces événements ne sont pas persistés côté
+     * en base (paiements confirmés, dépenses confirmées, demandes
+     * d'inscription, absences justifiées). Pas de "bulletin généré" ni de
+     * compteur de questions à l'assistant IA ici — ces événements ne sont pas persistés côté
      * backend, les inventer afficherait une fausse activité au directeur.
      *
      * @return Collection<int, array<string, mixed>>
@@ -157,6 +171,24 @@ class SchoolSummaryService
                     $payment->student?->fullname ?? 'élève'
                 ),
                 'at' => $payment->confirmed_at,
+            ]);
+
+        $expenses = Expense::query()
+            ->where('school_id', $school->id)
+            ->where('status', Expense::STATUS_CONFIRMED)
+            ->whereNotNull('confirmed_at')
+            ->with('expenseCategory')
+            ->latest('confirmed_at')
+            ->limit($limit)
+            ->get()
+            ->map(fn (Expense $expense) => [
+                'type' => 'expense',
+                'label' => sprintf(
+                    'Dépense confirmée — %s (%s)',
+                    $expense->expenseCategory?->name ?? 'catégorie',
+                    $expense->supplier_name ?? 'sans fournisseur'
+                ),
+                'at' => $expense->confirmed_at,
             ]);
 
         $enrollments = EnrollmentRequest::query()
@@ -185,6 +217,7 @@ class SchoolSummaryService
             ]);
 
         return $payments
+            ->concat($expenses)
             ->concat($enrollments)
             ->concat($justifications)
             ->sortByDesc('at')

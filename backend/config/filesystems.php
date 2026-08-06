@@ -78,6 +78,16 @@ return [
             'report' => false,
         ],
 
+        // Justificatifs de dépenses : même isolation que `health`/`library`,
+        // accès uniquement via un contrôleur qui vérifie l'appartenance à
+        // l'école avant de streamer le fichier.
+        'finance' => [
+            'driver' => 'local',
+            'root' => storage_path('app/finance'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

@@ -23,7 +23,7 @@ trait AuthorizesSchoolDirecteur
             $request,
             $school,
             ['directeur', 'secretaire'],
-            "Seuls le directeur et le secrétariat peuvent inscrire des élèves."
+            'Seuls le directeur et le secrétariat peuvent inscrire des élèves.'
         );
     }
 
@@ -97,6 +97,35 @@ trait AuthorizesSchoolDirecteur
             $school,
             ['directeur', 'bibliothecaire'],
             "Vous n'avez pas accès à la gestion de la bibliothèque."
+        );
+    }
+
+    /**
+     * Déclaration des dépenses : mêmes rôles que la saisie de paiements
+     * (directeur, comptable, secrétariat).
+     */
+    private function authorizeFinanceStaff(Request $request, School $school): void
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['directeur', 'comptable', 'secretaire'],
+            "Vous n'avez pas accès aux finances de cette école."
+        );
+    }
+
+    /**
+     * Confirmation/rejet des dépenses, gestion des comptes de trésorerie et
+     * des mouvements manuels : réservé au directeur et au comptable, comme
+     * la confirmation des paiements.
+     */
+    private function authorizeFinanceManager(Request $request, School $school): void
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['directeur', 'comptable'],
+            'Seuls le directeur et le comptable peuvent gérer la trésorerie.'
         );
     }
 

@@ -21,18 +21,20 @@ class PaymentMethodController extends Controller
             PaymentMethod::query()
                 ->where('school_id', $school->id)
                 ->where('is_active', true)
+                ->with('treasuryAccount')
                 ->get()
         );
     }
 
     public function store(Request $request, School $school)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], "Seuls le directeur et le comptable peuvent gérer les moyens de paiement.");
+        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les moyens de paiement.');
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'number' => ['nullable', 'string', 'max:50'],
             'instructions' => ['nullable', 'string'],
+            'treasury_account_id' => ['nullable', 'uuid', 'exists:treasury_accounts,id'],
         ]);
 
         $method = PaymentMethod::query()->create([...$validated, 'school_id' => $school->id]);
@@ -42,7 +44,7 @@ class PaymentMethodController extends Controller
 
     public function update(Request $request, School $school, PaymentMethod $paymentMethod)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], "Seuls le directeur et le comptable peuvent gérer les moyens de paiement.");
+        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les moyens de paiement.');
         abort_if($paymentMethod->school_id !== $school->id, 404);
 
         $validated = $request->validate([
@@ -50,6 +52,7 @@ class PaymentMethodController extends Controller
             'number' => ['nullable', 'string', 'max:50'],
             'instructions' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],
+            'treasury_account_id' => ['nullable', 'uuid', 'exists:treasury_accounts,id'],
         ]);
 
         $paymentMethod->update($validated);
@@ -59,7 +62,7 @@ class PaymentMethodController extends Controller
 
     public function destroy(Request $request, School $school, PaymentMethod $paymentMethod)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], "Seuls le directeur et le comptable peuvent gérer les moyens de paiement.");
+        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les moyens de paiement.');
         abort_if($paymentMethod->school_id !== $school->id, 404);
 
         $paymentMethod->delete();

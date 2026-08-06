@@ -23,6 +23,8 @@ import GradeEntryPage from './pages/GradeEntryPage.jsx';
 import BulletinPage from './pages/BulletinPage.jsx';
 import DashboardParentsPage from './pages/DashboardParentsPage.jsx';
 import DashboardPaymentsPage from './pages/DashboardPaymentsPage.jsx';
+import DashboardExpensesPage from './pages/DashboardExpensesPage.jsx';
+import DashboardTreasuryPage from './pages/DashboardTreasuryPage.jsx';
 import ParentPaymentsPage from './pages/ParentPaymentsPage.jsx';
 import AttendanceEntryPage from './pages/AttendanceEntryPage.jsx';
 import ParentAttendancePage from './pages/ParentAttendancePage.jsx';
@@ -115,6 +117,8 @@ function App() {
         <Route path="health" element={<HealthDashboardPage />} />
         <Route path="parents" element={<DashboardParentsPage />} />
         <Route path="payments" element={<DashboardPaymentsPage />} />
+        <Route path="expenses" element={<DashboardExpensesPage />} />
+        <Route path="treasury" element={<DashboardTreasuryPage />} />
         <Route path="my-children-payments" element={<ParentPaymentsPage />} />
         <Route path="assignments/:assignmentId/attendances" element={<AttendanceEntryPage />} />
         <Route path="my-children-attendances" element={<ParentAttendancePage />} />

@@ -27,6 +27,7 @@ import { Navigate } from "react-router-dom";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
+import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
 
 const STATUS_LABELS = {
@@ -36,7 +37,7 @@ const STATUS_LABELS = {
 };
 
 function emptyMethodForm() {
-  return { name: "", number: "", instructions: "" };
+  return { name: "", number: "", instructions: "", treasury_account_id: "" };
 }
 
 function emptyFeeForm() {
@@ -62,6 +63,8 @@ export default function DashboardPaymentsPage() {
   const canManageConfig = ["directeur", "comptable"].includes(currentRole);
 
   const [methods, setMethods] = useState([]);
+  const { data: treasuryAccountsData } = useApiGet(schoolId ? `/schools/${schoolId}/treasury-accounts` : null);
+  const treasuryAccounts = treasuryAccountsData ?? [];
   const [levels, setLevels] = useState([]);
   const [feeLevel, setFeeLevel] = useState("");
   const [feeStructures, setFeeStructures] = useState([]);
@@ -369,6 +372,7 @@ export default function DashboardPaymentsPage() {
                         <Typography variant="subtitle2">{m.name}</Typography>
                         <Typography variant="body2" color="text.secondary">
                           {m.number}
+                          {m.treasury_account?.name ? ` · ${m.treasury_account.name}` : ""}
                         </Typography>
                       </Box>
                       <IconButton
@@ -592,6 +596,26 @@ export default function DashboardPaymentsPage() {
               rows={2}
               fullWidth
             />
+            <TextField
+              select
+              label="Compte de trésorerie (optionnel)"
+              value={methodForm.treasury_account_id}
+              onChange={(e) =>
+                setMethodForm((prev) => ({
+                  ...prev,
+                  treasury_account_id: e.target.value,
+                }))
+              }
+              helperText="Les paiements reçus par ce moyen créditeront ce compte."
+              fullWidth
+            >
+              <MenuItem value="">Non précisé</MenuItem>
+              {treasuryAccounts.map((account) => (
+                <MenuItem key={account.id} value={account.id}>
+                  {account.name}
+                </MenuItem>
+              ))}
+            </TextField>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeMethodModal}>Annuler</Button>
