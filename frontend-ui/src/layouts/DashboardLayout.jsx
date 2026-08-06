@@ -48,6 +48,7 @@ import StorefrontIcon from "@mui/icons-material/Storefront";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { alpha } from "@mui/material/styles";
 import {
     Link as RouterLink,
@@ -61,6 +62,7 @@ import { useSchools } from "../hooks/useSchools.js";
 import NotificationCenter from "../components/NotificationCenter.jsx";
 import MessagingIcon from "../components/MessagingIcon.jsx";
 import VerifyEmailBanner from "../components/VerifyEmailBanner.jsx";
+import intellinoMark from "../assets/intellino-mark.svg";
 
 const drawerWidth = 250;
 const collapsedDrawerWidth = 72;
@@ -254,11 +256,12 @@ const COMPTABLE_NAV_ITEMS = [
 export default function DashboardLayout() {
     const { user, logout } = useAuth();
     const { mode, toggleMode } = useThemeMode();
-    const { schoolUsers, loading: schoolUsersLoading } = useSchools();
+    const { schoolUsers, loading: schoolUsersLoading, switchSchool } = useSchools();
     const location = useLocation();
     const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
+    const [schoolMenuAnchor, setSchoolMenuAnchor] = useState(null);
     const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar_collapsed") === "true");
 
     useEffect(() => {
@@ -308,45 +311,154 @@ export default function DashboardLayout() {
     }
 
     function renderDrawerContent(isCollapsed) {
+        const currentSchool = schoolUsers.find((su) => su.school.id === user.current_school_id)?.school;
+        const showSchoolSwitcher = !isSuperAdmin && !isPrestataire && schoolUsers.length > 0;
+        const roleLabel = schoolUsers.find((su) => su.school.id === user.current_school_id)?.role?.name;
+
         return (
             <Box
                 sx={{
                     height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
                     bgcolor: "background.default",
                     borderRight: "1px solid",
                     borderColor: "divider",
                 }}
             >
                 <Toolbar sx={{ px: isCollapsed ? 1 : 2.5, py: 2, justifyContent: isCollapsed ? "center" : "space-between" }}>
-                    {!isCollapsed && (
-                        <Typography
-                            component={RouterLink}
-                            to="/"
-                            sx={{
-                                fontWeight: 800,
-                                color: "primary.main",
-                                textDecoration: "none",
-                                fontSize: "1.05rem",
-                                letterSpacing: "0.08em",
-                                textTransform: "uppercase",
-                            }}
-                        >
-                            EduAfrique
-                        </Typography>
-                    )}
+                    <Box
+                        component={RouterLink}
+                        to="/"
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.1,
+                            textDecoration: "none",
+                            minWidth: 0,
+                        }}
+                    >
+                        <Box
+                            component="img"
+                            src={intellinoMark}
+                            alt="Intellino"
+                            sx={{ width: 32, height: 32, borderRadius: "8px", flexShrink: 0 }}
+                        />
+                        {!isCollapsed && (
+                            <Box sx={{ minWidth: 0 }}>
+                                <Typography
+                                    sx={{
+                                        fontWeight: 800,
+                                        color: "text.primary",
+                                        fontSize: "1rem",
+                                        lineHeight: 1.15,
+                                        letterSpacing: "0.01em",
+                                    }}
+                                    noWrap
+                                >
+                                    Intell<Box component="span" sx={{ color: "primary.main" }}>i</Box>no
+                                </Typography>
+                                <Typography
+                                    sx={{
+                                        fontSize: "0.6rem",
+                                        fontWeight: 600,
+                                        color: "text.secondary",
+                                        letterSpacing: "0.16em",
+                                        textTransform: "uppercase",
+                                    }}
+                                    noWrap
+                                >
+                                    Gestion scolaire
+                                </Typography>
+                            </Box>
+                        )}
+                    </Box>
                     {/* Le repli du menu ne concerne que le tiroir permanent (desktop) :
                         sur mobile le tiroir est temporaire, toujours en pleine largeur. */}
-                    <IconButton
-                        onClick={() => setCollapsed((prev) => !prev)}
-                        size="small"
-                        aria-label={isCollapsed ? "Déplier le menu" : "Replier le menu"}
-                        sx={{ display: { xs: "none", sm: "inline-flex" } }}
-                    >
-                        {isCollapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
-                    </IconButton>
+                    {!isCollapsed && (
+                        <IconButton
+                            onClick={() => setCollapsed((prev) => !prev)}
+                            size="small"
+                            aria-label="Replier le menu"
+                            sx={{ display: { xs: "none", sm: "inline-flex" } }}
+                        >
+                            <ChevronLeftIcon fontSize="small" />
+                        </IconButton>
+                    )}
                 </Toolbar>
+                {isCollapsed && (
+                    <Box sx={{ display: { xs: "none", sm: "flex" }, justifyContent: "center", pb: 1 }}>
+                        <IconButton
+                            onClick={() => setCollapsed((prev) => !prev)}
+                            size="small"
+                            aria-label="Déplier le menu"
+                        >
+                            <ChevronRightIcon fontSize="small" />
+                        </IconButton>
+                    </Box>
+                )}
                 <Divider />
-                <Box sx={{ px: isCollapsed ? 0.5 : 1.5, py: 2 }}>
+
+                {showSchoolSwitcher && !isCollapsed && (
+                    <Box sx={{ px: 1.5, pt: 2, pb: 0.5 }}>
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                px: 0.2,
+                                mb: 0.5,
+                                display: "block",
+                                color: "text.secondary",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.12em",
+                            }}
+                        >
+                            École active
+                        </Typography>
+                        <Box
+                            onClick={(e) => setSchoolMenuAnchor(e.currentTarget)}
+                            sx={(theme) => ({
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 1,
+                                cursor: "pointer",
+                                px: 1.3,
+                                py: 1,
+                                borderRadius: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                "&:hover": { bgcolor: alpha(theme.palette.text.primary, 0.04) },
+                            })}
+                        >
+                            <Typography noWrap sx={{ fontWeight: 700, fontSize: "0.9rem" }}>
+                                {currentSchool?.name ?? "Aucune école"}
+                            </Typography>
+                            <ExpandMoreIcon fontSize="small" sx={{ color: "text.secondary", flexShrink: 0 }} />
+                        </Box>
+                        <Menu
+                            anchorEl={schoolMenuAnchor}
+                            open={Boolean(schoolMenuAnchor)}
+                            onClose={() => setSchoolMenuAnchor(null)}
+                        >
+                            {schoolUsers.map((su) => (
+                                <MenuItem
+                                    key={su.school.id}
+                                    selected={su.school.id === user.current_school_id}
+                                    onClick={() => {
+                                        setSchoolMenuAnchor(null);
+                                        if (su.school.id !== user.current_school_id) {
+                                            switchSchool(su.school.id);
+                                        }
+                                    }}
+                                >
+                                    {su.school.name}
+                                </MenuItem>
+                            ))}
+                        </Menu>
+                    </Box>
+                )}
+
+                <Box sx={{ flexGrow: 1, overflowY: "auto", px: isCollapsed ? 0.5 : 1.5, py: 2 }}>
                     {!isCollapsed && (
                         <Typography
                             variant="caption"
@@ -383,7 +495,7 @@ export default function DashboardLayout() {
                                             ? "primary.main"
                                             : "text.primary",
                                         "&.Mui-selected": {
-                                            bgcolor: "rgba(201, 162, 39, 0.12)",
+                                            bgcolor: alpha(theme.palette.primary.main, 0.12),
                                             color: "primary.main",
                                         },
                                         "&:hover": {
@@ -421,6 +533,47 @@ export default function DashboardLayout() {
                             );
                         })}
                     </List>
+                </Box>
+
+                <Divider />
+                <Box
+                    onClick={(e) => setAnchorEl(e.currentTarget)}
+                    sx={(theme) => ({
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.2,
+                        px: isCollapsed ? 1 : 2,
+                        py: 1.75,
+                        cursor: "pointer",
+                        justifyContent: isCollapsed ? "center" : "flex-start",
+                        "&:hover": { bgcolor: alpha(theme.palette.text.primary, 0.04) },
+                    })}
+                >
+                    <Avatar
+                        sx={{
+                            width: 34,
+                            height: 34,
+                            bgcolor: "primary.main",
+                            color: "primary.contrastText",
+                            fontSize: "0.85rem",
+                            fontWeight: 700,
+                            flexShrink: 0,
+                        }}
+                    >
+                        {user.fullname?.charAt(0).toUpperCase()}
+                    </Avatar>
+                    {!isCollapsed && (
+                        <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="body2" fontWeight={700} noWrap>
+                                {user.fullname}
+                            </Typography>
+                            {roleLabel && (
+                                <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
+                                    {roleLabel}
+                                </Typography>
+                            )}
+                        </Box>
+                    )}
                 </Box>
             </Box>
         );
