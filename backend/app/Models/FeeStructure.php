@@ -2,6 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\FeeCategory;
+use App\Models\Level;
+use App\Models\Payment;
+use App\Models\School;
+use App\Models\SchoolYear;
+use App\Models\Season;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,21 +21,16 @@ class FeeStructure extends Model
 
     const CATEGORY_CAFETERIA_SUBSCRIPTION = 2;
 
-    // Contrairement à la scolarité, ces catégories n'exigent pas de niveau
-    // (level_id nullable) : le directeur peut créer une tranche flat
-    // (même montant pour tous) ou, s'il le souhaite, une par niveau.
-    const CATEGORY_ENROLLMENT = 3;
-
-    const CATEGORY_EXAM = 4;
-
-    const CATEGORY_TRANSPORT = 5;
-
-    const CATEGORY_UNIFORM = 6;
-
-    const CATEGORY_OTHER = 7;
+    // Toute catégorie que le directeur crée lui-même (inscription, examen,
+    // transport, uniformes...) via FeeCategory, plutôt qu'une liste figée
+    // de constantes. Contrairement à la scolarité, pas de niveau exigé
+    // (level_id nullable) : une tranche flat par défaut, par niveau si
+    // besoin.
+    const CATEGORY_CUSTOM = 3;
 
     protected $fillable = [
-        'school_id', 'level_id', 'season_id', 'school_year_id', 'category', 'label', 'amount', 'due_date', 'order',
+        'school_id', 'level_id', 'season_id', 'school_year_id', 'category', 'fee_category_id',
+        'label', 'amount', 'due_date', 'order',
     ];
 
     protected function casts(): array
@@ -53,6 +54,11 @@ class FeeStructure extends Model
     public function season(): BelongsTo
     {
         return $this->belongsTo(Season::class);
+    }
+
+    public function feeCategory(): BelongsTo
+    {
+        return $this->belongsTo(FeeCategory::class);
     }
 
     public function schoolYear(): BelongsTo

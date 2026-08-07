@@ -66,6 +66,7 @@ class PaymentController extends Controller
                     ->orWhereNull('level_id'))
                 ->where('category', '!=', FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION)
                 ->where('school_year_id', $classStudent->schoolClass->school_year_id)
+                ->with('feeCategory')
                 ->orderBy('order')
                 ->get()
             : collect();

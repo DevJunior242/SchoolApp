@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventRecapController;
 use App\Http\Controllers\Api\ExpenseCategoryController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\FeeCategoryController;
 use App\Http\Controllers\Api\FeeStructureController;
 use App\Http\Controllers\Api\GradeController;
 use App\Http\Controllers\Api\HealthDashboardController;
@@ -195,6 +196,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/students/{student}/bulletin', [BulletinController::class, 'show']);
         Route::get('/schools/{school}/payment-methods', [PaymentMethodController::class, 'index']);
         Route::get('/schools/{school}/fee-structures', [FeeStructureController::class, 'index']);
+        Route::get('/schools/{school}/fee-categories', [FeeCategoryController::class, 'index']);
         Route::get('/schools/{school}/payments', [PaymentController::class, 'index']);
         Route::get('/schools/{school}/students/{student}/payments', [PaymentController::class, 'forStudent']);
         Route::get('/schools/{school}/expense-categories', [ExpenseCategoryController::class, 'index']);
@@ -273,6 +275,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::post('/schools/{school}/fee-structures', [FeeStructureController::class, 'store']);
             Route::delete('/schools/{school}/fee-structures/{feeStructure}', [FeeStructureController::class, 'destroy']);
+
+            Route::post('/schools/{school}/fee-categories', [FeeCategoryController::class, 'store']);
+            Route::put('/schools/{school}/fee-categories/{feeCategory}', [FeeCategoryController::class, 'update']);
+            Route::delete('/schools/{school}/fee-categories/{feeCategory}', [FeeCategoryController::class, 'destroy']);
 
             Route::post('/schools/{school}/students/{student}/payments', [PaymentController::class, 'store']);
             Route::post('/schools/{school}/payments/{payment}/confirm', [PaymentController::class, 'confirm']);

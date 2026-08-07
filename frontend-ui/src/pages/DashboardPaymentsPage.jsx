@@ -24,10 +24,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import SchoolIcon from "@mui/icons-material/School";
-import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
-import FactCheckIcon from "@mui/icons-material/FactCheck";
-import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
-import CheckroomIcon from "@mui/icons-material/Checkroom";
 import DescriptionIcon from "@mui/icons-material/Description";
 import { Navigate } from "react-router-dom";
 import api from "../api/axios.jsx";
@@ -42,24 +38,34 @@ const STATUS_LABELS = {
   2: { label: "Rejeté", color: "error" },
 };
 
-// Catégories de frais gérées par le comptable. La cantine (2) et la
-// bibliothèque n'y figurent pas exprès : ces recettes sont encaissées sur
+const CATEGORY_TUITION = 1;
+const CATEGORY_CUSTOM = 3;
+
+// Scolarité est la seule catégorie "système" (liée aux niveaux) proposée
+// dans le sélecteur : les autres catégories sont créées par l'école
+// elle-même (voir feeCategories, chargées depuis /fee-categories) pour
+// coller à ses propres frais — pas de liste figée. La cantine et la
+// bibliothèque n'y figurent jamais : ces recettes sont encaissées sur
 // place par leur propre personnel, pas via ce formulaire générique.
-const PAYMENT_CATEGORIES = [
-  { value: 1, label: "Frais de scolarité", icon: <SchoolIcon /> },
-  { value: 3, label: "Frais d'inscription", icon: <PersonAddAltIcon /> },
-  { value: 4, label: "Frais d'examen", icon: <FactCheckIcon /> },
-  { value: 5, label: "Transport", icon: <DirectionsBusIcon /> },
-  { value: 6, label: "Uniformes", icon: <CheckroomIcon /> },
-  { value: 7, label: "Autres frais", icon: <DescriptionIcon /> },
-];
+const TUITION_TILE = { key: "tuition", label: "Frais de scolarité", icon: <SchoolIcon /> };
 
 function emptyMethodForm() {
   return { name: "", number: "", instructions: "", treasury_account_id: "" };
 }
 
 function emptyFeeForm() {
-  return { category: 1, level_id: "", label: "", amount: "", due_date: "" };
+  return { category: CATEGORY_TUITION, fee_category_id: "", level_id: "", label: "", amount: "", due_date: "" };
+}
+
+function emptyCategoryForm() {
+  return { name: "" };
+}
+
+// Une "catégorie" affichée peut être la scolarité (category=1, système)
+// ou une catégorie créée par l'école (category=3 + fee_category_id) : on
+// les identifie toutes les deux par une même clé de sélection dans l'UI.
+function categoryKeyOf(fee) {
+  return fee.category === CATEGORY_TUITION ? "tuition" : fee.fee_category_id;
 }
 
 function emptyCollectForm() {
@@ -83,11 +89,26 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   const [methods, setMethods] = useState([]);
   const { data: treasuryAccountsData } = useApiGet(schoolId ? `/schools/${schoolId}/treasury-accounts` : null);
   const treasuryAccounts = treasuryAccountsData ?? [];
+  const {
+    data: feeCategoriesData,
+    reload: reloadFeeCategories,
+  } = useApiGet(schoolId ? `/schools/${schoolId}/fee-categories` : null);
+  const feeCategories = feeCategoriesData ?? [];
+  // Tuiles affichées aux comptables : scolarité (système) + toutes les
+  // catégories que l'école a créées elle-même.
+  const categoryTiles = [
+    TUITION_TILE,
+    ...feeCategories.map((c) => ({ key: c.id, label: c.name, icon: <DescriptionIcon /> })),
+  ];
   const [levels, setLevels] = useState([]);
   const [feeLevel, setFeeLevel] = useState("");
-  const [feeCategory, setFeeCategory] = useState(1);
+  const [feeCategoryKey, setFeeCategoryKey] = useState("tuition");
   const [feeStructures, setFeeStructures] = useState([]);
   const [configError, setConfigError] = useState(null);
+
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [categoryForm, setCategoryForm] = useState(emptyCategoryForm());
+  const [categoryError, setCategoryError] = useState(null);
 
   const [methodModalOpen, setMethodModalOpen] = useState(false);
   const [methodForm, setMethodForm] = useState(emptyMethodForm());
@@ -133,11 +154,12 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     }
   }
 
-  async function loadFeeStructures(levelId, category) {
+  async function loadFeeStructures(levelId, categoryKey) {
     try {
-      const response = await api.get(`/schools/${schoolId}/fee-structures`, {
-        params: { level_id: levelId || undefined, category },
-      });
+      const params = categoryKey === "tuition"
+        ? { level_id: levelId || undefined, category: CATEGORY_TUITION }
+        : { category: CATEGORY_CUSTOM, fee_category_id: categoryKey };
+      const response = await api.get(`/schools/${schoolId}/fee-structures`, { params });
       setFeeStructures(response.data);
     } catch (err) {
       setConfigError(
@@ -167,9 +189,9 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
 
   useEffect(() => {
     if (!schoolId) return;
-    loadFeeStructures(feeLevel, feeCategory);
+    loadFeeStructures(feeLevel, feeCategoryKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schoolId, feeLevel, feeCategory]);
+  }, [schoolId, feeLevel, feeCategoryKey]);
 
   function closeMethodModal() {
     setMethodModalOpen(false);
@@ -194,6 +216,28 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     await loadMethods();
   }
 
+  function closeCategoryModal() {
+    setCategoryModalOpen(false);
+    setCategoryForm(emptyCategoryForm());
+    setCategoryError(null);
+  }
+
+  async function handleCreateCategory(e) {
+    e.preventDefault();
+    setCategoryError(null);
+    try {
+      const response = await api.post(`/schools/${schoolId}/fee-categories`, categoryForm);
+      await reloadFeeCategories();
+      closeCategoryModal();
+      // Bascule directement sur la catégorie qu'on vient de créer, aussi
+      // bien dans le panneau de config que dans le sélecteur d'encaissement.
+      setFeeCategoryKey(response.data.id);
+      setCollectCategory(response.data.id);
+    } catch {
+      setCategoryError("Impossible de créer cette catégorie.");
+    }
+  }
+
   function closeFeeModal() {
     setFeeModalOpen(false);
     setFeeForm(emptyFeeForm());
@@ -205,7 +249,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     setFeeError(null);
     try {
       await api.post(`/schools/${schoolId}/fee-structures`, feeForm);
-      await loadFeeStructures(feeLevel, feeCategory);
+      await loadFeeStructures(feeLevel, feeCategoryKey);
       closeFeeModal();
     } catch {
       setFeeError("Impossible de créer cette tranche.");
@@ -214,7 +258,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
 
   async function deleteFee(id) {
     await api.delete(`/schools/${schoolId}/fee-structures/${id}`);
-    await loadFeeStructures(feeLevel, feeCategory);
+    await loadFeeStructures(feeLevel, feeCategoryKey);
   }
 
   useEffect(() => {
@@ -430,29 +474,37 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                   size="small"
                   startIcon={<AddIcon />}
                   onClick={() => {
-                    setFeeForm({ ...emptyFeeForm(), category: feeCategory });
+                    setFeeForm({
+                      ...emptyFeeForm(),
+                      category: feeCategoryKey === "tuition" ? CATEGORY_TUITION : CATEGORY_CUSTOM,
+                      fee_category_id: feeCategoryKey === "tuition" ? "" : feeCategoryKey,
+                    });
                     setFeeModalOpen(true);
                   }}
                 >
                   Ajouter
                 </Button>
               </Stack>
-              <TextField
-                select
-                label="Catégorie"
-                value={feeCategory}
-                onChange={(e) => setFeeCategory(Number(e.target.value))}
-                size="small"
-                fullWidth
-                sx={{ mb: 2 }}
-              >
-                {PAYMENT_CATEGORIES.map((cat) => (
-                  <MenuItem key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-              {feeCategory === 1 && (
+              <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                <TextField
+                  select
+                  label="Catégorie"
+                  value={feeCategoryKey}
+                  onChange={(e) => setFeeCategoryKey(e.target.value)}
+                  size="small"
+                  fullWidth
+                >
+                  {categoryTiles.map((cat) => (
+                    <MenuItem key={cat.key} value={cat.key}>
+                      {cat.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <IconButton size="small" onClick={() => setCategoryModalOpen(true)} title="Ajouter une catégorie">
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+              {feeCategoryKey === "tuition" && (
                 <TextField
                   select
                   label="Filtrer par niveau"
@@ -668,6 +720,30 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
         </Box>
       </Dialog>
 
+      <Dialog open={categoryModalOpen} onClose={closeCategoryModal} fullWidth maxWidth="xs">
+        <DialogTitle>Ajouter une catégorie de frais</DialogTitle>
+        <Box component="form" onSubmit={handleCreateCategory}>
+          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {categoryError && <Alert severity="error">{categoryError}</Alert>}
+            <TextField
+              label="Nom"
+              placeholder="Frais d'inscription, Transport, Uniformes..."
+              value={categoryForm.name}
+              onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))}
+              required
+              fullWidth
+              autoFocus
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={closeCategoryModal}>Annuler</Button>
+            <Button type="submit" variant="contained">
+              Ajouter
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
       <Dialog
         open={feeModalOpen}
         onClose={closeFeeModal}
@@ -683,20 +759,25 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
             <TextField
               select
               label="Catégorie"
-              value={feeForm.category}
-              onChange={(e) =>
-                setFeeForm((prev) => ({ ...prev, category: Number(e.target.value) }))
-              }
+              value={categoryKeyOf(feeForm)}
+              onChange={(e) => {
+                const key = e.target.value;
+                setFeeForm((prev) => ({
+                  ...prev,
+                  category: key === "tuition" ? CATEGORY_TUITION : CATEGORY_CUSTOM,
+                  fee_category_id: key === "tuition" ? "" : key,
+                }));
+              }}
               required
               fullWidth
             >
-              {PAYMENT_CATEGORIES.map((cat) => (
-                <MenuItem key={cat.value} value={cat.value}>
+              {categoryTiles.map((cat) => (
+                <MenuItem key={cat.key} value={cat.key}>
                   {cat.label}
                 </MenuItem>
               ))}
             </TextField>
-            {feeForm.category === 1 && (
+            {feeForm.category === CATEGORY_TUITION && (
               <TextField
                 select
                 label="Niveau"
@@ -764,8 +845,8 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
         <DialogContent>
           {!collectCategory ? (
             <Grid container spacing={1.5} sx={{ pt: 1 }}>
-              {PAYMENT_CATEGORIES.map((cat) => (
-                <Grid key={cat.value} size={{ xs: 6, sm: 4 }}>
+              {categoryTiles.map((cat) => (
+                <Grid key={cat.key} size={{ xs: 6, sm: 4 }}>
                   <Card variant="outlined">
                     <Box
                       sx={{
@@ -777,7 +858,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                         gap: 1,
                         textAlign: "center",
                       }}
-                      onClick={() => setCollectCategory(cat.value)}
+                      onClick={() => setCollectCategory(cat.key)}
                     >
                       {cat.icon}
                       <Typography variant="body2">{cat.label}</Typography>
@@ -785,6 +866,26 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                   </Card>
                 </Grid>
               ))}
+              <Grid size={{ xs: 6, sm: 4 }}>
+                <Card variant="outlined">
+                  <Box
+                    sx={{
+                      p: 2,
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 1,
+                      textAlign: "center",
+                      color: "text.secondary",
+                    }}
+                    onClick={() => setCategoryModalOpen(true)}
+                  >
+                    <AddIcon />
+                    <Typography variant="body2">Ajouter une catégorie</Typography>
+                  </Box>
+                </Card>
+              </Grid>
             </Grid>
           ) : !selectedStudent ? (
             <Box
@@ -792,7 +893,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
             >
               {collectError && <Alert severity="error">{collectError}</Alert>}
               <Button size="small" onClick={() => setCollectCategory(null)} sx={{ alignSelf: "flex-start" }}>
-                ← {PAYMENT_CATEGORIES.find((c) => c.value === collectCategory)?.label}
+                ← {categoryTiles.find((c) => c.key === collectCategory)?.label}
               </Button>
               <TextField
                 label="Rechercher un élève"
@@ -889,13 +990,13 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                       required
                       fullWidth
                       helperText={
-                        collectSummary.fee_structures.filter((fee) => fee.category === collectCategory).length === 0
+                        collectSummary.fee_structures.filter((fee) => categoryKeyOf(fee) === collectCategory).length === 0
                           ? "Aucune tranche configurée pour cette catégorie — ajoutez-en une depuis le panneau Tranches de frais."
                           : undefined
                       }
                     >
                       {collectSummary.fee_structures
-                        .filter((fee) => fee.category === collectCategory)
+                        .filter((fee) => categoryKeyOf(fee) === collectCategory)
                         .map((fee) => (
                           <MenuItem key={fee.id} value={fee.id}>
                             {fee.label} — {Number(fee.amount).toLocaleString()}{" "}

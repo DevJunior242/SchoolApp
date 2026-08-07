@@ -8,6 +8,7 @@ use App\Models\FeeStructure;
 use App\Models\School;
 use App\Models\SchoolUser;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class FeeStructureController extends Controller
 {
@@ -25,7 +26,8 @@ class FeeStructureController extends Controller
                 ->when($currentYear, fn ($query) => $query->where('school_year_id', $currentYear->id))
                 ->when($request->query('level_id'), fn ($query, $levelId) => $query->where('level_id', $levelId))
                 ->when($request->query('category'), fn ($query, $category) => $query->where('category', $category))
-                ->with('level', 'season')
+                ->when($request->query('fee_category_id'), fn ($query, $feeCategoryId) => $query->where('fee_category_id', $feeCategoryId))
+                ->with('level', 'season', 'feeCategory')
                 ->orderBy('order')
                 ->get()
         );
@@ -44,12 +46,14 @@ class FeeStructureController extends Controller
             'category' => ['nullable', 'in:'.implode(',', [
                 FeeStructure::CATEGORY_TUITION,
                 FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION,
-                FeeStructure::CATEGORY_ENROLLMENT,
-                FeeStructure::CATEGORY_EXAM,
-                FeeStructure::CATEGORY_TRANSPORT,
-                FeeStructure::CATEGORY_UNIFORM,
-                FeeStructure::CATEGORY_OTHER,
+                FeeStructure::CATEGORY_CUSTOM,
             ])],
+            'fee_category_id' => [
+                'required_if:category,'.FeeStructure::CATEGORY_CUSTOM,
+                'nullable',
+                'uuid',
+                Rule::exists('fee_categories', 'id')->where('school_id', $school->id),
+            ],
             'level_id' => ['required_if:category,'.FeeStructure::CATEGORY_TUITION, 'nullable', 'uuid', 'exists:levels,id'],
             'season_id' => ['required_if:category,'.FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION, 'nullable', 'uuid', 'exists:seasons,id'],
             'label' => ['required', 'string', 'max:255'],
@@ -71,7 +75,7 @@ class FeeStructureController extends Controller
                 : null),
         ]);
 
-        return response()->json($feeStructure->load('level', 'season'), 201);
+        return response()->json($feeStructure->load('level', 'season', 'feeCategory'), 201);
     }
 
     public function destroy(Request $request, School $school, FeeStructure $feeStructure)
