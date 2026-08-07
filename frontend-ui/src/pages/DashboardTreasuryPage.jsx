@@ -18,6 +18,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
@@ -45,6 +46,8 @@ function emptyTransferForm() {
 }
 
 function AccountCard({ schoolId, account, canManage, onDeleted, onChanged }) {
+  const AccountIcon = account.type === "CASH" ? PaymentsIcon : AccountBalanceIcon;
+
   const { data: movementsData, reload: reloadMovements } = useApiGet(
     `/schools/${schoolId}/treasury-accounts/${account.id}/movements`,
     { params: { per_page: 6 } },
@@ -82,13 +85,23 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onChanged }) {
   return (
     <Card variant="outlined">
       <CardContent>
-        <Stack direction="row" sx={{ alignItems: "center", gap: 1, mb: 1 }}>
-          {account.type === "CASH" ? (
-            <PaymentsIcon color="primary" fontSize="small" />
-          ) : (
-            <AccountBalanceIcon color="primary" fontSize="small" />
-          )}
-          <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
+        <Stack direction="row" sx={{ alignItems: "center", gap: 1.5, mb: 1.5 }}>
+          <Box
+            sx={(theme) => ({
+              width: 38,
+              height: 38,
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              bgcolor: alpha(theme.palette.primary.main, 0.14),
+              color: "primary.main",
+            })}
+          >
+            <AccountIcon fontSize="small" />
+          </Box>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1 }}>
             {account.name}
           </Typography>
           {canManage && (
@@ -109,33 +122,37 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onChanged }) {
               placeholder="Montant"
               value={mvtForm.amount}
               onChange={(e) => setMvtForm((prev) => ({ ...prev, amount: e.target.value }))}
-              sx={{ flex: 1 }}
+              sx={{ flex: 1, minWidth: 0 }}
             />
             <TextField
               size="small"
               placeholder="Motif"
               value={mvtForm.note}
               onChange={(e) => setMvtForm((prev) => ({ ...prev, note: e.target.value }))}
-              sx={{ flex: 1 }}
+              sx={{ flex: 1, minWidth: 0 }}
             />
-            <IconButton
+            <Button
               size="small"
+              variant="outlined"
               color="success"
               disabled={submitting}
               onClick={() => submitMovement("DEPOSIT")}
-              title="Entrée"
+              startIcon={<ArrowUpwardIcon fontSize="small" />}
+              sx={{ borderRadius: 5, flexShrink: 0 }}
             >
-              <ArrowUpwardIcon fontSize="small" />
-            </IconButton>
-            <IconButton
+              Entrée
+            </Button>
+            <Button
               size="small"
+              variant="outlined"
               color="error"
               disabled={submitting}
               onClick={() => submitMovement("WITHDRAWAL")}
-              title="Sortie"
+              startIcon={<ArrowDownwardIcon fontSize="small" />}
+              sx={{ borderRadius: 5, flexShrink: 0 }}
             >
-              <ArrowDownwardIcon fontSize="small" />
-            </IconButton>
+              Sortie
+            </Button>
           </Stack>
         )}
         {mvtError && (
@@ -144,27 +161,49 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onChanged }) {
           </Alert>
         )}
 
-        <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}
+        >
           Historique
         </Typography>
         <Stack divider={<Divider />} sx={{ mt: 1 }}>
-          {movements.map((m) => (
-            <Stack key={m.id} direction="row" sx={{ alignItems: "center", gap: 1.5, py: 1 }}>
-              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                <Typography variant="body2" noWrap>
-                  {m.note || "Sans note"}
+          {movements.map((m) => {
+            const isCredit = CREDIT_TYPES.includes(m.type);
+            return (
+              <Stack key={m.id} direction="row" sx={{ alignItems: "center", gap: 1.5, py: 1 }}>
+                <Box
+                  sx={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: "9px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    bgcolor: isCredit ? "success.dark" : "error.dark",
+                    color: isCredit ? "success.light" : "error.light",
+                    opacity: 0.9,
+                  }}
+                >
+                  {isCredit ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
+                </Box>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Typography variant="body2" fontWeight={700} noWrap>
+                    {m.note || "Sans note"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {m.created_at ? new Date(m.created_at).toLocaleDateString("fr-FR") : ""}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" fontWeight={700} color={isCredit ? "success.main" : "error.main"}>
+                  {isCredit ? "+" : "-"}
+                  {Number(m.amount).toLocaleString()} FCFA
                 </Typography>
-              </Box>
-              <Typography
-                variant="body2"
-                fontWeight={700}
-                color={CREDIT_TYPES.includes(m.type) ? "success.main" : "error.main"}
-              >
-                {CREDIT_TYPES.includes(m.type) ? "+" : "-"}
-                {Number(m.amount).toLocaleString()} FCFA
-              </Typography>
-            </Stack>
-          ))}
+              </Stack>
+            );
+          })}
           {movements.length === 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
               Aucun mouvement.
@@ -303,7 +342,7 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
       ) : (
         <Grid container spacing={2} sx={{ mb: 4 }}>
           {accounts.map((account) => (
-            <Grid key={account.id} size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid key={account.id} size={{ xs: 12, sm: 6, md: typeFilter === "BANK" ? 4 : 6 }}>
               <AccountCard
                 schoolId={schoolId}
                 account={account}
