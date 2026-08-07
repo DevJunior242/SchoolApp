@@ -38,10 +38,18 @@ class FeeStructureController extends Controller
      */
     public function store(Request $request, School $school)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], "Seuls le directeur et le comptable peuvent gérer les frais de scolarité.");
+        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les frais de scolarité.');
 
         $validated = $request->validate([
-            'category' => ['nullable', 'in:'.FeeStructure::CATEGORY_TUITION.','.FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION],
+            'category' => ['nullable', 'in:'.implode(',', [
+                FeeStructure::CATEGORY_TUITION,
+                FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION,
+                FeeStructure::CATEGORY_ENROLLMENT,
+                FeeStructure::CATEGORY_EXAM,
+                FeeStructure::CATEGORY_TRANSPORT,
+                FeeStructure::CATEGORY_UNIFORM,
+                FeeStructure::CATEGORY_OTHER,
+            ])],
             'level_id' => ['required_if:category,'.FeeStructure::CATEGORY_TUITION, 'nullable', 'uuid', 'exists:levels,id'],
             'season_id' => ['required_if:category,'.FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION, 'nullable', 'uuid', 'exists:seasons,id'],
             'label' => ['required', 'string', 'max:255'],
@@ -68,7 +76,7 @@ class FeeStructureController extends Controller
 
     public function destroy(Request $request, School $school, FeeStructure $feeStructure)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], "Seuls le directeur et le comptable peuvent gérer les frais de scolarité.");
+        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les frais de scolarité.');
         abort_if($feeStructure->school_id !== $school->id, 404);
 
         $feeStructure->delete();

@@ -25,7 +25,7 @@ class PaymentController extends Controller
      */
     public function index(Request $request, School $school)
     {
-        $this->authorizeRoles($request, $school, self::STAFF_ROLE_SLUGS, "Accès réservé au personnel administratif.");
+        $this->authorizeRoles($request, $school, self::STAFF_ROLE_SLUGS, 'Accès réservé au personnel administratif.');
 
         return response()->json(
             Payment::query()
@@ -53,10 +53,18 @@ class PaymentController extends Controller
             ->with('schoolClass')
             ->first();
 
+        // Une tranche "flat" (inscription, examen, transport, uniformes,
+        // autres frais...) n'a pas forcément de level_id : elle s'applique
+        // à tous les élèves de l'école, pas seulement à un niveau précis.
+        // L'abonnement cantine est exclu : il a son propre circuit
+        // (CafeteriaMealServiceController), pas celui-ci.
         $feeStructures = $classStudent
             ? FeeStructure::query()
                 ->where('school_id', $school->id)
-                ->where('level_id', $classStudent->schoolClass->level_id)
+                ->where(fn ($query) => $query
+                    ->where('level_id', $classStudent->schoolClass->level_id)
+                    ->orWhereNull('level_id'))
+                ->where('category', '!=', FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION)
                 ->where('school_year_id', $classStudent->schoolClass->school_year_id)
                 ->orderBy('order')
                 ->get()
@@ -117,7 +125,7 @@ class PaymentController extends Controller
 
     public function confirm(Request $request, School $school, Payment $payment)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], "Seuls le directeur et le comptable peuvent confirmer un paiement.");
+        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent confirmer un paiement.');
         abort_if($payment->school_id !== $school->id, 404);
 
         $payment->update([
@@ -131,7 +139,7 @@ class PaymentController extends Controller
 
     public function reject(Request $request, School $school, Payment $payment)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], "Seuls le directeur et le comptable peuvent rejeter un paiement.");
+        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent rejeter un paiement.');
         abort_if($payment->school_id !== $school->id, 404);
 
         $payment->update([

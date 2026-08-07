@@ -2,11 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\School;
-use App\Models\Level;
-use App\Models\Season;
-use App\Models\SchoolYear;
-use App\Models\Payment;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +14,19 @@ class FeeStructure extends Model
     const CATEGORY_TUITION = 1;
 
     const CATEGORY_CAFETERIA_SUBSCRIPTION = 2;
+
+    // Contrairement à la scolarité, ces catégories n'exigent pas de niveau
+    // (level_id nullable) : le directeur peut créer une tranche flat
+    // (même montant pour tous) ou, s'il le souhaite, une par niveau.
+    const CATEGORY_ENROLLMENT = 3;
+
+    const CATEGORY_EXAM = 4;
+
+    const CATEGORY_TRANSPORT = 5;
+
+    const CATEGORY_UNIFORM = 6;
+
+    const CATEGORY_OTHER = 7;
 
     protected $fillable = [
         'school_id', 'level_id', 'season_id', 'school_year_id', 'category', 'label', 'amount', 'due_date', 'order',

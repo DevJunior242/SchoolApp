@@ -23,6 +23,12 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import SchoolIcon from "@mui/icons-material/School";
+import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
+import CheckroomIcon from "@mui/icons-material/Checkroom";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { Navigate } from "react-router-dom";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -36,12 +42,24 @@ const STATUS_LABELS = {
   2: { label: "Rejeté", color: "error" },
 };
 
+// Catégories de frais gérées par le comptable. La cantine (2) et la
+// bibliothèque n'y figurent pas exprès : ces recettes sont encaissées sur
+// place par leur propre personnel, pas via ce formulaire générique.
+const PAYMENT_CATEGORIES = [
+  { value: 1, label: "Frais de scolarité", icon: <SchoolIcon /> },
+  { value: 3, label: "Frais d'inscription", icon: <PersonAddAltIcon /> },
+  { value: 4, label: "Frais d'examen", icon: <FactCheckIcon /> },
+  { value: 5, label: "Transport", icon: <DirectionsBusIcon /> },
+  { value: 6, label: "Uniformes", icon: <CheckroomIcon /> },
+  { value: 7, label: "Autres frais", icon: <DescriptionIcon /> },
+];
+
 function emptyMethodForm() {
   return { name: "", number: "", instructions: "", treasury_account_id: "" };
 }
 
 function emptyFeeForm() {
-  return { level_id: "", label: "", amount: "", due_date: "" };
+  return { category: 1, level_id: "", label: "", amount: "", due_date: "" };
 }
 
 function emptyCollectForm() {
@@ -67,6 +85,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   const treasuryAccounts = treasuryAccountsData ?? [];
   const [levels, setLevels] = useState([]);
   const [feeLevel, setFeeLevel] = useState("");
+  const [feeCategory, setFeeCategory] = useState(1);
   const [feeStructures, setFeeStructures] = useState([]);
   const [configError, setConfigError] = useState(null);
 
@@ -79,6 +98,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   const [feeError, setFeeError] = useState(null);
 
   const [collectModalOpen, setCollectModalOpen] = useState(false);
+  const [collectCategory, setCollectCategory] = useState(null);
   const [studentSearch, setStudentSearch] = useState("");
   const [studentResults, setStudentResults] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -113,19 +133,16 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     }
   }
 
-  async function loadFeeStructures(levelId) {
+  async function loadFeeStructures(levelId, category) {
     try {
-      // category=1 (scolarité) : ce panneau ne doit pas afficher les
-      // abonnements cantine, qui n'ont pas de niveau (level_id nullable
-      // pour cette catégorie).
       const response = await api.get(`/schools/${schoolId}/fee-structures`, {
-        params: { level_id: levelId || undefined, category: 1 },
+        params: { level_id: levelId || undefined, category },
       });
       setFeeStructures(response.data);
     } catch (err) {
       setConfigError(
         err.response?.data?.message ||
-          "Impossible de charger les tranches de scolarité.",
+          "Impossible de charger les tranches.",
       );
     }
   }
@@ -150,9 +167,9 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
 
   useEffect(() => {
     if (!schoolId) return;
-    loadFeeStructures(feeLevel);
+    loadFeeStructures(feeLevel, feeCategory);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schoolId, feeLevel]);
+  }, [schoolId, feeLevel, feeCategory]);
 
   function closeMethodModal() {
     setMethodModalOpen(false);
@@ -188,7 +205,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     setFeeError(null);
     try {
       await api.post(`/schools/${schoolId}/fee-structures`, feeForm);
-      await loadFeeStructures(feeLevel);
+      await loadFeeStructures(feeLevel, feeCategory);
       closeFeeModal();
     } catch {
       setFeeError("Impossible de créer cette tranche.");
@@ -197,7 +214,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
 
   async function deleteFee(id) {
     await api.delete(`/schools/${schoolId}/fee-structures/${id}`);
-    await loadFeeStructures(feeLevel);
+    await loadFeeStructures(feeLevel, feeCategory);
   }
 
   useEffect(() => {
@@ -239,6 +256,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
 
   function closeCollectModal() {
     setCollectModalOpen(false);
+    setCollectCategory(null);
     setStudentSearch("");
     setStudentResults([]);
     setSelectedStudent(null);
@@ -407,31 +425,51 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                   mb: 2,
                 }}
               >
-                <Typography variant="h6">Tranches de scolarité</Typography>
+                <Typography variant="h6">Tranches de frais</Typography>
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={() => setFeeModalOpen(true)}
+                  onClick={() => {
+                    setFeeForm({ ...emptyFeeForm(), category: feeCategory });
+                    setFeeModalOpen(true);
+                  }}
                 >
                   Ajouter
                 </Button>
               </Stack>
               <TextField
                 select
-                label="Filtrer par niveau"
-                value={feeLevel}
-                onChange={(e) => setFeeLevel(e.target.value)}
+                label="Catégorie"
+                value={feeCategory}
+                onChange={(e) => setFeeCategory(Number(e.target.value))}
                 size="small"
                 fullWidth
                 sx={{ mb: 2 }}
               >
-                <MenuItem value="">Tous les niveaux</MenuItem>
-                {levels.map((level) => (
-                  <MenuItem key={level.id} value={level.id}>
-                    {level.name}
+                {PAYMENT_CATEGORIES.map((cat) => (
+                  <MenuItem key={cat.value} value={cat.value}>
+                    {cat.label}
                   </MenuItem>
                 ))}
               </TextField>
+              {feeCategory === 1 && (
+                <TextField
+                  select
+                  label="Filtrer par niveau"
+                  value={feeLevel}
+                  onChange={(e) => setFeeLevel(e.target.value)}
+                  size="small"
+                  fullWidth
+                  sx={{ mb: 2 }}
+                >
+                  <MenuItem value="">Tous les niveaux</MenuItem>
+                  {levels.map((level) => (
+                    <MenuItem key={level.id} value={level.id}>
+                      {level.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
               <Stack spacing={1.5}>
                 {feeStructures.map((f) => (
                   <Card key={f.id} variant="outlined">
@@ -644,20 +682,38 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
             {feeError && <Alert severity="error">{feeError}</Alert>}
             <TextField
               select
-              label="Niveau"
-              value={feeForm.level_id}
+              label="Catégorie"
+              value={feeForm.category}
               onChange={(e) =>
-                setFeeForm((prev) => ({ ...prev, level_id: e.target.value }))
+                setFeeForm((prev) => ({ ...prev, category: Number(e.target.value) }))
               }
               required
               fullWidth
             >
-              {levels.map((level) => (
-                <MenuItem key={level.id} value={level.id}>
-                  {level.name}
+              {PAYMENT_CATEGORIES.map((cat) => (
+                <MenuItem key={cat.value} value={cat.value}>
+                  {cat.label}
                 </MenuItem>
               ))}
             </TextField>
+            {feeForm.category === 1 && (
+              <TextField
+                select
+                label="Niveau"
+                value={feeForm.level_id}
+                onChange={(e) =>
+                  setFeeForm((prev) => ({ ...prev, level_id: e.target.value }))
+                }
+                required
+                fullWidth
+              >
+                {levels.map((level) => (
+                  <MenuItem key={level.id} value={level.id}>
+                    {level.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
             <TextField
               label="Libellé"
               placeholder="Tranche 1"
@@ -706,11 +762,38 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
       >
         <DialogTitle>Encaisser un paiement</DialogTitle>
         <DialogContent>
-          {!selectedStudent ? (
+          {!collectCategory ? (
+            <Grid container spacing={1.5} sx={{ pt: 1 }}>
+              {PAYMENT_CATEGORIES.map((cat) => (
+                <Grid key={cat.value} size={{ xs: 6, sm: 4 }}>
+                  <Card variant="outlined">
+                    <Box
+                      sx={{
+                        p: 2,
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 1,
+                        textAlign: "center",
+                      }}
+                      onClick={() => setCollectCategory(cat.value)}
+                    >
+                      {cat.icon}
+                      <Typography variant="body2">{cat.label}</Typography>
+                    </Box>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          ) : !selectedStudent ? (
             <Box
               sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
             >
               {collectError && <Alert severity="error">{collectError}</Alert>}
+              <Button size="small" onClick={() => setCollectCategory(null)} sx={{ alignSelf: "flex-start" }}>
+                ← {PAYMENT_CATEGORIES.find((c) => c.value === collectCategory)?.label}
+              </Button>
               <TextField
                 label="Rechercher un élève"
                 value={studentSearch}
@@ -805,13 +888,20 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                       }
                       required
                       fullWidth
+                      helperText={
+                        collectSummary.fee_structures.filter((fee) => fee.category === collectCategory).length === 0
+                          ? "Aucune tranche configurée pour cette catégorie — ajoutez-en une depuis le panneau Tranches de frais."
+                          : undefined
+                      }
                     >
-                      {collectSummary.fee_structures.map((fee) => (
-                        <MenuItem key={fee.id} value={fee.id}>
-                          {fee.label} — {Number(fee.amount).toLocaleString()}{" "}
-                          FCFA
-                        </MenuItem>
-                      ))}
+                      {collectSummary.fee_structures
+                        .filter((fee) => fee.category === collectCategory)
+                        .map((fee) => (
+                          <MenuItem key={fee.id} value={fee.id}>
+                            {fee.label} — {Number(fee.amount).toLocaleString()}{" "}
+                            FCFA
+                          </MenuItem>
+                        ))}
                     </TextField>
                     <TextField
                       select
