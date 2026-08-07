@@ -37,6 +37,7 @@ class TreasuryAccountController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'in:'.implode(',', [TreasuryAccount::TYPE_CASH, TreasuryAccount::TYPE_BANK])],
+            'bank_name' => ['nullable', 'string', 'max:255'],
             'opening_balance' => ['nullable', 'numeric'],
         ]);
 
@@ -53,6 +54,7 @@ class TreasuryAccountController extends Controller
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'type' => ['sometimes', 'in:'.implode(',', [TreasuryAccount::TYPE_CASH, TreasuryAccount::TYPE_BANK])],
+            'bank_name' => ['nullable', 'string', 'max:255'],
             'opening_balance' => ['sometimes', 'numeric'],
             'is_active' => ['sometimes', 'boolean'],
         ]);

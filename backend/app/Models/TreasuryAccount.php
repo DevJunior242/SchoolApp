@@ -16,7 +16,7 @@ class TreasuryAccount extends Model
     const TYPE_BANK = 'BANK';
 
     protected $fillable = [
-        'school_id', 'name', 'type', 'opening_balance', 'is_active',
+        'school_id', 'name', 'type', 'bank_name', 'opening_balance', 'is_active',
     ];
 
     protected function casts(): array

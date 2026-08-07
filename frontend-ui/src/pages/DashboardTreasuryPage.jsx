@@ -34,7 +34,7 @@ import { useSchools } from "../hooks/useSchools.js";
 const CREDIT_TYPES = ["DEPOSIT", "TRANSFER_IN"];
 
 function emptyAccountForm(defaultType = "CASH") {
-  return { name: "", type: defaultType, opening_balance: "" };
+  return { name: "", type: defaultType, bank_name: "", opening_balance: "" };
 }
 
 function emptyMvtForm() {
@@ -43,6 +43,149 @@ function emptyMvtForm() {
 
 function emptyTransferForm() {
   return { from: "", to: "", amount: "" };
+}
+
+function emptyDepositForm() {
+  return { account_id: "", amount: "", note: "" };
+}
+
+function BankSummaryCard({ account, canManage, onDeleted }) {
+  return (
+    <Card variant="outlined">
+      <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <Stack direction="row" sx={{ alignItems: "center", gap: 1.5 }}>
+          <Box
+            sx={(theme) => ({
+              width: 38,
+              height: 38,
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              bgcolor: alpha(theme.palette.primary.main, 0.14),
+              color: "primary.main",
+            })}
+          >
+            <AccountBalanceIcon fontSize="small" />
+          </Box>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Typography variant="subtitle1" fontWeight={700} noWrap>
+              {account.name}
+            </Typography>
+            {account.bank_name && (
+              <Typography variant="caption" color="text.secondary">
+                {account.bank_name}
+              </Typography>
+            )}
+          </Box>
+          {canManage && (
+            <IconButton size="small" onClick={() => onDeleted(account.id)}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          )}
+        </Stack>
+        <Typography variant="h5" fontWeight={800}>
+          {Number(account.balance ?? 0).toLocaleString()} FCFA
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DepositWithdrawForm({ schoolId, accounts, onChanged }) {
+  const [form, setForm] = useState(emptyDepositForm);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const accountId = form.account_id || accounts[0]?.id || "";
+
+  async function submit(type) {
+    setError(null);
+    if (!accountId || !form.amount || !form.note) {
+      setError("Compte, montant et motif requis.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post(`/schools/${schoolId}/treasury-accounts/${accountId}/movements`, {
+        type,
+        amount: form.amount,
+        note: form.note,
+      });
+      setForm((prev) => ({ ...emptyDepositForm(), account_id: prev.account_id }));
+      onChanged();
+    } catch (err) {
+      const messages = err.response?.data?.errors;
+      setError(messages ? Object.values(messages).flat().join(" ") : "Impossible d'enregistrer ce mouvement.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Paper variant="outlined" sx={{ p: 3, height: "100%" }}>
+      <Typography variant="h6" gutterBottom>
+        Dépôt / Retrait
+      </Typography>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      <Stack spacing={2}>
+        <TextField
+          select
+          label="Compte"
+          value={accountId}
+          onChange={(e) => setForm((prev) => ({ ...prev, account_id: e.target.value }))}
+          fullWidth
+        >
+          {accounts.map((a) => (
+            <MenuItem key={a.id} value={a.id}>
+              {a.name}
+              {a.bank_name ? ` (${a.bank_name})` : ""}
+            </MenuItem>
+          ))}
+        </TextField>
+        <Stack direction="row" spacing={2}>
+          <TextField
+            label="Montant (FCFA)"
+            type="number"
+            value={form.amount}
+            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+            fullWidth
+          />
+          <TextField
+            label="Motif"
+            placeholder="ex. Dépôt recettes scolarité"
+            value={form.note}
+            onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
+            fullWidth
+          />
+        </Stack>
+        <Stack direction="row" spacing={1.5}>
+          <Button
+            variant="contained"
+            startIcon={<ArrowUpwardIcon />}
+            disabled={submitting}
+            onClick={() => submit("DEPOSIT")}
+            sx={{ flex: 1 }}
+          >
+            Dépôt
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowDownwardIcon />}
+            disabled={submitting}
+            onClick={() => submit("WITHDRAWAL")}
+            sx={{ flex: 1 }}
+          >
+            Retrait
+          </Button>
+        </Stack>
+      </Stack>
+    </Paper>
+  );
 }
 
 function AccountCard({ schoolId, account, canManage, onDeleted, onChanged }) {
@@ -215,6 +358,80 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onChanged }) {
   );
 }
 
+function TransferForm({
+  accounts,
+  transferFrom,
+  transferTo,
+  transferForm,
+  setTransferForm,
+  transferError,
+  transferSuccess,
+  transferSubmitting,
+  onSubmit,
+}) {
+  return (
+    <Paper variant="outlined" sx={{ p: 3, height: "100%" }}>
+      <Typography variant="h6" gutterBottom>
+        Virement interne
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Transférez des fonds entre deux comptes de l'établissement.
+      </Typography>
+      {transferError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {transferError}
+        </Alert>
+      )}
+      {transferSuccess && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {transferSuccess}
+        </Alert>
+      )}
+      <Box component="form" onSubmit={onSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Stack direction="row" spacing={2}>
+          <TextField
+            select
+            label="Du compte"
+            value={transferFrom}
+            onChange={(e) => setTransferForm((prev) => ({ ...prev, from: e.target.value }))}
+            fullWidth
+          >
+            {accounts.map((a) => (
+              <MenuItem key={a.id} value={a.id}>
+                {a.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            label="Vers le compte"
+            value={transferTo}
+            onChange={(e) => setTransferForm((prev) => ({ ...prev, to: e.target.value }))}
+            fullWidth
+          >
+            {accounts.map((a) => (
+              <MenuItem key={a.id} value={a.id}>
+                {a.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+        <TextField
+          label="Montant (FCFA)"
+          type="number"
+          value={transferForm.amount}
+          onChange={(e) => setTransferForm((prev) => ({ ...prev, amount: e.target.value }))}
+          required
+          fullWidth
+        />
+        <Button type="submit" variant="contained" startIcon={<SwapHorizIcon />} disabled={transferSubmitting}>
+          {transferSubmitting ? "Virement..." : "Virer"}
+        </Button>
+      </Box>
+    </Paper>
+  );
+}
+
 export default function DashboardTreasuryPage({ embedded = false, typeFilter = null } = {}) {
   const { user } = useAuth();
   const schoolId = user?.current_school_id;
@@ -324,7 +541,7 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
             </Typography>
           </Box>
         )}
-        {canManage && (
+        {canManage && typeFilter !== "BANK" && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAccountModalOpen(true)}>
             Ajouter un compte
           </Button>
@@ -343,16 +560,44 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
         <Grid container spacing={2} sx={{ mb: 4 }}>
           {accounts.map((account) => (
             <Grid key={account.id} size={{ xs: 12, sm: 6, md: typeFilter === "BANK" ? 4 : 6 }}>
-              <AccountCard
-                schoolId={schoolId}
-                account={account}
-                canManage={canManage}
-                onDeleted={deleteAccount}
-                onChanged={reloadAccounts}
-              />
+              {typeFilter === "BANK" ? (
+                <BankSummaryCard account={account} canManage={canManage} onDeleted={deleteAccount} />
+              ) : (
+                <AccountCard
+                  schoolId={schoolId}
+                  account={account}
+                  canManage={canManage}
+                  onDeleted={deleteAccount}
+                  onChanged={reloadAccounts}
+                />
+              )}
             </Grid>
           ))}
-          {accounts.length === 0 && (
+          {typeFilter === "BANK" && canManage && (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Card
+                variant="outlined"
+                sx={{ height: "100%", minHeight: 100, cursor: "pointer" }}
+                onClick={() => setAccountModalOpen(true)}
+              >
+                <CardContent
+                  sx={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1,
+                    color: "text.secondary",
+                  }}
+                >
+                  <AddIcon />
+                  <Typography variant="body2">Ajouter un compte</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+          {accounts.length === 0 && typeFilter !== "BANK" && (
             <Grid size={12}>
               <Typography color="text.secondary">Aucun compte de trésorerie configuré.</Typography>
             </Grid>
@@ -360,66 +605,46 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
         </Grid>
       )}
 
-      {canManage && accounts.length > 1 && (
-        <Paper variant="outlined" sx={{ p: 3, maxWidth: 480 }}>
-          <Typography variant="h6" gutterBottom>
-            Virement interne
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Transférez des fonds entre deux comptes de l'établissement.
-          </Typography>
-          {transferError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {transferError}
-            </Alert>
+      {typeFilter === "BANK" ? (
+        <Grid container spacing={2}>
+          {canManage && accounts.length > 0 && (
+            <Grid size={{ xs: 12, md: 6 }}>
+              <DepositWithdrawForm schoolId={schoolId} accounts={accounts} onChanged={reloadAccounts} />
+            </Grid>
           )}
-          {transferSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {transferSuccess}
-            </Alert>
+          {canManage && accounts.length > 1 && (
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TransferForm
+                accounts={accounts}
+                transferFrom={transferFrom}
+                transferTo={transferTo}
+                transferForm={transferForm}
+                setTransferForm={setTransferForm}
+                transferError={transferError}
+                transferSuccess={transferSuccess}
+                transferSubmitting={transferSubmitting}
+                onSubmit={handleTransfer}
+              />
+            </Grid>
           )}
-          <Box component="form" onSubmit={handleTransfer} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Stack direction="row" spacing={2}>
-              <TextField
-                select
-                label="Du compte"
-                value={transferFrom}
-                onChange={(e) => setTransferForm((prev) => ({ ...prev, from: e.target.value }))}
-                fullWidth
-              >
-                {accounts.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Vers le compte"
-                value={transferTo}
-                onChange={(e) => setTransferForm((prev) => ({ ...prev, to: e.target.value }))}
-                fullWidth
-              >
-                {accounts.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-            <TextField
-              label="Montant (FCFA)"
-              type="number"
-              value={transferForm.amount}
-              onChange={(e) => setTransferForm((prev) => ({ ...prev, amount: e.target.value }))}
-              required
-              fullWidth
+        </Grid>
+      ) : (
+        canManage &&
+        accounts.length > 1 && (
+          <Box sx={{ maxWidth: 480 }}>
+            <TransferForm
+              accounts={accounts}
+              transferFrom={transferFrom}
+              transferTo={transferTo}
+              transferForm={transferForm}
+              setTransferForm={setTransferForm}
+              transferError={transferError}
+              transferSuccess={transferSuccess}
+              transferSubmitting={transferSubmitting}
+              onSubmit={handleTransfer}
             />
-            <Button type="submit" variant="contained" startIcon={<SwapHorizIcon />} disabled={transferSubmitting}>
-              {transferSubmitting ? "Virement..." : "Virer"}
-            </Button>
           </Box>
-        </Paper>
+        )
       )}
 
       <Dialog open={accountModalOpen} onClose={closeAccountModal} fullWidth maxWidth="xs">
@@ -452,6 +677,15 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
                 <MenuItem value="CASH">Caisse</MenuItem>
                 <MenuItem value="BANK">Compte bancaire</MenuItem>
               </TextField>
+            )}
+            {(typeFilter === "BANK" || accountForm.type === "BANK") && (
+              <TextField
+                label="Banque"
+                placeholder="Ecobank, UBA..."
+                value={accountForm.bank_name}
+                onChange={(e) => setAccountForm((prev) => ({ ...prev, bank_name: e.target.value }))}
+                fullWidth
+              />
             )}
             <TextField
               label="Solde initial (FCFA)"
