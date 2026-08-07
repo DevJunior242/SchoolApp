@@ -10,6 +10,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Grid,
   IconButton,
   MenuItem,
@@ -25,6 +26,9 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import SchoolIcon from "@mui/icons-material/School";
 import DescriptionIcon from "@mui/icons-material/Description";
+import SettingsIcon from "@mui/icons-material/Settings";
+import PrintIcon from "@mui/icons-material/Print";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { Navigate } from "react-router-dom";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -89,10 +93,9 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   const [methods, setMethods] = useState([]);
   const { data: treasuryAccountsData } = useApiGet(schoolId ? `/schools/${schoolId}/treasury-accounts` : null);
   const treasuryAccounts = treasuryAccountsData ?? [];
-  const {
-    data: feeCategoriesData,
-    reload: reloadFeeCategories,
-  } = useApiGet(schoolId ? `/schools/${schoolId}/fee-categories` : null);
+  const { data: feeCategoriesData, reload: reloadFeeCategories } = useApiGet(
+    schoolId ? `/schools/${schoolId}/fee-categories` : null,
+  );
   const feeCategories = feeCategoriesData ?? [];
   // Tuiles affichées aux comptables : scolarité (système) + toutes les
   // catégories que l'école a créées elle-même.
@@ -105,6 +108,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   const [feeCategoryKey, setFeeCategoryKey] = useState("tuition");
   const [feeStructures, setFeeStructures] = useState([]);
   const [configError, setConfigError] = useState(null);
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
 
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm());
@@ -118,7 +122,6 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   const [feeForm, setFeeForm] = useState(emptyFeeForm());
   const [feeError, setFeeError] = useState(null);
 
-  const [collectModalOpen, setCollectModalOpen] = useState(false);
   const [collectCategory, setCollectCategory] = useState(null);
   const [studentSearch, setStudentSearch] = useState("");
   const [studentResults, setStudentResults] = useState([]);
@@ -128,6 +131,14 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   const [collectError, setCollectError] = useState(null);
   const [collectSuccess, setCollectSuccess] = useState(null);
   const [collectSubmitting, setCollectSubmitting] = useState(false);
+
+  const [receiptOpen, setReceiptOpen] = useState(null);
+
+  const { data: recentReceiptsData, reload: reloadRecentReceipts } = useApiGet(
+    schoolId ? `/schools/${schoolId}/payments` : null,
+    { params: { status: 1, per_page: 6 } },
+  );
+  const recentReceipts = recentReceiptsData?.data ?? [];
 
   const [statusFilter, setStatusFilter] = useState("");
   const {
@@ -141,6 +152,11 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   } = usePaginatedList(schoolId ? `/schools/${schoolId}/payments` : null, {
     status: statusFilter === "" ? undefined : statusFilter,
   });
+
+  function reloadRecettes() {
+    reloadPayments();
+    reloadRecentReceipts();
+  }
 
   async function loadMethods() {
     try {
@@ -262,7 +278,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   }
 
   useEffect(() => {
-    if (!collectModalOpen || !studentSearch) {
+    if (!studentSearch) {
       setStudentResults([]);
       return;
     }
@@ -280,7 +296,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
         );
     }, 300);
     return () => clearTimeout(timeout);
-  }, [collectModalOpen, studentSearch, schoolId]);
+  }, [studentSearch, schoolId]);
 
   async function selectStudent(schoolStudent) {
     setSelectedStudent(schoolStudent.student);
@@ -298,16 +314,19 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     }
   }
 
-  function closeCollectModal() {
-    setCollectModalOpen(false);
-    setCollectCategory(null);
-    setStudentSearch("");
-    setStudentResults([]);
+  function changeStudent() {
     setSelectedStudent(null);
     setCollectSummary(null);
     setCollectForm(emptyCollectForm());
     setCollectError(null);
     setCollectSuccess(null);
+  }
+
+  function newPayment() {
+    setCollectCategory(null);
+    setStudentSearch("");
+    setStudentResults([]);
+    changeStudent();
   }
 
   async function handleCollectSubmit(e) {
@@ -320,7 +339,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
         `/schools/${schoolId}/students/${selectedStudent.id}/payments`,
         collectForm,
       );
-      reloadPayments();
+      reloadRecettes();
       setCollectSuccess("Paiement enregistré.");
       setCollectForm(emptyCollectForm());
       const response = await api.get(
@@ -341,12 +360,12 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
 
   async function confirmPayment(id) {
     await api.post(`/schools/${schoolId}/payments/${id}/confirm`);
-    reloadPayments();
+    reloadRecettes();
   }
 
   async function rejectPayment(id) {
     await api.post(`/schools/${schoolId}/payments/${id}/reject`);
-    reloadPayments();
+    reloadRecettes();
   }
 
   if (!schoolId) {
@@ -370,6 +389,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
           alignItems: "flex-start",
           flexWrap: "wrap",
           gap: 2,
+          mb: 2,
         }}
       >
         {embedded ? (
@@ -379,46 +399,337 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
             <Typography variant="h5" fontWeight={700} gutterBottom>
               Paiements
             </Typography>
-            <Typography color="text.secondary" sx={{ mb: 3 }}>
-              {canManageConfig
-                ? "Configurez les moyens de paiement et les tranches de scolarité, puis confirmez les paiements déclarés par les parents."
-                : "Encaissez les paiements reçus et suivez les déclarations des parents."}
-            </Typography>
           </Box>
         )}
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setCollectModalOpen(true)}
-        >
-          Encaisser un paiement
-        </Button>
+        {canManageConfig && (
+          <Button variant="outlined" startIcon={<SettingsIcon />} onClick={() => setConfigDialogOpen(true)}>
+            Configurer
+          </Button>
+        )}
       </Stack>
 
       {(configError || paymentsError) && (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {configError || paymentsError}
         </Alert>
       )}
 
-      {canManageConfig && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Paper variant="outlined" sx={{ p: 3 }}>
-              <Stack
-                direction="row"
-                sx={{
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 2,
-                }}
-              >
-                <Typography variant="h6">Moyens de paiement</Typography>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => setMethodModalOpen(true)}
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Paper variant="outlined" sx={{ p: 3, height: "100%" }}>
+            <Typography variant="h6" gutterBottom>
+              Encaisser un paiement
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Choisissez une catégorie de frais — un reçu est généré automatiquement à la confirmation.
+            </Typography>
+
+            {!collectCategory ? (
+              <Grid container spacing={1.5}>
+                {categoryTiles.map((cat) => (
+                  <Grid key={cat.key} size={{ xs: 6, sm: 4 }}>
+                    <Card variant="outlined">
+                      <Box
+                        sx={{
+                          p: 2,
+                          cursor: "pointer",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 1,
+                          textAlign: "center",
+                        }}
+                        onClick={() => setCollectCategory(cat.key)}
+                      >
+                        {cat.icon}
+                        <Typography variant="body2">{cat.label}</Typography>
+                      </Box>
+                    </Card>
+                  </Grid>
+                ))}
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Card variant="outlined">
+                    <Box
+                      sx={{
+                        p: 2,
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 1,
+                        textAlign: "center",
+                        color: "text.secondary",
+                      }}
+                      onClick={() => setCategoryModalOpen(true)}
+                    >
+                      <AddIcon />
+                      <Typography variant="body2">Ajouter une catégorie</Typography>
+                    </Box>
+                  </Card>
+                </Grid>
+              </Grid>
+            ) : !selectedStudent ? (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {collectError && <Alert severity="error">{collectError}</Alert>}
+                <Button size="small" onClick={() => setCollectCategory(null)} sx={{ alignSelf: "flex-start" }}>
+                  ← {categoryTiles.find((c) => c.key === collectCategory)?.label}
+                </Button>
+                <TextField
+                  label="Rechercher un élève"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  fullWidth
+                  autoFocus
+                />
+                <Stack spacing={1}>
+                  {studentResults.map((s) => (
+                    <Card key={s.id} variant="outlined">
+                      <Box sx={{ p: 1.5, cursor: "pointer" }} onClick={() => selectStudent(s)}>
+                        <Typography variant="subtitle2">{s.student?.fullname}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {s.student.class_students?.[0]?.school_class?.name ?? "Aucune classe"}
+                        </Typography>
+                      </Box>
+                    </Card>
+                  ))}
+                  {studentSearch && studentResults.length === 0 && (
+                    <Typography color="text.secondary">Aucun élève trouvé.</Typography>
+                  )}
+                </Stack>
+              </Box>
+            ) : (
+              <Box>
+                <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle1">{selectedStudent.fullname}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {categoryTiles.find((c) => c.key === collectCategory)?.label}
+                    </Typography>
+                  </Box>
+                  <Button size="small" onClick={changeStudent}>
+                    Changer d'élève
+                  </Button>
+                </Stack>
+
+                {collectError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {collectError}
+                  </Alert>
+                )}
+
+                {collectSummary && (
+                  <>
+                    <Alert severity={collectSummary.balance > 0 ? "warning" : "success"} sx={{ mb: 2 }}>
+                      Solde restant : {Number(collectSummary.balance).toLocaleString()} FCFA
+                    </Alert>
+                    {collectSuccess && (
+                      <Alert severity="success" sx={{ mb: 2 }}>
+                        {collectSuccess}
+                      </Alert>
+                    )}
+                    <Box
+                      component="form"
+                      onSubmit={handleCollectSubmit}
+                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                    >
+                      <TextField
+                        select
+                        label="Tranche concernée"
+                        value={collectForm.fee_structure_id}
+                        onChange={(e) =>
+                          setCollectForm((prev) => ({ ...prev, fee_structure_id: e.target.value }))
+                        }
+                        required
+                        fullWidth
+                        helperText={
+                          collectSummary.fee_structures.filter((fee) => categoryKeyOf(fee) === collectCategory)
+                            .length === 0
+                            ? "Aucune tranche configurée pour cette catégorie — ajoutez-en une dans Configurer."
+                            : undefined
+                        }
+                      >
+                        {collectSummary.fee_structures
+                          .filter((fee) => categoryKeyOf(fee) === collectCategory)
+                          .map((fee) => (
+                            <MenuItem key={fee.id} value={fee.id}>
+                              {fee.label} — {Number(fee.amount).toLocaleString()} FCFA
+                            </MenuItem>
+                          ))}
+                      </TextField>
+                      <TextField
+                        select
+                        label="Mode de paiement"
+                        value={collectForm.payment_method_id}
+                        onChange={(e) =>
+                          setCollectForm((prev) => ({ ...prev, payment_method_id: e.target.value }))
+                        }
+                        required
+                        fullWidth
+                      >
+                        {methods.map((m) => (
+                          <MenuItem key={m.id} value={m.id}>
+                            {m.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                      <TextField
+                        label="Montant reçu (FCFA)"
+                        type="number"
+                        value={collectForm.amount}
+                        onChange={(e) => setCollectForm((prev) => ({ ...prev, amount: e.target.value }))}
+                        required
+                        fullWidth
+                      />
+                      <TextField
+                        label="Numéro (payeur, ou 'Espèces')"
+                        value={collectForm.sender_number}
+                        onChange={(e) =>
+                          setCollectForm((prev) => ({ ...prev, sender_number: e.target.value }))
+                        }
+                        required
+                        fullWidth
+                      />
+                      <TextField
+                        label="ID de transaction (optionnel)"
+                        value={collectForm.transaction_id}
+                        onChange={(e) =>
+                          setCollectForm((prev) => ({ ...prev, transaction_id: e.target.value }))
+                        }
+                        fullWidth
+                      />
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={collectSubmitting}
+                        startIcon={<ReceiptLongIcon />}
+                      >
+                        {collectSubmitting
+                          ? "Enregistrement..."
+                          : ["directeur", "comptable"].includes(currentRole)
+                            ? "Encaisser et générer le reçu"
+                            : "Enregistrer (en attente de confirmation)"}
+                      </Button>
+                    </Box>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {collectCategory && (
+              <Button size="small" onClick={newPayment} sx={{ mt: 2 }}>
+                Nouveau paiement
+              </Button>
+            )}
+          </Paper>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Paper variant="outlined" sx={{ p: 3, height: "100%" }}>
+            <Typography variant="h6" gutterBottom>
+              Reçus récents
+            </Typography>
+            <Stack divider={<Divider />}>
+              {recentReceipts.map((p) => (
+                <Box
+                  key={p.id}
+                  sx={{ py: 1.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 1.5 }}
+                  onClick={() => setReceiptOpen(p)}
                 >
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography variant="body2" fontWeight={600} noWrap>
+                      {p.student?.fullname} — {p.fee_structure?.label}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {p.receipt_number ?? "—"} · {p.confirmed_at ? new Date(p.confirmed_at).toLocaleDateString("fr-FR") : ""}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" fontWeight={700} color="success.main" sx={{ whiteSpace: "nowrap" }}>
+                    +{Number(p.amount).toLocaleString()} FCFA
+                  </Typography>
+                </Box>
+              ))}
+              {recentReceipts.length === 0 && (
+                <Typography color="text.secondary" sx={{ py: 1.5 }}>
+                  Aucun reçu pour l'instant.
+                </Typography>
+              )}
+            </Stack>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Typography variant="h6" sx={{ mt: 4 }} gutterBottom>
+        Journal des recettes
+      </Typography>
+      <TextField
+        select
+        label="Statut"
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value)}
+        size="small"
+        sx={{ mb: 2, minWidth: 220 }}
+      >
+        <MenuItem value="">Tous</MenuItem>
+        <MenuItem value="0">En attente</MenuItem>
+        <MenuItem value="1">Confirmé</MenuItem>
+        <MenuItem value="2">Rejeté</MenuItem>
+      </TextField>
+
+      {paymentsLoading ? (
+        <Typography color="text.secondary">Chargement...</Typography>
+      ) : (
+        <Stack spacing={1.5}>
+          {payments.map((p) => (
+            <Card key={p.id} variant="outlined">
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", cursor: p.status === 1 ? "pointer" : "default" }}
+                onClick={() => p.status === 1 && setReceiptOpen(p)}
+              >
+                <Box sx={{ flexGrow: 1, minWidth: 200 }}>
+                  <Typography variant="subtitle2">
+                    {p.receipt_number ? `${p.receipt_number} · ` : ""}
+                    {p.student?.fullname}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {p.fee_structure?.label} · {Number(p.amount).toLocaleString()} FCFA ·{" "}
+                    {p.payment_method?.name} ({p.sender_number})
+                    {p.transaction_id ? ` · Réf. ${p.transaction_id}` : ""}
+                  </Typography>
+                </Box>
+                <Chip label={STATUS_LABELS[p.status]?.label} color={STATUS_LABELS[p.status]?.color} size="small" />
+                {p.status === 0 && (
+                  <Stack direction="row" spacing={1} onClick={(e) => e.stopPropagation()}>
+                    <IconButton size="small" color="success" onClick={() => confirmPayment(p.id)}>
+                      <CheckIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" color="error" onClick={() => rejectPayment(p.id)}>
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+          {payments.length === 0 && (
+            <Typography color="text.secondary">Aucun paiement pour l'instant.</Typography>
+          )}
+        </Stack>
+      )}
+
+      {lastPage > 1 && (
+        <Stack alignItems="center" sx={{ mt: 3 }}>
+          <Pagination count={lastPage} page={page} onChange={(_, value) => setPage(value)} color="primary" />
+        </Stack>
+      )}
+
+      <Dialog open={configDialogOpen} onClose={() => setConfigDialogOpen(false)} fullWidth maxWidth="md">
+        <DialogTitle>Configuration des recettes</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3} sx={{ mt: 0.5 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                <Typography variant="h6">Moyens de paiement</Typography>
+                <Button size="small" startIcon={<AddIcon />} onClick={() => setMethodModalOpen(true)}>
                   Ajouter
                 </Button>
               </Stack>
@@ -426,13 +737,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                 {methods.map((m) => (
                   <Card key={m.id} variant="outlined">
                     <CardContent
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 2,
-                        py: 1.5,
-                        "&:last-child": { pb: 1.5 },
-                      }}
+                      sx={{ display: "flex", alignItems: "center", gap: 2, py: 1.5, "&:last-child": { pb: 1.5 } }}
                     >
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="subtitle2">{m.name}</Typography>
@@ -441,34 +746,20 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                           {m.treasury_account?.name ? ` · ${m.treasury_account.name}` : ""}
                         </Typography>
                       </Box>
-                      <IconButton
-                        size="small"
-                        onClick={() => deleteMethod(m.id)}
-                      >
+                      <IconButton size="small" onClick={() => deleteMethod(m.id)}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </CardContent>
                   </Card>
                 ))}
                 {methods.length === 0 && (
-                  <Typography color="text.secondary">
-                    Aucun moyen de paiement configuré.
-                  </Typography>
+                  <Typography color="text.secondary">Aucun moyen de paiement configuré.</Typography>
                 )}
               </Stack>
-            </Paper>
-          </Grid>
+            </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Paper variant="outlined" sx={{ p: 3 }}>
-              <Stack
-                direction="row"
-                sx={{
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 2,
-                }}
-              >
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                 <Typography variant="h6">Tranches de frais</Typography>
                 <Button
                   size="small"
@@ -526,13 +817,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                 {feeStructures.map((f) => (
                   <Card key={f.id} variant="outlined">
                     <CardContent
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 2,
-                        py: 1.5,
-                        "&:last-child": { pb: 1.5 },
-                      }}
+                      sx={{ display: "flex", alignItems: "center", gap: 2, py: 1.5, "&:last-child": { pb: 1.5 } }}
                     >
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="subtitle2">
@@ -549,175 +834,15 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                   </Card>
                 ))}
                 {feeStructures.length === 0 && (
-                  <Typography color="text.secondary">
-                    Aucune tranche configurée.
-                  </Typography>
+                  <Typography color="text.secondary">Aucune tranche configurée.</Typography>
                 )}
               </Stack>
-            </Paper>
+            </Grid>
           </Grid>
-        </Grid>
-      )}
-
-      <Typography variant="h6" gutterBottom>
-        Paiements déclarés
-      </Typography>
-      <TextField
-        select
-        label="Statut"
-        value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value)}
-        size="small"
-        sx={{ mb: 2, minWidth: 220 }}
-      >
-        <MenuItem value="">Tous</MenuItem>
-        <MenuItem value="0">En attente</MenuItem>
-        <MenuItem value="1">Confirmé</MenuItem>
-        <MenuItem value="2">Rejeté</MenuItem>
-      </TextField>
-
-      {paymentsLoading ? (
-        <Typography color="text.secondary">Chargement...</Typography>
-      ) : (
-        <Stack spacing={1.5}>
-          {payments.map((p) => (
-            <Card key={p.id} variant="outlined">
-              <CardContent
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  flexWrap: "wrap",
-                }}
-              >
-                <Box sx={{ flexGrow: 1, minWidth: 200 }}>
-                  <Typography variant="subtitle2">
-                    {p.student?.fullname}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {p.fee_structure?.label} ·{" "}
-                    {Number(p.amount).toLocaleString()} FCFA ·{" "}
-                    {p.payment_method?.name} ({p.sender_number})
-                    {p.transaction_id ? ` · Réf. ${p.transaction_id}` : ""}
-                  </Typography>
-                </Box>
-                <Chip
-                  label={STATUS_LABELS[p.status]?.label}
-                  color={STATUS_LABELS[p.status]?.color}
-                  size="small"
-                />
-                {p.status === 0 && (
-                  <Stack direction="row" spacing={1}>
-                    <IconButton
-                      size="small"
-                      color="success"
-                      onClick={() => confirmPayment(p.id)}
-                    >
-                      <CheckIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => rejectPayment(p.id)}
-                    >
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  </Stack>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-          {payments.length === 0 && (
-            <Typography color="text.secondary">
-              Aucun paiement pour l'instant.
-            </Typography>
-          )}
-        </Stack>
-      )}
-
-      {lastPage > 1 && (
-        <Stack alignItems="center" sx={{ mt: 3 }}>
-          <Pagination
-            count={lastPage}
-            page={page}
-            onChange={(_, value) => setPage(value)}
-            color="primary"
-          />
-        </Stack>
-      )}
-
-      <Dialog
-        open={methodModalOpen}
-        onClose={closeMethodModal}
-        fullWidth
-        maxWidth="xs"
-      >
-        <DialogTitle>Ajouter un moyen de paiement</DialogTitle>
-        <Box component="form" onSubmit={handleCreateMethod}>
-          <DialogContent
-            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-          >
-            {methodError && <Alert severity="error">{methodError}</Alert>}
-            <TextField
-              label="Nom"
-              placeholder="Orange Money, Wave, Espèces..."
-              value={methodForm.name}
-              onChange={(e) =>
-                setMethodForm((prev) => ({ ...prev, name: e.target.value }))
-              }
-              required
-              fullWidth
-              autoFocus
-            />
-            <TextField
-              label="Numéro"
-              value={methodForm.number}
-              onChange={(e) =>
-                setMethodForm((prev) => ({ ...prev, number: e.target.value }))
-              }
-              fullWidth
-            />
-            <TextField
-              label="Instructions (optionnel)"
-              value={methodForm.instructions}
-              onChange={(e) =>
-                setMethodForm((prev) => ({
-                  ...prev,
-                  instructions: e.target.value,
-                }))
-              }
-              multiline
-              rows={2}
-              fullWidth
-            />
-            <TextField
-              select
-              label="Compte de trésorerie (optionnel)"
-              value={methodForm.treasury_account_id}
-              onChange={(e) =>
-                setMethodForm((prev) => ({
-                  ...prev,
-                  treasury_account_id: e.target.value,
-                }))
-              }
-              helperText="Les paiements reçus par ce moyen créditeront ce compte."
-              fullWidth
-            >
-              <MenuItem value="">Non précisé</MenuItem>
-              {treasuryAccounts.map((account) => (
-                <MenuItem key={account.id} value={account.id}>
-                  {account.name}
-                </MenuItem>
-              ))}
-            </TextField>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={closeMethodModal}>Annuler</Button>
-            <Button type="submit" variant="contained">
-              Ajouter
-            </Button>
-          </DialogActions>
-        </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setConfigDialogOpen(false)}>Fermer</Button>
+        </DialogActions>
       </Dialog>
 
       <Dialog open={categoryModalOpen} onClose={closeCategoryModal} fullWidth maxWidth="xs">
@@ -744,17 +869,63 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
         </Box>
       </Dialog>
 
-      <Dialog
-        open={feeModalOpen}
-        onClose={closeFeeModal}
-        fullWidth
-        maxWidth="xs"
-      >
+      <Dialog open={methodModalOpen} onClose={closeMethodModal} fullWidth maxWidth="xs">
+        <DialogTitle>Ajouter un moyen de paiement</DialogTitle>
+        <Box component="form" onSubmit={handleCreateMethod}>
+          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {methodError && <Alert severity="error">{methodError}</Alert>}
+            <TextField
+              label="Nom"
+              placeholder="Orange Money, Wave, Espèces..."
+              value={methodForm.name}
+              onChange={(e) => setMethodForm((prev) => ({ ...prev, name: e.target.value }))}
+              required
+              fullWidth
+              autoFocus
+            />
+            <TextField
+              label="Numéro"
+              value={methodForm.number}
+              onChange={(e) => setMethodForm((prev) => ({ ...prev, number: e.target.value }))}
+              fullWidth
+            />
+            <TextField
+              label="Instructions (optionnel)"
+              value={methodForm.instructions}
+              onChange={(e) => setMethodForm((prev) => ({ ...prev, instructions: e.target.value }))}
+              multiline
+              rows={2}
+              fullWidth
+            />
+            <TextField
+              select
+              label="Compte de trésorerie (optionnel)"
+              value={methodForm.treasury_account_id}
+              onChange={(e) => setMethodForm((prev) => ({ ...prev, treasury_account_id: e.target.value }))}
+              helperText="Les paiements reçus par ce moyen créditeront ce compte."
+              fullWidth
+            >
+              <MenuItem value="">Non précisé</MenuItem>
+              {treasuryAccounts.map((account) => (
+                <MenuItem key={account.id} value={account.id}>
+                  {account.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={closeMethodModal}>Annuler</Button>
+            <Button type="submit" variant="contained">
+              Ajouter
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      <Dialog open={feeModalOpen} onClose={closeFeeModal} fullWidth maxWidth="xs">
         <DialogTitle>Ajouter une tranche</DialogTitle>
         <Box component="form" onSubmit={handleCreateFee}>
-          <DialogContent
-            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-          >
+          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {feeError && <Alert severity="error">{feeError}</Alert>}
             <TextField
               select
@@ -782,9 +953,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                 select
                 label="Niveau"
                 value={feeForm.level_id}
-                onChange={(e) =>
-                  setFeeForm((prev) => ({ ...prev, level_id: e.target.value }))
-                }
+                onChange={(e) => setFeeForm((prev) => ({ ...prev, level_id: e.target.value }))}
                 required
                 fullWidth
               >
@@ -799,9 +968,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
               label="Libellé"
               placeholder="Tranche 1"
               value={feeForm.label}
-              onChange={(e) =>
-                setFeeForm((prev) => ({ ...prev, label: e.target.value }))
-              }
+              onChange={(e) => setFeeForm((prev) => ({ ...prev, label: e.target.value }))}
               required
               fullWidth
             />
@@ -809,9 +976,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
               label="Montant (FCFA)"
               type="number"
               value={feeForm.amount}
-              onChange={(e) =>
-                setFeeForm((prev) => ({ ...prev, amount: e.target.value }))
-              }
+              onChange={(e) => setFeeForm((prev) => ({ ...prev, amount: e.target.value }))}
               required
               fullWidth
             />
@@ -819,9 +984,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
               label="Échéance (optionnel)"
               type="date"
               value={feeForm.due_date}
-              onChange={(e) =>
-                setFeeForm((prev) => ({ ...prev, due_date: e.target.value }))
-              }
+              onChange={(e) => setFeeForm((prev) => ({ ...prev, due_date: e.target.value }))}
               slotProps={{ inputLabel: { shrink: true } }}
               fullWidth
             />
@@ -835,251 +998,53 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
         </Box>
       </Dialog>
 
-      <Dialog
-        open={collectModalOpen}
-        onClose={closeCollectModal}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>Encaisser un paiement</DialogTitle>
-        <DialogContent>
-          {!collectCategory ? (
-            <Grid container spacing={1.5} sx={{ pt: 1 }}>
-              {categoryTiles.map((cat) => (
-                <Grid key={cat.key} size={{ xs: 6, sm: 4 }}>
-                  <Card variant="outlined">
-                    <Box
-                      sx={{
-                        p: 2,
-                        cursor: "pointer",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 1,
-                        textAlign: "center",
-                      }}
-                      onClick={() => setCollectCategory(cat.key)}
-                    >
-                      {cat.icon}
-                      <Typography variant="body2">{cat.label}</Typography>
-                    </Box>
-                  </Card>
-                </Grid>
-              ))}
-              <Grid size={{ xs: 6, sm: 4 }}>
-                <Card variant="outlined">
-                  <Box
-                    sx={{
-                      p: 2,
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 1,
-                      textAlign: "center",
-                      color: "text.secondary",
-                    }}
-                    onClick={() => setCategoryModalOpen(true)}
-                  >
-                    <AddIcon />
-                    <Typography variant="body2">Ajouter une catégorie</Typography>
-                  </Box>
-                </Card>
-              </Grid>
-            </Grid>
-          ) : !selectedStudent ? (
-            <Box
-              sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
-            >
-              {collectError && <Alert severity="error">{collectError}</Alert>}
-              <Button size="small" onClick={() => setCollectCategory(null)} sx={{ alignSelf: "flex-start" }}>
-                ← {categoryTiles.find((c) => c.key === collectCategory)?.label}
+      <Dialog open={Boolean(receiptOpen)} onClose={() => setReceiptOpen(null)} fullWidth maxWidth="xs">
+        {receiptOpen && (
+          <Box className="receipt-print-area">
+            <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              Reçu
+              <IconButton size="small" onClick={() => setReceiptOpen(null)}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="caption" color="text.secondary">
+                {receiptOpen.receipt_number ?? "—"} · {receiptOpen.confirmed_at ? new Date(receiptOpen.confirmed_at).toLocaleDateString("fr-FR") : ""}
+              </Typography>
+              <Typography variant="h4" fontWeight={800} sx={{ textAlign: "center", py: 2 }}>
+                {Number(receiptOpen.amount).toLocaleString()} FCFA
+              </Typography>
+              <Stack spacing={1} divider={<Divider />}>
+                <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                  <Typography color="text.secondary">Élève</Typography>
+                  <Typography fontWeight={600}>{receiptOpen.student?.fullname}</Typography>
+                </Stack>
+                <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                  <Typography color="text.secondary">Catégorie</Typography>
+                  <Typography fontWeight={600}>{receiptOpen.fee_structure?.label}</Typography>
+                </Stack>
+                <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                  <Typography color="text.secondary">Mode de paiement</Typography>
+                  <Typography fontWeight={600}>{receiptOpen.payment_method?.name}</Typography>
+                </Stack>
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => setReceiptOpen(null)}>Fermer</Button>
+              <Button variant="contained" startIcon={<PrintIcon />} onClick={() => window.print()}>
+                Imprimer
               </Button>
-              <TextField
-                label="Rechercher un élève"
-                value={studentSearch}
-                onChange={(e) => setStudentSearch(e.target.value)}
-                fullWidth
-                autoFocus
-              />
-              <Stack spacing={1}>
-                {studentResults.map((s) => (
-                  <Card key={s.id} variant="outlined">
-                    <Box
-                      sx={{ p: 1.5, cursor: "pointer" }}
-                      onClick={() => selectStudent(s)}
-                    >
-                      <Typography variant="subtitle2">
-                        {s.student?.fullname}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {s.student.class_students?.[0]?.school_class?.name ??
-                          "Aucune classe"}
-                      </Typography>
-                    </Box>
-                  </Card>
-                ))}
-                {studentSearch && studentResults.length === 0 && (
-                  <Typography color="text.secondary">
-                    Aucun élève trouvé.
-                  </Typography>
-                )}
-              </Stack>
-            </Box>
-          ) : (
-            <Box sx={{ pt: 1 }}>
-              <Stack
-                direction="row"
-                sx={{
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 2,
-                }}
-              >
-                <Typography variant="subtitle1">
-                  {selectedStudent.fullname}
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={() => {
-                    setSelectedStudent(null);
-                    setCollectSummary(null);
-                  }}
-                >
-                  Changer d'élève
-                </Button>
-              </Stack>
-
-              {collectError && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {collectError}
-                </Alert>
-              )}
-
-              {collectSummary && (
-                <>
-                  <Alert
-                    severity={
-                      collectSummary.balance > 0 ? "warning" : "success"
-                    }
-                    sx={{ mb: 2 }}
-                  >
-                    Solde restant :{" "}
-                    {Number(collectSummary.balance).toLocaleString()} FCFA
-                  </Alert>
-                  {collectSuccess && (
-                    <Alert severity="success" sx={{ mb: 2 }}>
-                      {collectSuccess}
-                    </Alert>
-                  )}
-                  <Box
-                    component="form"
-                    onSubmit={handleCollectSubmit}
-                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-                  >
-                    <TextField
-                      select
-                      label="Tranche concernée"
-                      value={collectForm.fee_structure_id}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          fee_structure_id: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      helperText={
-                        collectSummary.fee_structures.filter((fee) => categoryKeyOf(fee) === collectCategory).length === 0
-                          ? "Aucune tranche configurée pour cette catégorie — ajoutez-en une depuis le panneau Tranches de frais."
-                          : undefined
-                      }
-                    >
-                      {collectSummary.fee_structures
-                        .filter((fee) => categoryKeyOf(fee) === collectCategory)
-                        .map((fee) => (
-                          <MenuItem key={fee.id} value={fee.id}>
-                            {fee.label} — {Number(fee.amount).toLocaleString()}{" "}
-                            FCFA
-                          </MenuItem>
-                        ))}
-                    </TextField>
-                    <TextField
-                      select
-                      label="Moyen de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Montant reçu (FCFA)"
-                      type="number"
-                      value={collectForm.amount}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          amount: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                    />
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                    />
-                    <TextField
-                      label="ID de transaction (optionnel)"
-                      value={collectForm.transaction_id}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          transaction_id: e.target.value,
-                        }))
-                      }
-                      fullWidth
-                    />
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      disabled={collectSubmitting}
-                    >
-                      {collectSubmitting
-                        ? "Enregistrement..."
-                        : ["directeur", "comptable"].includes(currentRole)
-                          ? "Encaisser (confirmé immédiatement)"
-                          : "Enregistrer (en attente de confirmation)"}
-                    </Button>
-                  </Box>
-                </>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={closeCollectModal}>Fermer</Button>
-        </DialogActions>
+            </DialogActions>
+          </Box>
+        )}
       </Dialog>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .receipt-print-area, .receipt-print-area * { visibility: visible; }
+          .receipt-print-area { position: fixed; top: 0; left: 0; width: 100%; }
+        }
+      `}</style>
     </Box>
   );
 }

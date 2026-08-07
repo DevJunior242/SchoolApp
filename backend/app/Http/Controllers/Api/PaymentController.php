@@ -116,6 +116,7 @@ class PaymentController extends Controller
             'school_id' => $school->id,
             'student_id' => $student->id,
             'status' => $canAutoConfirm ? Payment::STATUS_CONFIRMED : Payment::STATUS_PENDING,
+            'receipt_number' => $canAutoConfirm ? $this->nextReceiptNumber($school) : null,
             'declared_by' => $request->user()->id,
             'confirmed_by' => $canAutoConfirm ? $request->user()->id : null,
             'confirmed_at' => $canAutoConfirm ? now() : null,
@@ -131,6 +132,7 @@ class PaymentController extends Controller
 
         $payment->update([
             'status' => Payment::STATUS_CONFIRMED,
+            'receipt_number' => $this->nextReceiptNumber($school),
             'confirmed_by' => $request->user()->id,
             'confirmed_at' => now(),
         ]);
@@ -150,6 +152,25 @@ class PaymentController extends Controller
         ]);
 
         return response()->json($payment->load('student', 'feeStructure', 'paymentMethod'));
+    }
+
+    /**
+     * REC-{année}-{séquence}, séquence propre à l'école et à l'année en
+     * cours. Basé sur un simple count() : le volume de paiements d'une
+     * école ne justifie pas un compteur dédié avec verrou, et une rare
+     * collision en cas de double confirmation simultanée n'est pas
+     * critique (le numéro reste unique en pratique, pas garanti en théorie).
+     */
+    private function nextReceiptNumber(School $school): string
+    {
+        $year = now()->year;
+        $count = Payment::query()
+            ->where('school_id', $school->id)
+            ->whereYear('confirmed_at', $year)
+            ->whereNotNull('receipt_number')
+            ->count();
+
+        return sprintf('REC-%d-%04d', $year, $count + 1);
     }
 
     private function authorizeStaffOrParent(Request $request, School $school, Student $student): void

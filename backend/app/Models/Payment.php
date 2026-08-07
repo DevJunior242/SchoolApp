@@ -23,7 +23,7 @@ class Payment extends Model
 
     protected $fillable = [
         'school_id', 'student_id', 'fee_structure_id', 'payment_method_id',
-        'amount', 'sender_number', 'transaction_id', 'status',
+        'amount', 'sender_number', 'transaction_id', 'status', 'receipt_number',
         'declared_by', 'confirmed_by', 'confirmed_at',
     ];
 

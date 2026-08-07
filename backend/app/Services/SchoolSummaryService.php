@@ -71,6 +71,30 @@ class SchoolSummaryService
         $thisMonthAttendanceRate = $this->attendanceRateFor($school, now());
         $lastMonthAttendanceRate = $this->attendanceRateFor($school, now()->subMonthNoOverflow());
 
+        $paymentsTodayAmount = Payment::query()
+            ->where('school_id', $school->id)
+            ->where('status', Payment::STATUS_CONFIRMED)
+            ->whereDate('confirmed_at', now()->toDateString())
+            ->sum('amount');
+
+        $expensesTodayAmount = Expense::query()
+            ->where('school_id', $school->id)
+            ->where('status', Expense::STATUS_CONFIRMED)
+            ->whereDate('confirmed_at', now()->toDateString())
+            ->sum('amount');
+
+        $paymentsMonthAmount = Payment::query()
+            ->where('school_id', $school->id)
+            ->where('status', Payment::STATUS_CONFIRMED)
+            ->whereBetween('confirmed_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->sum('amount');
+
+        $expensesMonthAmount = Expense::query()
+            ->where('school_id', $school->id)
+            ->where('status', Expense::STATUS_CONFIRMED)
+            ->whereBetween('confirmed_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->sum('amount');
+
         return [
             'students_count' => $studentsCount,
             'students_growth_pct' => $this->studentsGrowthPct($school, $studentsCount),
@@ -86,6 +110,10 @@ class SchoolSummaryService
             'expenses_pending_amount' => (clone $pendingExpenses)->sum('amount'),
             'expenses_confirmed_amount' => $confirmedExpensesAmount,
             'net_result' => $confirmedAmount - $confirmedExpensesAmount,
+            'payments_today_amount' => $paymentsTodayAmount,
+            'expenses_today_amount' => $expensesTodayAmount,
+            'payments_month_amount' => $paymentsMonthAmount,
+            'expenses_month_amount' => $expensesMonthAmount,
             'attendance_pending_justifications' => $pendingJustifications,
             'attendance_today_absent' => $todayAbsent,
             // Présent + en retard compté comme "présent" (convention courante
