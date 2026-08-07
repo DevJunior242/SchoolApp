@@ -54,7 +54,7 @@ function emptyCollectForm() {
   };
 }
 
-export default function DashboardPaymentsPage() {
+export default function DashboardPaymentsPage({ embedded = false } = {}) {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
   const { schoolUsers, loading: roleLoading } = useSchools();
@@ -310,16 +310,20 @@ export default function DashboardPaymentsPage() {
           gap: 2,
         }}
       >
-        <Box>
-          <Typography variant="h5" fontWeight={700} gutterBottom>
-            Paiements
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            {canManageConfig
-              ? "Configurez les moyens de paiement et les tranches de scolarité, puis confirmez les paiements déclarés par les parents."
-              : "Encaissez les paiements reçus et suivez les déclarations des parents."}
-          </Typography>
-        </Box>
+        {embedded ? (
+          <Box />
+        ) : (
+          <Box>
+            <Typography variant="h5" fontWeight={700} gutterBottom>
+              Paiements
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              {canManageConfig
+                ? "Configurez les moyens de paiement et les tranches de scolarité, puis confirmez les paiements déclarés par les parents."
+                : "Encaissez les paiements reçus et suivez les déclarations des parents."}
+            </Typography>
+          </Box>
+        )}
         <Button
           variant="contained"
           startIcon={<AddIcon />}

@@ -56,7 +56,7 @@ function emptyExpenseForm() {
   };
 }
 
-export default function DashboardExpensesPage() {
+export default function DashboardExpensesPage({ embedded = false } = {}) {
   const { user } = useAuth();
   const schoolId = user?.current_school_id;
   const { schoolUsers } = useSchools();
@@ -179,16 +179,20 @@ export default function DashboardExpensesPage() {
         direction="row"
         sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}
       >
-        <Box>
-          <Typography variant="h5" fontWeight={700} gutterBottom>
-            Dépenses
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            {canManage
-              ? "Configurez les catégories de dépense, puis déclarez et confirmez les dépenses de l'école."
-              : "Déclarez vos dépenses ; le directeur ou le comptable les confirmera."}
-          </Typography>
-        </Box>
+        {embedded ? (
+          <Box />
+        ) : (
+          <Box>
+            <Typography variant="h5" fontWeight={700} gutterBottom>
+              Dépenses
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              {canManage
+                ? "Configurez les catégories de dépense, puis déclarez et confirmez les dépenses de l'école."
+                : "Déclarez vos dépenses ; le directeur ou le comptable les confirmera."}
+            </Typography>
+          </Box>
+        )}
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setExpenseModalOpen(true)}>
           Déclarer une dépense
         </Button>

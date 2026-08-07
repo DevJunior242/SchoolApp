@@ -37,15 +37,15 @@ const MOVEMENT_TYPES = [
 
 const CREDIT_TYPES = ["DEPOSIT", "TRANSFER_IN"];
 
-function emptyAccountForm() {
-  return { name: "", type: "CASH", opening_balance: "" };
+function emptyAccountForm(defaultType = "CASH") {
+  return { name: "", type: defaultType, opening_balance: "" };
 }
 
 function emptyMovementForm() {
   return { type: "DEPOSIT", amount: "", note: "" };
 }
 
-export default function DashboardTreasuryPage() {
+export default function DashboardTreasuryPage({ embedded = false, typeFilter = null } = {}) {
   const { user } = useAuth();
   const schoolId = user?.current_school_id;
   const { schoolUsers } = useSchools();
@@ -58,7 +58,7 @@ export default function DashboardTreasuryPage() {
     error: accountsError,
     reload: reloadAccounts,
   } = useApiGet(schoolId ? `/schools/${schoolId}/treasury-accounts` : null);
-  const accounts = accountsData ?? [];
+  const accounts = (accountsData ?? []).filter((a) => !typeFilter || a.type === typeFilter);
 
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const selectedAccount = accounts.find((a) => a.id === selectedAccountId) ?? null;
@@ -74,7 +74,7 @@ export default function DashboardTreasuryPage() {
   const movements = movementsData?.data ?? [];
 
   const [accountModalOpen, setAccountModalOpen] = useState(false);
-  const [accountForm, setAccountForm] = useState(emptyAccountForm());
+  const [accountForm, setAccountForm] = useState(emptyAccountForm(typeFilter ?? "CASH"));
   const [accountError, setAccountError] = useState(null);
 
   const [movementModalOpen, setMovementModalOpen] = useState(false);
@@ -84,7 +84,7 @@ export default function DashboardTreasuryPage() {
 
   function closeAccountModal() {
     setAccountModalOpen(false);
-    setAccountForm(emptyAccountForm());
+    setAccountForm(emptyAccountForm(typeFilter ?? "CASH"));
     setAccountError(null);
   }
 
@@ -252,15 +252,19 @@ export default function DashboardTreasuryPage() {
   return (
     <Box>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
-        <Box>
-          <Typography variant="h5" fontWeight={700} gutterBottom>
-            Trésorerie
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Caisses et comptes bancaires de l'école, avec leur solde calculé à partir des paiements et dépenses
-            confirmés.
-          </Typography>
-        </Box>
+        {embedded ? (
+          <Box />
+        ) : (
+          <Box>
+            <Typography variant="h5" fontWeight={700} gutterBottom>
+              Trésorerie
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              Caisses et comptes bancaires de l'école, avec leur solde calculé à partir des paiements et dépenses
+              confirmés.
+            </Typography>
+          </Box>
+        )}
         {canManage && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAccountModalOpen(true)}>
             Ajouter un compte
@@ -322,7 +326,11 @@ export default function DashboardTreasuryPage() {
       )}
 
       <Dialog open={accountModalOpen} onClose={closeAccountModal} fullWidth maxWidth="xs">
-        <DialogTitle>Ajouter un compte de trésorerie</DialogTitle>
+        <DialogTitle>
+          {typeFilter === "CASH" && "Ajouter une caisse"}
+          {typeFilter === "BANK" && "Ajouter un compte bancaire"}
+          {!typeFilter && "Ajouter un compte de trésorerie"}
+        </DialogTitle>
         <Box component="form" onSubmit={handleCreateAccount}>
           <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {accountError && <Alert severity="error">{accountError}</Alert>}
@@ -335,17 +343,19 @@ export default function DashboardTreasuryPage() {
               fullWidth
               autoFocus
             />
-            <TextField
-              select
-              label="Type"
-              value={accountForm.type}
-              onChange={(e) => setAccountForm((prev) => ({ ...prev, type: e.target.value }))}
-              required
-              fullWidth
-            >
-              <MenuItem value="CASH">Caisse</MenuItem>
-              <MenuItem value="BANK">Compte bancaire</MenuItem>
-            </TextField>
+            {!typeFilter && (
+              <TextField
+                select
+                label="Type"
+                value={accountForm.type}
+                onChange={(e) => setAccountForm((prev) => ({ ...prev, type: e.target.value }))}
+                required
+                fullWidth
+              >
+                <MenuItem value="CASH">Caisse</MenuItem>
+                <MenuItem value="BANK">Compte bancaire</MenuItem>
+              </TextField>
+            )}
             <TextField
               label="Solde initial (FCFA)"
               type="number"

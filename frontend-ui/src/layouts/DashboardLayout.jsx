@@ -30,8 +30,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
 import PaymentsIcon from "@mui/icons-material/Payments";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import ScheduleIcon from "@mui/icons-material/Schedule";
@@ -111,9 +110,7 @@ const DIRECTEUR_NAV_GROUPS = [
     {
         title: "Finances",
         items: [
-            { label: "Paiements & Mobile Money", to: "/dashboard/payments", icon: <PaymentsIcon /> },
-            { label: "Dépenses", to: "/dashboard/expenses", icon: <ReceiptLongIcon /> },
-            { label: "Trésorerie", to: "/dashboard/treasury", icon: <AccountBalanceIcon /> },
+            { label: "Comptabilité", to: "/dashboard/accounting", icon: <AccountBalanceWalletIcon /> },
         ],
     },
     {
@@ -242,8 +239,7 @@ const SUPERADMIN_NAV_GROUPS = singleGroup([
 const SECRETAIRE_NAV_GROUPS = singleGroup([
     OVERVIEW_ITEM,
     { label: "Élèves", to: "/dashboard/students", icon: <School2Icon /> },
-    { label: "Paiements", to: "/dashboard/payments", icon: <PaymentsIcon /> },
-    { label: "Dépenses", to: "/dashboard/expenses", icon: <ReceiptLongIcon /> },
+    { label: "Comptabilité", to: "/dashboard/accounting", icon: <AccountBalanceWalletIcon /> },
     { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
     { label: "Demandes d'inscription", to: "/dashboard/enrollment-requests", icon: <HowToRegIcon /> },
     { label: "Cantine", to: "/dashboard/cafeteria", icon: <RestaurantIcon /> },
@@ -255,9 +251,7 @@ const SECRETAIRE_NAV_GROUPS = singleGroup([
 const COMPTABLE_NAV_GROUPS = singleGroup([
     OVERVIEW_ITEM,
     { label: "Élèves", to: "/dashboard/students", icon: <School2Icon /> },
-    { label: "Paiements", to: "/dashboard/payments", icon: <PaymentsIcon /> },
-    { label: "Dépenses", to: "/dashboard/expenses", icon: <ReceiptLongIcon /> },
-    { label: "Trésorerie", to: "/dashboard/treasury", icon: <AccountBalanceIcon /> },
+    { label: "Comptabilité", to: "/dashboard/accounting", icon: <AccountBalanceWalletIcon /> },
     { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
     { label: "Cantine", to: "/dashboard/cafeteria", icon: <RestaurantIcon /> },
     { label: "Marketplace", to: "/dashboard/marketplace", icon: <StorefrontIcon /> },
