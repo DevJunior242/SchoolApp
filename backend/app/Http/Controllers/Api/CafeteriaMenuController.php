@@ -13,7 +13,7 @@ class CafeteriaMenuController extends Controller
 {
     use AuthorizesSchoolDirecteur;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire'];
+    private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire', 'cantine'];
 
     /**
      * Visible par tous les membres de l'école (les parents doivent pouvoir

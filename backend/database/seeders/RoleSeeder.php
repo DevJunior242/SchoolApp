@@ -22,6 +22,7 @@ class RoleSeeder extends Seeder
             ['name' => 'Infirmier', 'slug' => 'infirmier'],
             ['name' => 'Chauffeur', 'slug' => 'chauffeur'],
             ['name' => 'Bibliothécaire', 'slug' => 'bibliothecaire'],
+            ['name' => 'Personnel de cantine', 'slug' => 'cantine'],
             ['name' => 'Prestataire', 'slug' => 'prestataire'],
         ];
 

@@ -194,6 +194,15 @@ const BIBLIOTHECAIRE_NAV_GROUPS = singleGroup([
     { label: "Marketplace", to: "/dashboard/marketplace", icon: <StorefrontIcon /> },
 ]);
 
+// Le personnel de cantine sert les repas (scan badge, menu du jour) et
+// encaisse/confirme ses propres recharges de portefeuille, sans passer par
+// le comptable — l'argent change de main directement au guichet cantine.
+const CANTINE_NAV_GROUPS = singleGroup([
+    OVERVIEW_ITEM,
+    { label: "Cantine", to: "/dashboard/cafeteria", icon: <RestaurantIcon /> },
+    { label: "Marketplace", to: "/dashboard/marketplace", icon: <StorefrontIcon /> },
+]);
+
 // Le chauffeur ne gère que son propre trajet, rien d'autre.
 const CHAUFFEUR_NAV_GROUPS = singleGroup([
     OVERVIEW_ITEM,
@@ -285,6 +294,7 @@ export default function DashboardLayout() {
         eleve: ELEVE_NAV_GROUPS,
         chauffeur: CHAUFFEUR_NAV_GROUPS,
         bibliothecaire: BIBLIOTHECAIRE_NAV_GROUPS,
+        cantine: CANTINE_NAV_GROUPS,
     };
     // Tant que le rôle n'est pas connu, on n'affiche que Vue d'ensemble pour
     // éviter un flash vers un lien auquel le rôle réel n'a pas accès. Le

@@ -24,7 +24,7 @@ class CafeteriaMealServiceController extends Controller
 {
     use AuthorizesSchoolDirecteur;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire'];
+    private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire', 'cantine'];
 
     /**
      * Étape 1 du service, après scan du QR badge (qui résout {student} via
