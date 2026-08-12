@@ -5,12 +5,15 @@ namespace App\Services\Ai;
 use App\Models\Attendance;
 use App\Models\ClassStudent;
 use App\Models\Event;
+use App\Models\Expense;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\SchoolStudent;
 use App\Models\Student;
+use App\Models\TreasuryAccount;
 use App\Services\SchoolSummaryService;
 use App\Services\StudentRiskService;
+use App\Services\TreasuryService;
 use Illuminate\Support\Collection;
 
 /**
@@ -62,6 +65,7 @@ TXT;
         private OpenAiClient $client,
         private StudentRiskService $riskService,
         private SchoolSummaryService $summaryService,
+        private TreasuryService $treasuryService,
     ) {}
 
     public function ask(School $school, string $question): string
@@ -115,6 +119,8 @@ TXT;
             'resume_ecole' => $this->toolResumeEcole($school),
             'effectifs_par_classe' => $this->toolEffectifsParClasse($school),
             'evenements_a_venir' => $this->toolEvenementsAVenir($school),
+            'solde_tresorerie' => $this->toolSoldeTresorerie($school),
+            'depenses_par_categorie' => $this->toolDepensesParCategorie($school),
             default => [['error' => 'Outil inconnu.'], []],
         };
     }
@@ -252,6 +258,51 @@ TXT;
         return [['evenements_a_venir' => $events->values()->all()], []];
     }
 
+    private function toolSoldeTresorerie(School $school): array
+    {
+        $accounts = TreasuryAccount::query()
+            ->where('school_id', $school->id)
+            ->where('is_active', true)
+            ->get();
+
+        $comptes = $accounts->map(fn (TreasuryAccount $account) => [
+            'nom' => $account->name,
+            'type' => $account->type === TreasuryAccount::TYPE_CASH ? 'caisse' : 'banque',
+            'solde' => $this->treasuryService->balance($account),
+        ]);
+
+        return [[
+            'comptes' => $comptes->values()->all(),
+            'solde_total' => round($comptes->sum('solde'), 2),
+        ], []];
+    }
+
+    /**
+     * Répartition des dépenses confirmées du mois en cours, par catégorie —
+     * ne remonte que ce qui est réellement confirmé et daté ce mois-ci,
+     * pas d'estimation.
+     */
+    private function toolDepensesParCategorie(School $school): array
+    {
+        $expenses = Expense::query()
+            ->where('school_id', $school->id)
+            ->where('status', Expense::STATUS_CONFIRMED)
+            ->whereBetween('expense_date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->with('expenseCategory')
+            ->get();
+
+        $parCategorie = $expenses
+            ->groupBy(fn (Expense $expense) => $expense->expenseCategory?->name ?? 'Sans catégorie')
+            ->map(fn (Collection $group, string $categorie) => [
+                'categorie' => $categorie,
+                'montant' => round((float) $group->sum('amount'), 2),
+            ])
+            ->sortByDesc('montant')
+            ->values();
+
+        return [['depenses_par_categorie_ce_mois' => $parCategorie->all()], []];
+    }
+
     private function findClass(School $school, string $nomClasse): ?SchoolClass
     {
         if (trim($nomClasse) === '') {
@@ -354,6 +405,16 @@ TXT;
             $this->tool(
                 'evenements_a_venir',
                 "Retourne les 5 prochains événements de l'école (réunions, examens, sorties, jours fériés...).",
+                []
+            ),
+            $this->tool(
+                'solde_tresorerie',
+                "Utilise cet outil quand la question porte sur la TRÉSORERIE : le solde d'une caisse, d'un compte bancaire, ou le total disponible (ex: \"combien y a-t-il en caisse ?\", \"quel est notre solde bancaire ?\"). Ne pas utiliser pour les recettes/dépenses globales : c'est resume_ecole. Retourne le solde de chaque compte de trésorerie actif et le total.",
+                []
+            ),
+            $this->tool(
+                'depenses_par_categorie',
+                "Utilise cet outil quand la question porte sur la RÉPARTITION des dépenses par catégorie ce mois-ci (ex: \"sur quoi dépense-t-on le plus ?\", \"combien pour les salaires ce mois ?\"). Ne pas utiliser pour un montant total unique : c'est resume_ecole. Retourne le montant confirmé par catégorie de dépense pour le mois en cours.",
                 []
             ),
         ];
