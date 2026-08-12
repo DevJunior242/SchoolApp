@@ -61,6 +61,7 @@ import BecomeProviderPage from './pages/BecomeProviderPage.jsx';
 import DashboardAiAssistantPage from './pages/DashboardAiAssistantPage.jsx';
 import TermsPage from './pages/TermsPage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
+import NotFoundPage from './pages/NotFoundPage.jsx';
 
 function App() {
   return (
@@ -76,6 +77,7 @@ function App() {
         <Route path="/devenir-prestataire" element={<BecomeProviderPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
 
       <Route
