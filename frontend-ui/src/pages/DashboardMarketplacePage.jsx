@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Avatar, Box, Button, Card, CardContent, Chip, Divider, MenuItem, Pagination, Stack, TextField, Typography } from '@mui/material';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutlined';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
 
