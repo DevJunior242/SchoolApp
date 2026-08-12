@@ -16,6 +16,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import InputAdornment from "@mui/material/InputAdornment";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import intellinoMark from "../assets/intellino-mark.svg";
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -73,7 +74,40 @@ export default function RegisterPage() {
         transition={{ duration: 0.3 }}
       >
         <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 }, width: "100%" }}>
-          <Typography variant="h5" component="h1" gutterBottom>
+          <Box
+            component={RouterLink}
+            to="/"
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 1,
+              textDecoration: "none",
+              mb: 3,
+            }}
+          >
+            <Box
+              component="img"
+              src={intellinoMark}
+              alt="Intellino"
+              sx={{ height: 44, width: 44, borderRadius: "12px" }}
+            />
+            <Typography
+              sx={{
+                fontWeight: 800,
+                color: "text.primary",
+                fontSize: "1.3rem",
+                letterSpacing: "0.01em",
+              }}
+            >
+              Intell
+              <Box component="span" sx={{ color: "primary.main" }}>
+                i
+              </Box>
+              no
+            </Typography>
+          </Box>
+          <Typography variant="h5" component="h1" align="center" gutterBottom>
             Créer un compte
           </Typography>
 
@@ -112,15 +146,6 @@ export default function RegisterPage() {
               onChange={handleChange("phone")}
               fullWidth
             />
-            {/* <TextField
-              id="password"
-              label="Mot de passe"
-              type="password"
-              value={form.password}
-              onChange={handleChange("password")}
-              required
-              fullWidth
-            /> */}
             <TextField
               id="password"
               label="Mot de passe"
@@ -149,15 +174,6 @@ export default function RegisterPage() {
                 },
               }}
             />
-            {/* <TextField
-              id="password_confirmation"
-              label="Confirmer le mot de passe"
-              type="password"
-              value={form.password_confirmation}
-              onChange={handleChange("password_confirmation")}
-              required
-              fullWidth
-            /> */}
             <TextField
               id="password_confirmation"
               label="Confirmer le mot de passe"
