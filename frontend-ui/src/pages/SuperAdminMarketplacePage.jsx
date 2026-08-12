@@ -70,11 +70,16 @@ export default function SuperAdminMarketplacePage() {
 }
 
 const PERIOD_LABELS = { 1: 'Mensuelle', 2: 'Annuelle' };
+const PLAN_TYPE_LABELS = { 1: 'Abonnement annuaire', 2: 'Boost produit' };
+
+function emptyPlanForm() {
+  return { type: 1, period: 1, duration_days: '', amount: '', currency: 'FCFA' };
+}
 
 function PlansSection() {
   const { data: plans, loading, error, reload } = useApiGet('/admin/marketplace/plans');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ period: 1, amount: '', currency: 'FCFA' });
+  const [form, setForm] = useState(emptyPlanForm());
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -86,7 +91,7 @@ function PlansSection() {
       await api.post('/admin/marketplace/plans', form);
       await reload();
       setDialogOpen(false);
-      setForm({ period: 1, amount: '', currency: 'FCFA' });
+      setForm(emptyPlanForm());
     } catch (err) {
       const messages = err.response?.data?.errors;
       setFormError(messages ? Object.values(messages).flat().join(' ') : 'Impossible de créer cette formule.');
@@ -127,8 +132,19 @@ function PlansSection() {
             <Card key={plan.id} variant="outlined">
               <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                 <Box sx={{ flexGrow: 1 }}>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                    <Chip
+                      size="small"
+                      label={PLAN_TYPE_LABELS[plan.type] ?? plan.type}
+                      color={plan.type === 2 ? 'primary' : 'default'}
+                    />
+                  </Stack>
                   <Typography variant="subtitle1">
-                    {PERIOD_LABELS[plan.period]} — {Number(plan.amount).toLocaleString()} {plan.currency}
+                    {plan.type === 2
+                      ? `${plan.duration_days} jours`
+                      : PERIOD_LABELS[plan.period]}
+                    {' — '}
+                    {Number(plan.amount).toLocaleString()} {plan.currency}
                   </Typography>
                 </Box>
                 <Switch checked={plan.active} onChange={() => handleToggleActive(plan)} />
@@ -149,14 +165,35 @@ function PlansSection() {
             {formError && <Alert severity="error">{formError}</Alert>}
             <TextField
               select
-              label="Période"
-              value={form.period}
-              onChange={(e) => setForm((p) => ({ ...p, period: Number(e.target.value) }))}
+              label="Type"
+              value={form.type}
+              onChange={(e) => setForm((p) => ({ ...p, type: Number(e.target.value) }))}
               fullWidth
             >
-              <MenuItem value={1}>Mensuelle</MenuItem>
-              <MenuItem value={2}>Annuelle</MenuItem>
+              <MenuItem value={1}>Abonnement annuaire</MenuItem>
+              <MenuItem value={2}>Boost produit</MenuItem>
             </TextField>
+            {form.type === 1 ? (
+              <TextField
+                select
+                label="Période"
+                value={form.period}
+                onChange={(e) => setForm((p) => ({ ...p, period: Number(e.target.value) }))}
+                fullWidth
+              >
+                <MenuItem value={1}>Mensuelle</MenuItem>
+                <MenuItem value={2}>Annuelle</MenuItem>
+              </TextField>
+            ) : (
+              <TextField
+                label="Durée (jours)"
+                type="number"
+                value={form.duration_days}
+                onChange={(e) => setForm((p) => ({ ...p, duration_days: e.target.value }))}
+                required
+                fullWidth
+              />
+            )}
             <TextField
               label="Montant"
               type="number"

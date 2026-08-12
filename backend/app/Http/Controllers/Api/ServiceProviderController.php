@@ -92,6 +92,7 @@ class ServiceProviderController extends Controller
             'city' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
+            'whatsapp_number' => ['nullable', 'string', 'max:30'],
         ]);
 
         if (empty($validated['phone']) && empty($validated['email'])) {
@@ -158,6 +159,10 @@ class ServiceProviderController extends Controller
                     fn ($query, $city) => $query->where('city', 'like', "%{$city}%")
                 )
                 ->with('items')
+                // Boosté (payé) en tête, puis ordre alphabétique — le boost
+                // ne trie qu'entre fiches déjà approuvées et à jour de
+                // cotisation, il ne contourne jamais la modération.
+                ->orderByRaw('CASE WHEN boosted_until IS NOT NULL AND boosted_until >= CURDATE() THEN 0 ELSE 1 END')
                 ->orderBy('business_name')
                 ->paginate($request->integer('per_page', 20))
         );
@@ -211,7 +216,9 @@ class ServiceProviderController extends Controller
      * d'expiration actuelle si l'abonnement est encore actif (renouvellement
      * anticipé sans perdre de jours déjà payés). Un paiement sans formule
      * (ancienne donnée avant l'introduction des formules) prolonge d'un mois
-     * par défaut.
+     * par défaut. Un paiement de formule "boost" prolonge boosted_until du
+     * nombre de jours de la formule à la place — indépendant de
+     * l'abonnement, sur le même principe de cumul si déjà actif.
      */
     public function confirmPayment(Request $request, ServiceProviderPayment $payment)
     {
@@ -224,9 +231,16 @@ class ServiceProviderController extends Controller
         ]);
 
         $provider = $payment->serviceProvider;
-        $base = $provider->hasActiveSubscription() ? $provider->subscription_expires_at : now();
-        $months = $payment->plan?->period === MarketplacePlan::PERIOD_ANNUAL ? 12 : 1;
-        $provider->update(['subscription_expires_at' => $base->copy()->addMonths($months)]);
+
+        if ($payment->plan?->type === MarketplacePlan::TYPE_BOOST) {
+            $base = $provider->isBoosted() ? $provider->boosted_until : now();
+            $days = $payment->plan->duration_days ?? 7;
+            $provider->update(['boosted_until' => $base->copy()->addDays($days)]);
+        } else {
+            $base = $provider->hasActiveSubscription() ? $provider->subscription_expires_at : now();
+            $months = $payment->plan?->period === MarketplacePlan::PERIOD_ANNUAL ? 12 : 1;
+            $provider->update(['subscription_expires_at' => $base->copy()->addMonths($months)]);
+        }
 
         return response()->json($payment->load('serviceProvider'));
     }

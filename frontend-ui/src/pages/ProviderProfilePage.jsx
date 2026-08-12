@@ -37,6 +37,7 @@ const PAYMENT_STATUS_LABELS = {
 };
 
 const PERIOD_LABELS = { 1: "mensuelle", 2: "annuelle" };
+const PLAN_TYPE_BOOST = 2;
 
 export default function ProviderProfilePage() {
   const {
@@ -46,6 +47,7 @@ export default function ProviderProfilePage() {
     reload,
   } = useApiGet("/marketplace/my-provider");
   const { data: plans } = useApiGet("/marketplace/plans");
+  const { data: boostPlans } = useApiGet("/marketplace/plans", { params: { type: PLAN_TYPE_BOOST } });
   const { data: methods } = useApiGet("/marketplace/payment-methods");
 
   const [form, setForm] = useState(null);
@@ -60,7 +62,14 @@ export default function ProviderProfilePage() {
   const [reporting, setReporting] = useState(false);
   const [reportError, setReportError] = useState(null);
 
+  const [boostPlanId, setBoostPlanId] = useState("");
+  const [boostMethodId, setBoostMethodId] = useState("");
+  const [boostReference, setBoostReference] = useState("");
+  const [boostReporting, setBoostReporting] = useState(false);
+  const [boostReportError, setBoostReportError] = useState(null);
+
   const selectedMethod = methods?.find((m) => m.id === methodId);
+  const selectedBoostMethod = methods?.find((m) => m.id === boostMethodId);
 
   // Ajustement pendant le rendu : initialise le formulaire une fois la
   // fiche chargée, sans écraser une saisie en cours.
@@ -71,6 +80,7 @@ export default function ProviderProfilePage() {
       city: provider.city ?? "",
       phone: provider.phone ?? "",
       email: provider.email ?? "",
+      whatsapp_number: provider.whatsapp_number ?? "",
     });
     setInitialized(true);
   }
@@ -117,6 +127,27 @@ export default function ProviderProfilePage() {
     }
   }
 
+  async function handleReportBoostPayment(e) {
+    e.preventDefault();
+    setBoostReportError(null);
+    setBoostReporting(true);
+    try {
+      await api.post("/marketplace/my-provider/payments", {
+        marketplace_plan_id: boostPlanId,
+        payment_method_id: boostMethodId || null,
+        reference: boostReference,
+      });
+      await reload();
+      setBoostReference("");
+    } catch (err) {
+      setBoostReportError(
+        err.response?.data?.message || "Impossible de signaler ce paiement.",
+      );
+    } finally {
+      setBoostReporting(false);
+    }
+  }
+
   if (loading || !form)
     return <Typography color="text.secondary">Chargement...</Typography>;
   if (error) {
@@ -130,7 +161,14 @@ export default function ProviderProfilePage() {
   const hasActiveSubscription =
     provider.subscription_expires_at &&
     new Date(provider.subscription_expires_at) >= new Date();
-  const pendingPayment = provider.payments?.find((p) => p.status === 1);
+  const isBoosted =
+    provider.boosted_until && new Date(provider.boosted_until) >= new Date();
+  const pendingPayment = provider.payments?.find(
+    (p) => p.status === 1 && p.plan?.type !== PLAN_TYPE_BOOST,
+  );
+  const pendingBoostPayment = provider.payments?.find(
+    (p) => p.status === 1 && p.plan?.type === PLAN_TYPE_BOOST,
+  );
 
   return (
     <Box sx={{ maxWidth: 600, mx: "auto" }}>
@@ -161,6 +199,9 @@ export default function ProviderProfilePage() {
           color={hasActiveSubscription ? "success" : "warning"}
           size="small"
         />
+        {isBoosted && (
+          <Chip label="Boosté — en tête de l'annuaire" color="primary" size="small" />
+        )}
       </Stack>
 
       <Card variant="outlined" sx={{ mb: 3 }}>
@@ -220,6 +261,16 @@ export default function ProviderProfilePage() {
                   fullWidth
                 />
               </Stack>
+              <TextField
+                label="Numéro WhatsApp (optionnel)"
+                placeholder="+226 ..."
+                helperText="Affiché aux écoles pour vous contacter directement."
+                value={form.whatsapp_number}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, whatsapp_number: e.target.value }))
+                }
+                fullWidth
+              />
               <Box>
                 <Button type="submit" variant="contained" disabled={saving}>
                   {saving ? "Enregistrement..." : "Enregistrer"}
@@ -347,9 +398,11 @@ export default function ProviderProfilePage() {
                   >
                     <Typography variant="body2" sx={{ flexGrow: 1 }}>
                       {Number(p.amount).toLocaleString()}
-                      {p.plan
-                        ? ` (${PERIOD_LABELS[p.plan?.period] ?? p.plan?.period})`
-                        : ""}{" "}
+                      {p.plan?.type === PLAN_TYPE_BOOST
+                        ? ` (boost ${p.plan.duration_days ?? "?"}j)`
+                        : p.plan
+                          ? ` (${PERIOD_LABELS[p.plan?.period] ?? p.plan?.period})`
+                          : ""}{" "}
                       — {new Date(p.created_at).toLocaleDateString("fr-FR")}
                     </Typography>
                     <Chip
@@ -361,6 +414,103 @@ export default function ProviderProfilePage() {
                 ))}
               </Stack>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card variant="outlined" sx={{ mt: 3 }}>
+        <CardContent>
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+            Booster mes produits
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Pendant la durée payée, votre fiche remonte en tête de l'annuaire consulté par les
+            écoles — indépendamment de votre abonnement.
+          </Typography>
+
+          {isBoosted ? (
+            <Typography color="text.secondary" sx={{ mb: 2 }}>
+              Boost actif jusqu'au{" "}
+              {new Date(provider.boosted_until).toLocaleDateString("fr-FR")}.
+            </Typography>
+          ) : (
+            <Typography color="text.secondary" sx={{ mb: 2 }}>
+              Aucun boost actif — votre fiche est classée par ordre alphabétique.
+            </Typography>
+          )}
+
+          {pendingBoostPayment ? (
+            <Alert severity="info">
+              Un paiement de boost est en attente de confirmation.
+            </Alert>
+          ) : (
+            <Box component="form" onSubmit={handleReportBoostPayment}>
+              {boostReportError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {boostReportError}
+                </Alert>
+              )}
+              <Stack spacing={2}>
+                <TextField
+                  select
+                  label="Formule de boost"
+                  value={boostPlanId}
+                  onChange={(e) => setBoostPlanId(e.target.value)}
+                  required
+                  fullWidth
+                >
+                  {(boostPlans ?? []).map((plan) => (
+                    <MenuItem key={plan.id} value={plan.id}>
+                      {plan.duration_days} jours — {Number(plan.amount).toLocaleString()} {plan.currency}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                {(boostPlans ?? []).length === 0 && (
+                  <Alert severity="warning">
+                    Aucune formule de boost disponible pour l'instant, revenez plus tard.
+                  </Alert>
+                )}
+
+                <TextField
+                  select
+                  label="Moyen de paiement utilisé (optionnel)"
+                  value={boostMethodId}
+                  onChange={(e) => setBoostMethodId(e.target.value)}
+                  fullWidth
+                >
+                  <MenuItem value="">Non précisé</MenuItem>
+                  {(methods ?? []).map((method) => (
+                    <MenuItem key={method.id} value={method.id}>
+                      {method.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                {selectedBoostMethod && (
+                  <Alert severity="info">
+                    {selectedBoostMethod.number && <>{selectedBoostMethod.number}</>}
+                    {selectedBoostMethod.number && selectedBoostMethod.instructions ? " — " : ""}
+                    {selectedBoostMethod.instructions}
+                  </Alert>
+                )}
+
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                  <TextField
+                    size="small"
+                    placeholder="Référence de transaction (optionnel)"
+                    value={boostReference}
+                    onChange={(e) => setBoostReference(e.target.value)}
+                    fullWidth
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={boostReporting || !boostPlanId}
+                  >
+                    {boostReporting ? "Envoi..." : "J'ai payé"}
+                  </Button>
+                </Stack>
+              </Stack>
+            </Box>
           )}
         </CardContent>
       </Card>

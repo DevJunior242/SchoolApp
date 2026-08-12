@@ -15,7 +15,11 @@ class MarketplacePlan extends Model
 
     const PERIOD_ANNUAL = 2;
 
-    protected $fillable = ['period', 'amount', 'currency', 'active'];
+    const TYPE_SUBSCRIPTION = 1;
+
+    const TYPE_BOOST = 2;
+
+    protected $fillable = ['type', 'period', 'duration_days', 'amount', 'currency', 'active'];
 
     protected function casts(): array
     {

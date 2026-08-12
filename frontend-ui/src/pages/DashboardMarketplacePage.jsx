@@ -1,7 +1,20 @@
 import { useState } from 'react';
-import { Alert, Avatar, Box, Card, CardContent, Chip, Divider, MenuItem, Pagination, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Avatar, Box, Button, Card, CardContent, Chip, Divider, MenuItem, Pagination, Stack, TextField, Typography } from '@mui/material';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
+
+function waDigits(number) {
+  return (number ?? '').replace(/[^\d]/g, '');
+}
+
+function waLink(number, text) {
+  const digits = waDigits(number);
+  if (!digits) return null;
+  const params = text ? `?text=${encodeURIComponent(text)}` : '';
+  return `https://wa.me/${digits}${params}`;
+}
 
 const CATEGORIES = [
   { value: '', label: 'Toutes les catégories' },
@@ -82,13 +95,21 @@ export default function DashboardMarketplacePage() {
         <Typography color="text.secondary">Chargement...</Typography>
       ) : (
         <Stack spacing={1.5}>
-          {providers.map((p) => (
-            <Card key={p.id} variant="outlined">
+          {providers.map((p) => {
+            const isBoosted = p.boosted_until && new Date(p.boosted_until) >= new Date();
+            const plainWaLink = waLink(p.whatsapp_number);
+            const messageLink = waLink(
+              p.whatsapp_number,
+              `Bonjour, je vous contacte depuis Intellino au sujet de "${p.business_name}".`,
+            );
+            return (
+            <Card key={p.id} variant="outlined" sx={isBoosted ? { borderColor: 'primary.main' } : undefined}>
               <CardContent>
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5, flexWrap: 'wrap', rowGap: 0.5 }}>
                   <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
                     {p.business_name}
                   </Typography>
+                  {isBoosted && <Chip label="Sponsorisé" color="primary" size="small" />}
                   <Chip label={CATEGORIES.find((c) => c.value === p.category)?.label ?? p.category} size="small" />
                 </Stack>
                 <Typography variant="body2" color="text.secondary">
@@ -97,6 +118,33 @@ export default function DashboardMarketplacePage() {
                   {p.phone && p.email ? ' · ' : ''}
                   {p.email}
                 </Typography>
+                {plainWaLink && (
+                  <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', rowGap: 1 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="success"
+                      startIcon={<WhatsAppIcon fontSize="small" />}
+                      component="a"
+                      href={plainWaLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {p.whatsapp_number}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="text"
+                      startIcon={<ChatBubbleOutlineIcon fontSize="small" />}
+                      component="a"
+                      href={messageLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Message
+                    </Button>
+                  </Stack>
+                )}
                 {p.description && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
                     {p.description}
@@ -129,7 +177,8 @@ export default function DashboardMarketplacePage() {
                 )}
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
           {providers.length === 0 && (
             <Typography color="text.secondary">Aucun prestataire trouvé pour ces critères.</Typography>
           )}

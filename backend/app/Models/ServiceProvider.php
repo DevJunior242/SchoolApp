@@ -35,13 +35,14 @@ class ServiceProvider extends Model
 
     protected $fillable = [
         'user_id', 'category', 'country_id', 'city', 'business_name', 'description', 'phone', 'email',
-        'status', 'subscription_expires_at',
+        'whatsapp_number', 'status', 'subscription_expires_at', 'boosted_until',
     ];
 
     protected function casts(): array
     {
         return [
             'subscription_expires_at' => 'date',
+            'boosted_until' => 'date',
         ];
     }
 
@@ -52,6 +53,15 @@ class ServiceProvider extends Model
     public function hasActiveSubscription(): bool
     {
         return $this->subscription_expires_at !== null && ! $this->subscription_expires_at->isPast();
+    }
+
+    /**
+     * Boost produit actif : la fiche remonte en tête de l'annuaire pendant
+     * la période payée, indépendamment de l'abonnement.
+     */
+    public function isBoosted(): bool
+    {
+        return $this->boosted_until !== null && ! $this->boosted_until->isPast();
     }
 
     public function user(): BelongsTo
