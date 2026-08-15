@@ -58,6 +58,7 @@ use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\TimetableController;
 use App\Http\Controllers\Api\TreasuryAccountController;
 use App\Http\Controllers\Api\TreasuryMovementController;
+use App\Http\Controllers\Api\TwoFactorAuthController;
 use Illuminate\Support\Facades\Route;
 
 // Routes publiques sensibles (pas d'authentification) : throttle par IP,
@@ -65,6 +66,11 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('throttle:register-attempts')->post('/register', [AuthController::class, 'register']);
 Route::middleware('throttle:login-attempts')->post('/login', [AuthController::class, 'login']);
 Route::middleware('throttle:password-reset')->post('/reset-password', [AuthController::class, 'resetPassword']);
+
+// Étape 2 du login quand la 2FA est active (voir AuthController::login) :
+// l'utilisateur n'est pas encore authentifié, juste porteur du jeton
+// temporaire reçu à l'étape 1, donc route publique elle aussi.
+Route::middleware('throttle:2fa-challenge')->post('/2fa/challenge', [TwoFactorAuthController::class, 'challenge']);
 
 // Plus strict : peut envoyer un email à n'importe quelle adresse sans
 // authentification (risque de "email bombing" d'un tiers).
@@ -94,6 +100,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/email/verification-notification', [AuthController::class, 'resendVerification'])
         ->middleware('throttle:verification-email');
+
+    Route::post('/2fa/enable', [TwoFactorAuthController::class, 'enable']);
+    Route::post('/2fa/confirm', [TwoFactorAuthController::class, 'confirm']);
+    Route::post('/2fa/disable', [TwoFactorAuthController::class, 'disable']);
+    Route::post('/2fa/recovery-codes/regenerate', [TwoFactorAuthController::class, 'regenerateRecoveryCodes']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);

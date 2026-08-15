@@ -30,6 +30,9 @@ class AppServiceProvider extends ServiceProvider
         // partagent le même compteur. Un limiteur nommé par action évite
         // qu'elles se contaminent entre elles.
         RateLimiter::for('login-attempts', fn ($request) => Limit::perMinute(5)->by($request->ip()));
+        // Un code TOTP n'a que 10^6 combinaisons possibles : limiteur serré
+        // pour rendre le brute-force impraticable dans la fenêtre de 30s.
+        RateLimiter::for('2fa-challenge', fn ($request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('register-attempts', fn ($request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('password-reset', fn ($request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('password-email', fn ($request) => Limit::perMinute(3)->by($request->ip()));

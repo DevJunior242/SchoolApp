@@ -36,6 +36,7 @@ import FactCheckIcon from "@mui/icons-material/FactCheck";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import EventIcon from "@mui/icons-material/Event";
 import SettingsIcon from "@mui/icons-material/Settings";
+import SecurityIcon from "@mui/icons-material/Security";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -683,6 +684,16 @@ export default function DashboardLayout() {
                             {user.fullname}
                         </MenuItem>
                         <Divider />
+                        <MenuItem
+                            component={RouterLink}
+                            to="/dashboard/security"
+                            onClick={() => setAnchorEl(null)}
+                        >
+                            <ListItemIcon>
+                                <SecurityIcon fontSize="small" />
+                            </ListItemIcon>
+                            Sécurité
+                        </MenuItem>
                         <MenuItem onClick={handleLogout}>
                             <ListItemIcon>
                                 <LogoutIcon fontSize="small" />

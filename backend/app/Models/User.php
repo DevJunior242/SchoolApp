@@ -28,7 +28,7 @@ use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 
 #[Fillable(['fullname', 'email', 'phone', 'password', 'language', 'current_school_id', 'role_id', 'terms_accepted_version', 'terms_accepted_at'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
@@ -45,7 +45,23 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'terms_accepted_at' => 'datetime',
+            // Chiffrés au repos (clé APP_KEY) : la valeur en base n'est jamais
+            // lisible telle quelle, mais reste utilisable normalement via
+            // l'attribut ($user->two_factor_secret) grâce au cast.
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * La 2FA n'est active que si un secret a été confirmé par un code valide
+     * (voir TwoFactorAuthController::confirm) — un secret généré par enable()
+     * mais jamais confirmé ne doit pas bloquer la connexion.
+     */
+    public function hasEnabledTwoFactor(): bool
+    {
+        return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
     }
 
     public function role(): BelongsTo
