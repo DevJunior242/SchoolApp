@@ -21,17 +21,33 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import SearchIcon from '@mui/icons-material/Search';
 import QrScanner from 'qr-scanner';
 import api from '../api/axios.jsx';
+import { db } from '../offline/db.js';
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 /**
  * Scan QR (ou recherche manuelle en secours) → fiche élève → servir.
  * Onglet "Service" de la page Cantine (staff), pas une page à part : évite
  * une entrée de menu séparée pour un sous-workflow du même sujet.
+ *
+ * "Servir" débite le portefeuille de l'élève en direct côté serveur (et
+ * vérifie "déjà servi aujourd'hui") : contrairement aux présences/notes, on
+ * ne met JAMAIS cette action en file d'attente hors-ligne — ça pourrait
+ * faire servir deux fois le même repas ou débiter un solde périmé avant
+ * qu'on s'en rende compte. Le cache Dexie ici ne sert qu'à garder une
+ * référence visuelle (menu du jour, nom/matricule déjà recherchés) ; "Servir"
+ * reste bloqué sans connexion.
  */
 export default function CafeteriaServiceTab({ schoolId }) {
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
+
+  const [online, setOnline] = useState(navigator.onLine);
+  const [todayMenu, setTodayMenu] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -45,17 +61,76 @@ export default function CafeteriaServiceTab({ schoolId }) {
   const [serveError, setServeError] = useState(null);
   const [serveResult, setServeResult] = useState(null);
 
+  useEffect(() => {
+    function goOnline() {
+      setOnline(true);
+    }
+    function goOffline() {
+      setOnline(false);
+    }
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
+
+  // Menu du jour affiché en permanence (avant même de scanner un élève) :
+  // en ligne on le récupère et on le met en cache, hors-ligne on retombe sur
+  // la dernière version connue.
+  useEffect(() => {
+    if (!schoolId) return;
+
+    async function loadMenu() {
+      const date = today();
+      const cacheId = `${schoolId}_${date}`;
+
+      if (navigator.onLine) {
+        try {
+          const response = await api.get(`/schools/${schoolId}/cafeteria/menu`, { params: { date } });
+          if (response.data) {
+            await db.cafeteriaMenus.put({ id: cacheId, school_id: schoolId, date, ...response.data });
+          }
+          setTodayMenu(response.data);
+          return;
+        } catch {
+          // pas de réponse serveur : on retombe sur le cache ci-dessous
+        }
+      }
+
+      const cached = await db.cafeteriaMenus.get(cacheId);
+      setTodayMenu(cached ?? null);
+    }
+
+    loadMenu();
+  }, [schoolId]);
+
   async function fetchLookup(studentId) {
     setLookupError(null);
     setServeResult(null);
     setServeError(null);
     setSelectedItemId('');
+
+    if (!navigator.onLine) {
+      // Le solde et le statut "déjà servi" changent à chaque repas : pas de
+      // valeur fiable à afficher depuis un cache pour cette étape.
+      setLookupError(
+        'Connexion perdue : le solde et le statut "déjà servi" ne peuvent pas être vérifiés hors-ligne.',
+      );
+      return;
+    }
+
     try {
       const response = await api.get(`/schools/${schoolId}/students/${studentId}/cafeteria/lookup`);
       setLookup(response.data);
       setSelectedStudentId(studentId);
     } catch (err) {
-      setLookupError(err.response?.data?.message || "Impossible de trouver cet élève.");
+      setLookupError(
+        !err.response
+          ? 'Connexion perdue : impossible de charger les informations de cet élève.'
+          : err.response?.data?.message || 'Impossible de trouver cet élève.',
+      );
     }
   }
 
@@ -92,14 +167,49 @@ export default function CafeteriaServiceTab({ schoolId }) {
     e.preventDefault();
     setSearching(true);
     try {
-      const response = await api.get(`/schools/${schoolId}/students`, { params: { search: searchTerm, per_page: 10 } });
-      setSearchResults(response.data.data);
+      if (navigator.onLine) {
+        const response = await api.get(`/schools/${schoolId}/students`, { params: { search: searchTerm, per_page: 10 } });
+        const results = response.data.data;
+        setSearchResults(results);
+
+        // Alimente le cache local (nom/matricule seulement) pour pouvoir
+        // retrouver ces élèves hors-ligne plus tard — jamais leur solde.
+        await db.cafeteriaStudents.bulkPut(
+          results
+            .filter((r) => r.student?.id)
+            .map((r) => ({
+              id: r.student.id,
+              school_id: schoolId,
+              fullname: r.student.fullname,
+              matricule: r.student.matricule,
+            })),
+        );
+      } else {
+        const term = searchTerm.trim().toLowerCase();
+        const cached = await db.cafeteriaStudents.where('school_id').equals(schoolId).toArray();
+        const filtered = term
+          ? cached.filter(
+              (s) =>
+                s.fullname?.toLowerCase().includes(term) ||
+                s.matricule?.toLowerCase().includes(term),
+            )
+          : cached;
+
+        setSearchResults(filtered.map((s) => ({ student: s })));
+      }
     } finally {
       setSearching(false);
     }
   }
 
   async function handleServe(force = false) {
+    if (!navigator.onLine) {
+      setServeError({
+        message: 'Connexion perdue : impossible de servir sans connexion (le solde ne peut pas être vérifié en toute sécurité).',
+      });
+      return;
+    }
+
     setServing(true);
     setServeError(null);
     try {
@@ -109,7 +219,11 @@ export default function CafeteriaServiceTab({ schoolId }) {
       });
       setServeResult(response.data);
     } catch (err) {
-      if (err.response?.status === 422 && err.response?.data?.price !== undefined) {
+      if (!err.response) {
+        setServeError({
+          message: "Connexion perdue pendant l'envoi : vérifiez si le repas a bien été enregistré avant de réessayer.",
+        });
+      } else if (err.response?.status === 422 && err.response?.data?.price !== undefined) {
         setServeError(err.response.data);
       } else {
         setServeError({ message: err.response?.data?.message || 'Impossible de servir ce repas.' });
@@ -130,6 +244,30 @@ export default function CafeteriaServiceTab({ schoolId }) {
 
   return (
     <Box sx={{ maxWidth: 480 }}>
+      {!online && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Hors connexion : recherche disponible depuis le cache local, mais
+          impossible de servir un repas (débit du solde) sans connexion.
+        </Alert>
+      )}
+
+      {todayMenu && (
+        <Card variant="outlined" sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Menu du jour{!online && ' (dernière version connue)'}
+            </Typography>
+            <Stack spacing={0.5}>
+              {todayMenu.items?.map((item) => (
+                <Typography key={item.id ?? item.label} variant="body2" color="text.secondary">
+                  {item.label} — {Number(item.price).toLocaleString()} FCFA
+                </Typography>
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
+
       {!lookup && (
         <Stack spacing={3}>
           <Box>
@@ -234,7 +372,7 @@ export default function CafeteriaServiceTab({ schoolId }) {
                     {serveError.message}
                     {serveError.price !== undefined && (
                       <Box sx={{ mt: 1 }}>
-                        <Button size="small" variant="outlined" color="error" onClick={() => handleServe(true)} disabled={serving}>
+                        <Button size="small" variant="outlined" color="error" onClick={() => handleServe(true)} disabled={serving || !online}>
                           Servir quand même
                         </Button>
                       </Box>
@@ -246,10 +384,10 @@ export default function CafeteriaServiceTab({ schoolId }) {
                   variant="contained"
                   fullWidth
                   sx={{ mt: 2 }}
-                  disabled={!selectedItemId || serving}
+                  disabled={!selectedItemId || serving || !online}
                   onClick={() => handleServe(false)}
                 >
-                  {serving ? 'Enregistrement...' : 'Servir'}
+                  {serving ? 'Enregistrement...' : online ? 'Servir' : 'Servir (connexion requise)'}
                 </Button>
               </>
             )}

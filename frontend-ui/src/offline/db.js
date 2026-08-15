@@ -37,3 +37,19 @@ db.version(3).stores({
   seasons: "id, school_id",
   grades: "id, assignmentId, student_id, pending",
 });
+
+// v4 : cache LECTURE SEULE pour l'onglet Service de la cantine
+// (CafeteriaServiceTab). Contrairement aux présences/notes, "Servir" débite
+// le portefeuille de l'élève en direct côté serveur (vérifie aussi "déjà
+// servi aujourd'hui") — impossible à rejouer sans risque de double-service
+// ou de débit sur un solde périmé. On ne met donc JAMAIS cette action en
+// file d'attente ; ces deux tables ne servent qu'à garder une référence
+// visuelle hors-ligne :
+// - cafeteriaMenus : le menu du jour (id = `${school_id}_${date}`).
+// - cafeteriaStudents : nom + matricule des élèves déjà recherchés en ligne
+//   (jamais le solde ni le statut "déjà servi", qui périment trop vite pour
+//   être affichés hors-ligne sans induire en erreur).
+db.version(4).stores({
+  cafeteriaMenus: "id, school_id, date",
+  cafeteriaStudents: "id, school_id",
+});
