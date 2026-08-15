@@ -20,3 +20,20 @@ db.version(1).stores({
 db.version(2).stores({
   syncQueue: "id, type, status, createdAt, [type+status]",
 });
+
+// v3 : deux tables pour la saisie des notes hors-ligne (GradeEntryPage) :
+// - seasons : cache des trimestres/semestres d'une école, nécessaires pour le
+//   formulaire même hors-ligne (indexée par school_id pour les retrouver par
+//   école).
+// - grades : cache des notes d'un cours. Le champ `pending` distingue une
+//   note déjà connue du serveur (false, remplacée à chaque rechargement)
+//   d'une note saisie hors-ligne pas encore synchronisée (true, encore dans
+//   syncQueue) — sans ça un rechargement depuis le serveur effacerait une
+//   note en attente d'envoi avant même qu'elle ait pu partir.
+// rosters, attendances et syncQueue ne changent pas : inutile de les
+// redéclarer, Dexie garde le schéma des tables non listées dans une nouvelle
+// version.
+db.version(3).stores({
+  seasons: "id, school_id",
+  grades: "id, assignmentId, student_id, pending",
+});
