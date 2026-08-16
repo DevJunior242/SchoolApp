@@ -39,19 +39,34 @@ export default function ChatWidget({ anchorEl, onClose, schoolId, onRead }) {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
 
-  async function loadThread() {
-    setLoading(true);
+  // `silent: true` pour le polling en arrière-plan (voir plus bas) : on ne
+  // veut pas faire clignoter le spinner de chargement au-dessus des messages
+  // déjà affichés toutes les quelques secondes.
+  async function loadThread({ silent = false } = {}) {
+    if (!silent) setLoading(true);
     try {
       const response = await api.get(`/schools/${schoolId}/messages`);
       setMessages(response.data);
       onRead?.();
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
   useEffect(() => {
     if (open) loadThread();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Tant que le fil est ouvert, on le repolle : sans ça, une réponse reçue
+  // pendant que la conversation est déjà affichée n'apparaît qu'après avoir
+  // rouvert le popover/dialog.
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const interval = setInterval(() => loadThread({ silent: true }), 8000);
+
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Avatar,
   Box,
@@ -51,13 +51,16 @@ export default function DashboardMessagesPage() {
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
 
-  async function loadThread(userId) {
-    setThreadLoading(true);
+  // `silent: true` pour le polling en arrière-plan (voir plus bas) : on ne
+  // veut pas faire clignoter le spinner de chargement au-dessus des messages
+  // déjà affichés toutes les quelques secondes.
+  async function loadThread(userId, { silent = false } = {}) {
+    if (!silent) setThreadLoading(true);
     try {
       const response = await api.get(`/schools/${schoolId}/messages/threads/${userId}`);
       setThread(response.data);
     } finally {
-      setThreadLoading(false);
+      if (!silent) setThreadLoading(false);
     }
   }
 
@@ -66,6 +69,22 @@ export default function DashboardMessagesPage() {
     loadThread(userId);
     reloadThreads();
   }
+
+  // Tant qu'un fil est ouvert, on le repolle (ainsi que la liste, pour ses
+  // badges "non lu"/dernier message) : sans ça, un message reçu pendant que
+  // la conversation est déjà affichée n'apparaît qu'après avoir recliqué sur
+  // le fil.
+  useEffect(() => {
+    if (!selectedUserId) return undefined;
+
+    const interval = setInterval(() => {
+      loadThread(selectedUserId, { silent: true });
+      reloadThreads();
+    }, 8000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUserId]);
 
   async function handleSend() {
     const trimmed = body.trim();
