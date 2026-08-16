@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import CloseIcon from '@mui/icons-material/Close';
+import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../api/axios.jsx';
 
 function timeLabel(dateString) {
@@ -87,6 +88,11 @@ export default function ChatWidget({ anchorEl, onClose, schoolId, onRead }) {
     }
   }
 
+  async function handleDelete(messageId) {
+    await api.delete(`/schools/${schoolId}/messages/${messageId}`);
+    await loadThread();
+  }
+
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -134,9 +140,21 @@ export default function ChatWidget({ anchorEl, onClose, schoolId, onRead }) {
                   }}
                 >
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{m.body}</Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', mt: 0.5 }}>
-                    {timeLabel(m.created_at)}
-                  </Typography>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 0.5 }}>
+                    <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                      {timeLabel(m.created_at)}
+                    </Typography>
+                    {mine && (
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDelete(m.id)}
+                        aria-label="Retirer ce message"
+                        sx={{ p: 0.25, ml: 1, color: 'inherit', opacity: 0.7 }}
+                      >
+                        <DeleteIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    )}
+                  </Stack>
                 </Box>
               </Box>
             );

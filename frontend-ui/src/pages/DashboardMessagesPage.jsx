@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DeleteIcon from '@mui/icons-material/Delete';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -98,6 +99,12 @@ export default function DashboardMessagesPage() {
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleDeleteMessage(messageId) {
+    await api.delete(`/schools/${schoolId}/messages/${messageId}`);
+    await loadThread(selectedUserId, { silent: true });
+    await reloadThreads();
   }
 
   function handleKeyDown(e) {
@@ -185,6 +192,10 @@ export default function DashboardMessagesPage() {
                   <Stack spacing={1.5}>
                     {(thread?.messages ?? []).map((m) => {
                       const fromUser = m.sender_id === m.user_id;
+                      // Un fil peut recevoir des réponses de plusieurs membres
+                      // du staff (directeur ET secrétariat) : "pas envoyé par
+                      // le client" ne veut pas dire "envoyé par moi".
+                      const mine = m.sender_id === user.id;
                       return (
                         <Box key={m.id} sx={{ display: 'flex', justifyContent: fromUser ? 'flex-start' : 'flex-end' }}>
                           <Box
@@ -198,9 +209,21 @@ export default function DashboardMessagesPage() {
                             }}
                           >
                             <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{m.body}</Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', mt: 0.5 }}>
-                              {timeLabel(m.created_at)}
-                            </Typography>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 0.5 }}>
+                              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                                {timeLabel(m.created_at)}
+                              </Typography>
+                              {mine && (
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleDeleteMessage(m.id)}
+                                  aria-label="Retirer ce message"
+                                  sx={{ p: 0.25, ml: 1, color: 'inherit', opacity: 0.7 }}
+                                >
+                                  <DeleteIcon sx={{ fontSize: 14 }} />
+                                </IconButton>
+                              )}
+                            </Stack>
                           </Box>
                         </Box>
                       );

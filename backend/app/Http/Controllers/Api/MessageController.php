@@ -171,6 +171,23 @@ class MessageController extends Controller
         return response()->json($message->load('sender'), 201);
     }
 
+    /**
+     * Retire un message qu'on a soi-même envoyé (soft delete : il reste en
+     * base pour garder une trace en cas de litige, juste masqué du fil —
+     * voir SoftDeletes sur le modèle Message, qui l'exclut automatiquement
+     * des requêtes ci-dessus). Utilisable aussi bien par le staff que par
+     * un utilisateur classique, chacun sur ses propres messages seulement.
+     */
+    public function destroy(Request $request, School $school, Message $message)
+    {
+        abort_if($message->school_id !== $school->id, 404);
+        abort_unless($message->sender_id === $request->user()->id, 403, "Vous ne pouvez retirer que vos propres messages.");
+
+        $message->delete();
+
+        return response()->json(['message' => 'Message retiré.']);
+    }
+
     private function isMessageStaff(Request $request, School $school): bool
     {
         return SchoolUser::query()

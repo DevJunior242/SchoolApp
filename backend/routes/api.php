@@ -368,6 +368,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/schools/{school}/messages', [MessageController::class, 'store']);
                 Route::post('/schools/{school}/messages/threads/{user}', [MessageController::class, 'reply']);
             });
+            Route::delete('/schools/{school}/messages/{message}', [MessageController::class, 'destroy']);
         });
     });
 });
