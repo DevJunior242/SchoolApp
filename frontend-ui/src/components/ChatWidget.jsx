@@ -2,13 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Box,
   CircularProgress,
+  Dialog,
   IconButton,
   Popover,
   Stack,
   TextField,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
+import CloseIcon from '@mui/icons-material/Close';
 import api from '../api/axios.jsx';
 
 function timeLabel(dateString) {
@@ -22,6 +26,13 @@ function timeLabel(dateString) {
  */
 export default function ChatWidget({ anchorEl, onClose, schoolId, onRead }) {
   const open = Boolean(anchorEl);
+  const theme = useTheme();
+  // Popover ancré au bouton : sur mobile le clavier virtuel peut le décaler
+  // ou masquer le champ de saisie, et il n'y a pas de zone visible en dehors
+  // pour le fermer au doigt. En dessous de "sm", on passe donc à un Dialog
+  // plein écran (repositionné par le navigateur avec le clavier, comme
+  // n'importe quel modal) avec un bouton de fermeture explicite.
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [messages, setMessages] = useState([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,29 +79,17 @@ export default function ChatWidget({ anchorEl, onClose, schoolId, onRead }) {
     }
   }
 
-  return (
-    <Popover
-      open={open}
-      anchorEl={anchorEl}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      slotProps={{
-        paper: {
-          sx: {
-            width: { xs: 'calc(100vw - 24px)', sm: 360 },
-            maxWidth: 400,
-            height: { xs: 'min(75vh, 460px)', sm: 460 },
-            display: 'flex',
-            flexDirection: 'column',
-          },
-        },
-      }}
-    >
-      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="subtitle2" fontWeight={700}>
+  const content = (
+    <>
+      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>
           Contacter l'école
         </Typography>
+        {fullScreen && (
+          <IconButton size="small" onClick={onClose} aria-label="Fermer">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        )}
       </Box>
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: 1.5 }}>
@@ -146,6 +145,44 @@ export default function ChatWidget({ anchorEl, onClose, schoolId, onRead }) {
           <SendIcon />
         </IconButton>
       </Box>
+    </>
+  );
+
+  if (fullScreen) {
+    return (
+      <Dialog
+        open={open}
+        onClose={onClose}
+        fullScreen
+        slotProps={{
+          paper: { sx: { display: 'flex', flexDirection: 'column' } },
+        }}
+      >
+        {content}
+      </Dialog>
+    );
+  }
+
+  return (
+    <Popover
+      open={open}
+      anchorEl={anchorEl}
+      onClose={onClose}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      slotProps={{
+        paper: {
+          sx: {
+            width: 360,
+            maxWidth: 400,
+            height: 460,
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        },
+      }}
+    >
+      {content}
     </Popover>
   );
 }
