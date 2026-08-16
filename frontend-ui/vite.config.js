@@ -14,6 +14,12 @@ export default defineConfig({
       // sache. Seule la liste des élèves d'une classe est mise en cache,
       // pour que la prise de présence reste possible hors-ligne.
       workbox: {
+        // Sans ça, un chargement à froid hors-ligne sur une route profonde
+        // (ex: /dashboard/eleves) échoue : Workbox ne sert le shell précaché
+        // que pour les URLs exactement précachées (/, /index.html) tant que
+        // navigateFallback n'indique pas explicitement quoi servir pour le
+        // reste des navigations.
+        navigateFallback: '/index.html',
         runtimeCaching: [
           {
             urlPattern: /\/api\/assignments\/[^/]+\/students$/,
@@ -37,6 +43,7 @@ export default defineConfig({
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icons/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),
