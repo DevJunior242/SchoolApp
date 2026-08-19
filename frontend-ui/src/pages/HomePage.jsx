@@ -721,7 +721,7 @@ function MarketingHome() {
                         size="large"
                         disabled={demoSubmitting}
                       >
-                        {demoSubmitting ? "Envoi..." : "Demander une démo"}
+                        {demoSubmitting ? "Envoi..." : "contactez-nous"}
                       </Button>
                     </Stack>
                   </Box>
