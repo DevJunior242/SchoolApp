@@ -20,6 +20,11 @@ class AdminController extends Controller
         return response()->json([
             'schools_count' => School::query()->count(),
             'schools_active_count' => School::query()->where('status', School::STATUS_ACTIVE)->count(),
+            'schools_trial_count' => School::query()
+                ->where('status', School::STATUS_ACTIVE)
+                ->whereNotNull('trial_ends_at')
+                ->count(),
+            'schools_read_only_count' => School::query()->where('status', School::STATUS_READ_ONLY)->count(),
             'users_count' => User::query()->count(),
             'activation_keys' => [
                 'disponible' => ActivationKey::query()->where('status', ActivationKey::STATUS_DISPONIBLE)->count(),
@@ -60,6 +65,22 @@ class AdminController extends Controller
             'status' => $school->status === School::STATUS_ACTIVE
                 ? School::STATUS_INACTIVE
                 : School::STATUS_ACTIVE,
+        ]);
+
+        return response()->json($school->load('country'));
+    }
+
+    /**
+     * Réactive une école passée en lecture seule (essai expiré) après
+     * confirmation manuelle du paiement — remet l'école active sans
+     * limite d'essai (pas d'API de paiement réelle pour l'instant).
+     */
+    public function reactivateSchool(School $school)
+    {
+        $school->update([
+            'status' => School::STATUS_ACTIVE,
+            'trial_ends_at' => null,
+            'trial_reminder_sent_at' => null,
         ]);
 
         return response()->json($school->load('country'));

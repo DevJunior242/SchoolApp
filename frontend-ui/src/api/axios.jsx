@@ -26,4 +26,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// École en lecture seule (essai gratuit expiré) : signale l'événement pour
+// qu'un composant global (cf. DashboardLayout) affiche un message clair,
+// plutôt que de laisser chaque formulaire retomber sur son texte d'erreur
+// générique qui ne mentionne pas la vraie cause.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.data?.code === "school_read_only") {
+      window.dispatchEvent(
+        new CustomEvent("school-read-only", { detail: error.response.data.message }),
+      );
+    }
+    return Promise.reject(error);
+  },
+);
+
 export default api;

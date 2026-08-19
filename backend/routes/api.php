@@ -138,6 +138,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/stats', [AdminController::class, 'stats']);
         Route::get('/admin/schools', [AdminController::class, 'schools']);
         Route::post('/admin/schools/{school}/toggle-status', [AdminController::class, 'toggleSchoolStatus']);
+        Route::post('/admin/schools/{school}/reactivate', [AdminController::class, 'reactivateSchool']);
 
         Route::get('/admin/marketplace/providers', [ServiceProviderController::class, 'adminIndex']);
         Route::post('/admin/marketplace/providers/{provider}/approve', [ServiceProviderController::class, 'approve']);
@@ -261,8 +262,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/my-children-library', [BookLoanController::class, 'forParent']);
 
         // Toute création/modification/suppression de données d'école exige
-        // un email vérifié.
-        Route::middleware('verified')->group(function () {
+        // un email vérifié, et est bloquée si l'école est en lecture seule
+        // (essai gratuit expiré, cf. EnsureSchoolIsWritable).
+        Route::middleware(['verified', 'school.writable'])->group(function () {
             Route::put('/schools/{school}/settings', [SchoolController::class, 'update']);
             Route::post('/schools/{school}/school-years', [SchoolYearController::class, 'store']);
             Route::put('/schools/{school}/seasons/{season}', [SeasonController::class, 'update']);

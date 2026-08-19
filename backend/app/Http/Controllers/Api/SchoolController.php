@@ -43,6 +43,10 @@ class SchoolController extends Controller
         );
     }
 
+    // Durée de l'essai gratuit pour une école créée sans clé d'activation
+    // (une clé valide saute directement le trial, cf. store()).
+    private const TRIAL_DAYS = 30;
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -51,15 +55,20 @@ class SchoolController extends Controller
             'address' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
-            'activation_key' => ['required', 'string'],
+            'activation_key' => ['nullable', 'string'],
         ]);
 
-        $activationKey = ActivationKey::query()->where('key', $validated['activation_key'])->first();
+        $rawKey = trim((string) ($validated['activation_key'] ?? ''));
+        $activationKey = null;
 
-        if (! $activationKey || $activationKey->status !== ActivationKey::STATUS_DISPONIBLE) {
-            throw ValidationException::withMessages([
-                'activation_key' => ["Cette clé d'activation est invalide ou déjà utilisée."],
-            ]);
+        if ($rawKey !== '') {
+            $activationKey = ActivationKey::query()->where('key', $rawKey)->first();
+
+            if (! $activationKey || $activationKey->status !== ActivationKey::STATUS_DISPONIBLE) {
+                throw ValidationException::withMessages([
+                    'activation_key' => ["Cette clé d'activation est invalide ou déjà utilisée."],
+                ]);
+            }
         }
 
         $user = $request->user();
@@ -70,6 +79,9 @@ class SchoolController extends Controller
                 ...collect($validated)->except('activation_key')->all(),
                 'status' => School::STATUS_ACTIVE,
                 'academic_period_type' => Season::TYPE_TRIMESTRE,
+                // Une clé d'activation valide donne un accès illimité ; sans
+                // clé, l'école démarre un essai gratuit limité dans le temps.
+                'trial_ends_at' => $activationKey ? null : now()->addDays(self::TRIAL_DAYS),
             ]);
 
             SchoolUser::query()->create([
@@ -83,11 +95,13 @@ class SchoolController extends Controller
 
             $this->createDefaultSchoolYear($school);
 
-            $activationKey->update([
-                'status' => ActivationKey::STATUS_UTILISEE,
-                'school_id' => $school->id,
-                'used_at' => now(),
-            ]);
+            if ($activationKey) {
+                $activationKey->update([
+                    'status' => ActivationKey::STATUS_UTILISEE,
+                    'school_id' => $school->id,
+                    'used_at' => now(),
+                ]);
+            }
 
             return $school;
         });

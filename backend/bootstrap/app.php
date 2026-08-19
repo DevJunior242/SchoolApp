@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureSchoolIsWritable;
 use App\Http\Middleware\EnsureSchoolMembership;
 use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Console\Scheduling\Schedule;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'school.member' => EnsureSchoolMembership::class,
+            'school.writable' => EnsureSchoolIsWritable::class,
             'super.admin' => EnsureSuperAdmin::class,
         ]);
     })
@@ -29,5 +31,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('health:notify-expiring-vaccinations')->daily();
         $schedule->command('library:notify-loan-due-dates')->daily();
+        $schedule->command('schools:expire-trials')->daily();
     })
     ->create();

@@ -6,6 +6,8 @@ import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import GroupsIcon from '@mui/icons-material/Groups';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
+import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
+import LockClockIcon from '@mui/icons-material/LockClock';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
 
@@ -38,6 +40,16 @@ export default function SuperAdminOverviewPage() {
       icon: <ToggleOnIcon color="primary" />,
       label: 'Écoles actives',
       value: stats.schools_active_count,
+    },
+    {
+      icon: <HourglassBottomIcon color="primary" />,
+      label: "Écoles en essai gratuit",
+      value: stats.schools_trial_count,
+    },
+    {
+      icon: <LockClockIcon color="primary" />,
+      label: 'Écoles en lecture seule',
+      value: stats.schools_read_only_count,
     },
     {
       icon: <GroupsIcon color="primary" />,

@@ -8,16 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Country;
-use App\Models\SchoolUser;
-use App\Models\User;
-use App\Models\SchoolYear;
-use App\Models\SchoolClass;
-use App\Models\PaymentMethod;
-use App\Models\FeeStructure;
-use App\Models\Payment;
-use App\Models\Bus;
-use App\Models\Book;
 
 class School extends Model
 {
@@ -27,6 +17,10 @@ class School extends Model
 
     const STATUS_ACTIVE = 1;
 
+    // École en essai gratuit expiré : consultation seule, toute création/
+    // modification est bloquée jusqu'à réactivation par le superadmin.
+    const STATUS_READ_ONLY = 2;
+
     const LANGUAGE_FR = 'fr';
 
     const LANGUAGE_EN = 'en';
@@ -34,10 +28,20 @@ class School extends Model
     protected $fillable = [
         'country_id', 'name', 'logo', 'slogan', 'address', 'city', 'phone', 'email', 'website',
         'status', 'language', 'currency', 'academic_period_type', 'cafeteria_low_balance_threshold',
-        'library_loan_duration_days',
+        'library_loan_duration_days', 'trial_ends_at', 'trial_reminder_sent_at',
+    ];
+
+    protected $casts = [
+        'trial_ends_at' => 'datetime',
+        'trial_reminder_sent_at' => 'datetime',
     ];
 
     protected $appends = ['logo_url'];
+
+    public function isReadOnly(): bool
+    {
+        return $this->status === self::STATUS_READ_ONLY;
+    }
 
     protected function logoUrl(): Attribute
     {

@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import {
+    Alert,
     AppBar,
     Avatar,
     Box,
@@ -13,6 +14,7 @@ import {
     ListItemText,
     Menu,
     MenuItem,
+    Snackbar,
     Toolbar,
     Tooltip,
     Typography,
@@ -64,6 +66,7 @@ import { useSchools } from "../hooks/useSchools.js";
 import NotificationCenter from "../components/NotificationCenter.jsx";
 import MessagingIcon from "../components/MessagingIcon.jsx";
 import VerifyEmailBanner from "../components/VerifyEmailBanner.jsx";
+import TrialStatusBanner from "../components/TrialStatusBanner.jsx";
 import intellinoMark from "../assets/intellino-mark.svg";
 
 const drawerWidth = 250;
@@ -272,14 +275,24 @@ export default function DashboardLayout() {
     const [anchorEl, setAnchorEl] = useState(null);
     const [schoolMenuAnchor, setSchoolMenuAnchor] = useState(null);
     const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar_collapsed") === "true");
+    const [readOnlyMessage, setReadOnlyMessage] = useState(null);
 
     useEffect(() => {
         localStorage.setItem("sidebar_collapsed", String(collapsed));
     }, [collapsed]);
 
+    useEffect(() => {
+        function handleReadOnly(e) {
+            setReadOnlyMessage(e.detail);
+        }
+        window.addEventListener("school-read-only", handleReadOnly);
+        return () => window.removeEventListener("school-read-only", handleReadOnly);
+    }, []);
+
     const currentDrawerWidth = collapsed ? collapsedDrawerWidth : drawerWidth;
 
     const isSuperAdmin = user.role?.slug === "superadmin";
+    const currentSchool = schoolUsers.find((su) => su.school.id === user.current_school_id)?.school;
     const isPrestataire = user.role?.slug === "prestataire";
     const currentRole = schoolUsers.find((su) => su.school.id === user.current_school_id)?.role?.slug;
     const NAV_GROUPS_BY_ROLE = {
@@ -769,9 +782,23 @@ export default function DashboardLayout() {
                 <Toolbar />
                 <Box sx={{ px: { xs: 2, sm: 3 }, py: { xs: 3, sm: 4 } }}>
                     <VerifyEmailBanner />
+                    {!isSuperAdmin && !isPrestataire && (
+                        <TrialStatusBanner school={currentSchool} role={currentRole} />
+                    )}
                     <Outlet />
                 </Box>
             </Box>
+
+            <Snackbar
+                open={Boolean(readOnlyMessage)}
+                autoHideDuration={8000}
+                onClose={() => setReadOnlyMessage(null)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+            >
+                <Alert severity="warning" onClose={() => setReadOnlyMessage(null)} sx={{ maxWidth: 480 }}>
+                    {readOnlyMessage}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

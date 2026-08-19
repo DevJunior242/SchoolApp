@@ -19,7 +19,7 @@ import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
 
-const STEPS = ['Informations de l\'école', "Clé d'activation"];
+const STEPS = ['Informations de l\'école', 'Activation'];
 
 export default function CreateSchoolPage() {
   const { user, refreshUser } = useAuth();
@@ -142,22 +142,26 @@ export default function CreateSchoolPage() {
             <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={2.5}>
                 <Typography color="text.secondary">
-                  Entrez la clé d'activation fournie par l'équipe EduAfrique pour finaliser la
-                  création de <strong>{form.name}</strong>.
+                  Vous avez une clé d'activation fournie par l'équipe EduAfrique ? Entrez-la ici.
+                  Sinon, laissez ce champ vide : <strong>{form.name}</strong> démarrera avec un essai
+                  gratuit de 30 jours, sans engagement.
                 </Typography>
                 <TextField
-                  label="Clé d'activation"
+                  label="Clé d'activation (optionnel)"
                   value={activationKey}
                   onChange={(e) => setActivationKey(e.target.value)}
                   placeholder="school-..."
-                  required
                   fullWidth
                   autoFocus
                 />
                 <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end', mt: 1 }}>
                   <Button onClick={() => setStep(1)}>Retour</Button>
-                  <Button type="submit" variant="contained" disabled={submitting || !activationKey.trim()}>
-                    {submitting ? 'Création...' : "Créer l'école"}
+                  <Button type="submit" variant="contained" disabled={submitting}>
+                    {submitting
+                      ? 'Création...'
+                      : activationKey.trim()
+                        ? "Créer l'école"
+                        : "Démarrer l'essai gratuit"}
                   </Button>
                 </Stack>
               </Stack>

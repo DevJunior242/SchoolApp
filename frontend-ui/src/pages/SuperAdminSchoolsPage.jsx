@@ -41,6 +41,19 @@ export default function SuperAdminSchoolsPage() {
     }
   }
 
+  async function handleReactivate(school) {
+    setActionError(null);
+    setActingId(school.id);
+    try {
+      await api.post(`/admin/schools/${school.id}/reactivate`);
+      await reload();
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Impossible de réactiver cette école.");
+    } finally {
+      setActingId(null);
+    }
+  }
+
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} gutterBottom>
@@ -79,21 +92,38 @@ export default function SuperAdminSchoolsPage() {
                     {school.city ? ` · ${school.city}` : ''} · créée le{' '}
                     {new Date(school.created_at).toLocaleDateString('fr-FR')}
                   </Typography>
+                  {school.status === 1 && school.trial_ends_at && (
+                    <Typography variant="caption" color="text.secondary">
+                      Essai gratuit jusqu'au {new Date(school.trial_ends_at).toLocaleDateString('fr-FR')}
+                    </Typography>
+                  )}
                 </Box>
                 <Chip
-                  label={school.status === 1 ? 'Active' : 'Désactivée'}
-                  color={school.status === 1 ? 'success' : 'default'}
+                  label={school.status === 1 ? 'Active' : school.status === 2 ? 'Lecture seule' : 'Désactivée'}
+                  color={school.status === 1 ? 'success' : school.status === 2 ? 'warning' : 'default'}
                   size="small"
                 />
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color={school.status === 1 ? 'error' : 'success'}
-                  disabled={actingId === school.id}
-                  onClick={() => handleToggle(school)}
-                >
-                  {school.status === 1 ? 'Désactiver' : 'Activer'}
-                </Button>
+                {school.status === 2 ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="success"
+                    disabled={actingId === school.id}
+                    onClick={() => handleReactivate(school)}
+                  >
+                    Réactiver
+                  </Button>
+                ) : (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color={school.status === 1 ? 'error' : 'success'}
+                    disabled={actingId === school.id}
+                    onClick={() => handleToggle(school)}
+                  >
+                    {school.status === 1 ? 'Désactiver' : 'Activer'}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
