@@ -668,16 +668,16 @@ function MarketingHome() {
               </Typography>
               <Stack spacing={2}>
                 <Typography color="text.secondary">
-                  📍 [Ville à renseigner], [Pays]
+                  📍 Ouagadougou, Burkina Faso
                 </Typography>
                 <Typography color="text.secondary">
-                  📞 [Téléphone à renseigner]
+                  📞 56 56 56 70 / 58 11 68 11
                 </Typography>
                 <Typography color="text.secondary">
-                  ✉️ [Email de contact à renseigner]
+                  ✉️ contact@intellino.tech
                 </Typography>
                 <Typography color="text.secondary">
-                  🌐 Assistance en français, mooré et dioula
+                  🌐 www.intellino.tech · Assistance en français, mooré et dioula
                 </Typography>
               </Stack>
             </Grid>
