@@ -18,12 +18,14 @@ export default function TrialStatusBanner({ school, role }) {
 
   if (school.trial_ends_at) {
     const daysLeft = Math.ceil((new Date(school.trial_ends_at) - new Date()) / 86400000);
-    if (daysLeft >= 0 && daysLeft <= 7) {
+    if (daysLeft >= 0) {
+      const urgent = daysLeft <= 7;
       return (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          Votre période d'essai gratuit se termine{" "}
-          {daysLeft === 0 ? "aujourd'hui" : `dans ${daysLeft} jour${daysLeft > 1 ? "s" : ""}`}.
-          Contactez-nous pour continuer à utiliser votre espace sans interruption.
+        <Alert severity={urgent ? "warning" : "info"} sx={{ mb: 3 }}>
+          Il vous reste{" "}
+          {daysLeft === 0 ? "moins d'un jour" : `${daysLeft} jour${daysLeft > 1 ? "s" : ""}`}{" "}
+          d'essai gratuit.
+          {urgent && " Contactez-nous pour continuer à utiliser votre espace sans interruption."}
         </Alert>
       );
     }

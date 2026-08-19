@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Alert,
   Box,
@@ -12,23 +12,25 @@ import {
   Stepper,
   TextField,
   Typography,
-} from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import api from '../api/axios.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useApiGet } from '../hooks/useApiGet.js';
+} from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import api from "../api/axios.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useApiGet } from "../hooks/useApiGet.js";
 
-const STEPS = ['Informations de l\'école', 'Activation'];
+const STEPS = ["Informations de l'école", "Activation"];
 
 export default function CreateSchoolPage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
-  const { data: countries } = useApiGet('/countries', { enabled: Boolean(user) });
+  const { data: countries } = useApiGet("/countries", {
+    enabled: Boolean(user),
+  });
 
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: '', country_id: '' });
-  const [activationKey, setActivationKey] = useState('');
+  const [form, setForm] = useState({ name: "", country_id: "" });
+  const [activationKey, setActivationKey] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -42,19 +44,24 @@ export default function CreateSchoolPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await api.post('/schools', { ...form, activation_key: activationKey.trim() });
+      await api.post("/schools", {
+        ...form,
+        activation_key: activationKey.trim(),
+      });
       await refreshUser();
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
       if (err.response?.status === 403) {
-        setError("Vous devez vérifier votre email avant de créer une école. Consultez votre boîte mail, ou demandez un nouveau lien depuis votre tableau de bord.");
+        setError(
+          "Vous devez vérifier votre email avant de créer une école. Consultez votre boîte mail, ou demandez un nouveau lien depuis votre tableau de bord.",
+        );
         return;
       }
       const messages = err.response?.data?.errors;
       setError(
         messages
-          ? Object.values(messages).flat().join(' ')
-          : err.response?.data?.message || "Impossible de créer l'école."
+          ? Object.values(messages).flat().join(" ")
+          : err.response?.data?.message || "Impossible de créer l'école.",
       );
     } finally {
       setSubmitting(false);
@@ -70,16 +77,30 @@ export default function CreateSchoolPage() {
       {!user ? (
         <Paper
           variant="outlined"
-          sx={(theme) => ({ p: 4, mt: 3, bgcolor: alpha(theme.palette.text.primary, 0.03) })}
+          sx={(theme) => ({
+            p: 4,
+            mt: 3,
+            bgcolor: alpha(theme.palette.text.primary, 0.03),
+          })}
         >
           <Typography color="text.secondary" sx={{ mb: 3 }}>
             Connectez-vous ou créez un compte pour créer votre école.
           </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Button component={RouterLink} to="/register" variant="contained" fullWidth>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <Button
+              component={RouterLink}
+              to="/register"
+              variant="contained"
+              fullWidth
+            >
               Créer un compte
             </Button>
-            <Button component={RouterLink} to="/login" variant="outlined" fullWidth>
+            <Button
+              component={RouterLink}
+              to="/login"
+              variant="outlined"
+              fullWidth
+            >
               Se connecter
             </Button>
           </Stack>
@@ -87,7 +108,11 @@ export default function CreateSchoolPage() {
       ) : (
         <Paper
           variant="outlined"
-          sx={(theme) => ({ p: { xs: 3, md: 4 }, mt: 3, bgcolor: alpha(theme.palette.text.primary, 0.03) })}
+          sx={(theme) => ({
+            p: { xs: 3, md: 4 },
+            mt: 3,
+            bgcolor: alpha(theme.palette.text.primary, 0.03),
+          })}
         >
           <Stepper activeStep={step - 1} sx={{ mb: 4 }}>
             {STEPS.map((label) => (
@@ -109,7 +134,9 @@ export default function CreateSchoolPage() {
                 <TextField
                   label="Nom de l'école"
                   value={form.name}
-                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   required
                   fullWidth
                   autoFocus
@@ -118,7 +145,9 @@ export default function CreateSchoolPage() {
                   select
                   label="Pays"
                   value={form.country_id}
-                  onChange={(e) => setForm((prev) => ({ ...prev, country_id: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, country_id: e.target.value }))
+                  }
                   required
                   fullWidth
                 >
@@ -128,11 +157,19 @@ export default function CreateSchoolPage() {
                     </MenuItem>
                   ))}
                 </TextField>
-                <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end', mt: 1 }}>
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  sx={{ justifyContent: "flex-end", mt: 1 }}
+                >
                   <Button component={RouterLink} to="/">
                     Annuler
                   </Button>
-                  <Button type="submit" variant="contained" disabled={!form.name.trim() || !form.country_id}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={!form.name.trim() || !form.country_id}
+                  >
                     Continuer
                   </Button>
                 </Stack>
@@ -142,9 +179,10 @@ export default function CreateSchoolPage() {
             <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={2.5}>
                 <Typography color="text.secondary">
-                  Vous avez une clé d'activation fournie par l'équipe EduAfrique ? Entrez-la ici.
-                  Sinon, laissez ce champ vide : <strong>{form.name}</strong> démarrera avec un essai
-                  gratuit de 30 jours, sans engagement.
+                  Vous avez une clé d'activation fournie par l'équipe INTELLINO
+                  ? Entrez-la ici. Sinon, laissez ce champ vide :{" "}
+                  <strong>{form.name}</strong> démarrera avec un essai gratuit
+                  de 30 jours, sans engagement.
                 </Typography>
                 <TextField
                   label="Clé d'activation (optionnel)"
@@ -154,11 +192,19 @@ export default function CreateSchoolPage() {
                   fullWidth
                   autoFocus
                 />
-                <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end', mt: 1 }}>
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  sx={{ justifyContent: "flex-end", mt: 1 }}
+                >
                   <Button onClick={() => setStep(1)}>Retour</Button>
-                  <Button type="submit" variant="contained" disabled={submitting}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={submitting}
+                  >
                     {submitting
-                      ? 'Création...'
+                      ? "Création..."
                       : activationKey.trim()
                         ? "Créer l'école"
                         : "Démarrer l'essai gratuit"}
