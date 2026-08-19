@@ -312,12 +312,15 @@ export default function DashboardLayout() {
     // éviter un flash vers un lien auquel le rôle réel n'a pas accès. Le
     // superadmin et le prestataire ont un menu dédié basé sur leur rôle
     // global (users.role_id), indépendant des écoles auxquelles ils
-    // pourraient appartenir.
+    // pourraient appartenir. Un utilisateur qui n'appartient à aucune école
+    // (schoolUsers vide) n'a droit à rien de plus non plus : le menu complet
+    // du directeur ne doit être qu'un filet de secours pour un rôle
+    // école-spécifique inconnu, jamais l'absence totale d'école.
     const navGroups = isSuperAdmin
         ? SUPERADMIN_NAV_GROUPS
         : isPrestataire
             ? PRESTATAIRE_NAV_GROUPS
-            : schoolUsersLoading
+            : schoolUsersLoading || schoolUsers.length === 0
                 ? singleGroup([OVERVIEW_ITEM])
                 : (NAV_GROUPS_BY_ROLE[currentRole] ?? DIRECTEUR_NAV_GROUPS);
 
