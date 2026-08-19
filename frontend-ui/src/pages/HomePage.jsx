@@ -22,20 +22,6 @@ import { useApiGet } from "../hooks/useApiGet.js";
 import EnrollmentRequestModal from "../components/EnrollmentRequestModal.jsx";
 import ChatbotWidget from "../components/ChatbotWidget.jsx";
 
-const heroStats = [
-  { value: "150+", label: "Écoles partenaires" },
-  { value: "40k+", label: "Élèves suivis" },
-  { value: "13", label: "Régions couvertes" },
-];
-
-const trustCities = [
-  "Ouagadougou",
-  "Bobo-Dioulasso",
-  "Koudougou",
-  "Ouahigouya",
-  "Banfora",
-];
-
 const features = [
   {
     icon: "🏫",
@@ -94,12 +80,6 @@ const adaptations = [
     description:
       "Conçu pour les connexions instables des zones rurales comme urbaines, faible consommation de data.",
   },
-];
-
-const aboutStats = [
-  { value: "150+", label: "Écoles" },
-  { value: "2 400+", label: "Enseignants" },
-  { value: "13", label: "Régions" },
 ];
 
 export default function HomePage() {
@@ -174,7 +154,9 @@ function MarketingHome() {
     setDemoError(null);
 
     if (!demoForm.email.trim() && !demoForm.phone.trim()) {
-      setDemoError("Indiquez au moins un email ou un numéro de téléphone pour être recontacté.");
+      setDemoError(
+        "Indiquez au moins un email ou un numéro de téléphone pour être recontacté.",
+      );
       return;
     }
 
@@ -184,7 +166,11 @@ function MarketingHome() {
       setDemoSubmitted(true);
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setDemoError(messages ? Object.values(messages).flat().join(" ") : "Impossible d'envoyer la demande.");
+      setDemoError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Impossible d'envoyer la demande.",
+      );
     } finally {
       setDemoSubmitting(false);
     }
@@ -266,8 +252,8 @@ function MarketingHome() {
                   }}
                 >
                   Écoles, enseignants, parents et élèves réunis dans un seul
-                  espace — conçu pour fonctionner avec une connexion limitée,
-                  en Mobile Money, et dans les langues nationales.
+                  espace — conçu pour fonctionner avec une connexion limitée, en
+                  Mobile Money, et dans les langues nationales.
                 </Typography>
 
                 <Stack
@@ -296,28 +282,6 @@ function MarketingHome() {
                     Voir les fonctionnalités
                   </Button>
                 </Stack>
-
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                  {heroStats.map((item) => (
-                    <Paper
-                      key={item.label}
-                      variant="outlined"
-                      sx={(theme) => ({
-                        px: 2,
-                        py: 1.2,
-                        minWidth: 140,
-                        bgcolor: alpha(theme.palette.text.primary, 0.03),
-                      })}
-                    >
-                      <Typography variant="h6" color="primary.main">
-                        {item.value}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {item.label}
-                      </Typography>
-                    </Paper>
-                  ))}
-                </Stack>
               </motion.div>
             </Grid>
 
@@ -342,7 +306,9 @@ function MarketingHome() {
                       <Chip
                         label="Tableau de bord"
                         color={dashTab === "dashboard" ? "primary" : "default"}
-                        variant={dashTab === "dashboard" ? "filled" : "outlined"}
+                        variant={
+                          dashTab === "dashboard" ? "filled" : "outlined"
+                        }
                         onClick={() => setDashTab("dashboard")}
                       />
                       <Chip
@@ -371,7 +337,10 @@ function MarketingHome() {
                             }}
                           >
                             <Box>
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
                                 Établissement
                               </Typography>
                               <Typography variant="subtitle1" fontWeight={700}>
@@ -392,13 +361,19 @@ function MarketingHome() {
                                   sx={(theme) => ({
                                     p: 1.2,
                                     textAlign: "center",
-                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                    bgcolor: alpha(
+                                      theme.palette.primary.main,
+                                      0.08,
+                                    ),
                                   })}
                                 >
                                   <Typography variant="h6" color="primary.main">
                                     {stat.value}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary">
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
                                     {stat.label}
                                   </Typography>
                                 </Paper>
@@ -423,7 +398,10 @@ function MarketingHome() {
                               sx={(theme) => ({
                                 height: 8,
                                 borderRadius: 999,
-                                bgcolor: alpha(theme.palette.text.primary, 0.08),
+                                bgcolor: alpha(
+                                  theme.palette.text.primary,
+                                  0.08,
+                                ),
                                 overflow: "hidden",
                               })}
                             >
@@ -448,16 +426,25 @@ function MarketingHome() {
                           </Typography>
                           <Stack spacing={1}>
                             {[
-                              { label: "Orange Money", value: "1 240 000 FCFA" },
+                              {
+                                label: "Orange Money",
+                                value: "1 240 000 FCFA",
+                              },
                               { label: "Moov Money", value: "860 000 FCFA" },
-                              { label: "Espèces suivies", value: "410 000 FCFA" },
+                              {
+                                label: "Espèces suivies",
+                                value: "410 000 FCFA",
+                              },
                             ].map((row) => (
                               <Stack
                                 key={row.label}
                                 direction="row"
                                 sx={(theme) => ({
                                   justifyContent: "space-between",
-                                  bgcolor: alpha(theme.palette.primary.main, 0.06),
+                                  bgcolor: alpha(
+                                    theme.palette.primary.main,
+                                    0.06,
+                                  ),
                                   borderRadius: 2,
                                   px: 1.5,
                                   py: 1,
@@ -492,43 +479,6 @@ function MarketingHome() {
               </motion.div>
             </Grid>
           </Grid>
-        </Container>
-      </Box>
-
-      {/* TRUST BAR */}
-      <Box
-        sx={{
-          py: 4.5,
-          borderTop: "1px solid",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <Container maxWidth="lg">
-          <Typography
-            sx={{
-              textAlign: "center",
-              fontSize: 13,
-              fontWeight: 700,
-              color: "text.secondary",
-              letterSpacing: 1,
-              textTransform: "uppercase",
-              mb: 2.5,
-            }}
-          >
-            Déjà utilisé par des établissements à travers le pays
-          </Typography>
-          <Stack
-            direction="row"
-            spacing={{ xs: 3, md: 6 }}
-            sx={{ justifyContent: "center", flexWrap: "wrap", rowGap: 1.5 }}
-          >
-            {trustCities.map((city) => (
-              <Typography key={city} fontWeight={600} color="text.secondary">
-                {city}
-              </Typography>
-            ))}
-          </Stack>
         </Container>
       </Box>
 
@@ -600,8 +550,8 @@ function MarketingHome() {
               Pensé pour les réalités du terrain
             </Typography>
             <Typography color="text.secondary">
-              Pas une adaptation d'un outil étranger — une plateforme conçue
-              dès le départ pour le Burkina Faso.
+              Pas une adaptation d'un outil étranger — une plateforme conçue dès
+              le départ pour le Burkina Faso.
             </Typography>
           </Box>
           <Grid container spacing={4}>
@@ -609,7 +559,9 @@ function MarketingHome() {
               <Grid key={item.title} size={{ xs: 12, md: 4 }}>
                 <Box sx={{ textAlign: "center", px: 1.5 }}>
                   <Box sx={{ display: "flex", justifyContent: "center" }}>
-                    <IconTile size={64} radius={16}>{item.icon}</IconTile>
+                    <IconTile size={64} radius={16}>
+                      {item.icon}
+                    </IconTile>
                   </Box>
                   <Typography variant="h6" sx={{ mb: 1 }}>
                     {item.title}
@@ -625,57 +577,22 @@ function MarketingHome() {
       </Container>
 
       {/* À PROPOS + TÉMOIGNAGE */}
-      <Container id="apropos" maxWidth="lg" sx={{ py: { xs: 6, md: 10 }, scrollMarginTop: 80 }}>
+      <Container
+        id="apropos"
+        maxWidth="lg"
+        sx={{ py: { xs: 6, md: 10 }, scrollMarginTop: 80 }}
+      >
         <Grid container spacing={6} alignItems="center">
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12 }}>
             <SectionEyebrow>À propos</SectionEyebrow>
             <Typography variant="h4" sx={{ mb: 2, fontWeight: 700 }}>
               Une confiance qui se construit établissement par établissement
             </Typography>
-            <Typography color="text.secondary" sx={{ mb: 4 }}>
-              EduAfrique accompagne des écoles maternelles, primaires et
-              secondaires à Ouagadougou, Bobo-Dioulasso, Koudougou et
-              au-delà, avec un support en français et un accompagnement de
-              proximité.
+            <Typography color="text.secondary">
+              EduAfrique est conçu pour accompagner les écoles maternelles,
+              primaires et secondaires du Burkina Faso, avec un support en
+              français et un accompagnement de proximité.
             </Typography>
-            <Grid container spacing={2}>
-              {aboutStats.map((stat) => (
-                <Grid key={stat.label} size={{ xs: 4 }}>
-                  <Typography variant="h5" fontWeight={700}>
-                    {stat.value}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {stat.label}
-                  </Typography>
-                </Grid>
-              ))}
-            </Grid>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Paper
-              elevation={0}
-              sx={(theme) => ({
-                p: { xs: 3, md: 5 },
-                borderRadius: 4,
-                border: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.3),
-                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.16)}, ${alpha(theme.palette.text.primary, 0.03)})`,
-              })}
-            >
-              <Typography sx={{ fontSize: 40, lineHeight: 1, color: "primary.main", mb: 1 }}>
-                "
-              </Typography>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
-                Témoignage à venir — à remplacer par le retour d'un
-                établissement qui utilise réellement la plateforme.
-              </Typography>
-              <Typography fontWeight={700}>
-                [Nom, fonction]
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                [Établissement — Ville]
-              </Typography>
-            </Paper>
           </Grid>
         </Grid>
       </Container>
@@ -713,7 +630,8 @@ function MarketingHome() {
                   ✉️ contact@intellino.tech
                 </Typography>
                 <Typography color="text.secondary">
-                  🌐 www.intellino.tech · Assistance en français, mooré et dioula
+                  🌐 www.intellino.tech · Assistance en français, mooré et
+                  dioula
                 </Typography>
               </Stack>
             </Grid>
@@ -746,7 +664,10 @@ function MarketingHome() {
                         onChange={handleDemoChange("school_name")}
                         fullWidth
                       />
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={2}
+                      >
                         <TextField
                           label="Téléphone"
                           placeholder="+226 70 00 00 00"
@@ -774,7 +695,16 @@ function MarketingHome() {
                         fullWidth
                       />
                       {/* Honeypot anti-bot : invisible et non atteignable pour un humain */}
-                      <Box sx={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }} aria-hidden="true">
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          left: "-9999px",
+                          width: 1,
+                          height: 1,
+                          overflow: "hidden",
+                        }}
+                        aria-hidden="true"
+                      >
                         <TextField
                           label="Entreprise"
                           name="company"
@@ -831,7 +761,7 @@ function MarketingHome() {
               >
                 Commencer maintenant
               </Button>
-              <Button
+              {/* <Button
                 component={RouterLink}
                 to="/login"
                 variant="outlined"
@@ -839,7 +769,7 @@ function MarketingHome() {
                 sx={{ borderColor: "divider" }}
               >
                 Voir mon compte
-              </Button>
+              </Button> */}
             </Stack>
           </Paper>
         </Container>
@@ -862,8 +792,8 @@ function SchoolsSlider() {
         Nos écoles
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Des établissements déjà présents sur EduAfrique. Envoyez une demande de pré-inscription en
-        quelques clics.
+        Des établissements déjà présents sur EduAfrique. Envoyez une demande de
+        pré-inscription en quelques clics.
       </Typography>
 
       <Box
@@ -891,7 +821,11 @@ function SchoolsSlider() {
               })}
             >
               <CardContent>
-                <Stack direction="row" spacing={1.5} sx={{ mb: 1.5, alignItems: "center" }}>
+                <Stack
+                  direction="row"
+                  spacing={1.5}
+                  sx={{ mb: 1.5, alignItems: "center" }}
+                >
                   <Avatar src={school.logo_url ?? undefined} variant="rounded">
                     {school.name.charAt(0).toUpperCase()}
                   </Avatar>
@@ -900,7 +834,9 @@ function SchoolsSlider() {
                       {school.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" noWrap>
-                      {[school.city, school.country?.name].filter(Boolean).join(", ")}
+                      {[school.city, school.country?.name]
+                        .filter(Boolean)
+                        .join(", ")}
                     </Typography>
                   </Box>
                 </Stack>
