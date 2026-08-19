@@ -142,7 +142,7 @@ export default function DashboardStudentsPage() {
     setBusSubmitting(true);
     try {
       await api.put(
-        `/schools/${schoolId}/students/${busDialogStudent.student.id}/bus-stop`,
+        `/schools/${schoolId}/students/${busDialogStudent.student?.id}/bus-stop`,
         {
           bus_stop_id: selectedStopId || null,
         },

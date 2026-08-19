@@ -83,7 +83,7 @@ export default function DashboardSchoolsPage() {
                                 })}
                             >
                                 <CardActionArea
-                                    onClick={() => switchSchool(su.school.id)}
+                                    onClick={() => switchSchool(su.school?.id)}
                                     sx={{ p: 1 }}
                                 >
                                     <CardContent>
@@ -102,12 +102,12 @@ export default function DashboardSchoolsPage() {
                                                     variant="body2"
                                                     color="text.secondary"
                                                 >
-                                                    {su.school.country?.name} ·{" "}
+                                                    {su.school?.country?.name} ·{" "}
                                                     {su.role?.name}
                                                 </Typography>
                                             </Box>
                                             {user.current_school_id ===
-                                                su.school.id && (
+                                                su.school?.id && (
                                                 <Chip
                                                     label="Active"
                                                     color="primary"

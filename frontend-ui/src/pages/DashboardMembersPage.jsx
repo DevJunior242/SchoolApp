@@ -146,19 +146,19 @@ export default function DashboardMembersPage() {
                       sx={{ display: "flex", alignItems: "center", gap: 2 }}
                     >
                       <Avatar sx={{ bgcolor: "primary.main" }}>
-                        {m.user.fullname.charAt(0).toUpperCase()}
+                        {m.user?.fullname?.charAt(0).toUpperCase()}
                       </Avatar>
                       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                         <Typography variant="subtitle1" noWrap>
-                          {m.user.fullname}
+                          {m.user?.fullname}
                         </Typography>
                         <Typography
                           variant="body2"
                           color="text.secondary"
                           noWrap
                         >
-                          {m.user.email}{" "}
-                          {m.user.phone ? `· ${m.user.phone}` : ""}
+                          {m.user?.email}{" "}
+                          {m.user?.phone ? `· ${m.user.phone}` : ""}
                         </Typography>
                       </Box>
                       <Chip label={m.role?.name} size="small" />

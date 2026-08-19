@@ -61,7 +61,7 @@ export default function BulletinPage() {
   useEffect(() => {
     if (!bulletin) return;
     const previousTitle = document.title;
-    document.title = `Bulletin - ${bulletin.student.fullname} - ${bulletin.period_label}`;
+    document.title = `Bulletin - ${bulletin.student?.fullname} - ${bulletin.period_label}`;
     return () => {
       document.title = previousTitle;
     };
@@ -81,7 +81,7 @@ export default function BulletinPage() {
         <>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
             <Typography variant="h5" fontWeight={700}>
-              Bulletin — {bulletin.student.fullname}
+              Bulletin — {bulletin.student?.fullname}
             </Typography>
             <Button variant="contained" startIcon={<DownloadIcon />} onClick={() => window.print()}>
               Télécharger (PDF)
@@ -111,7 +111,7 @@ export default function BulletinPage() {
                   {user.current_school?.name}
                 </Typography>
                 <Typography color="text.secondary">
-                  {bulletin.student.fullname} — {bulletin.period_label}
+                  {bulletin.student?.fullname} — {bulletin.period_label}
                 </Typography>
               </Box>
               <Chip

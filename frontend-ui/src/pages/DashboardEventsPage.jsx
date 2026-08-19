@@ -47,7 +47,7 @@ export default function DashboardEventsPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
   const { schoolUsers } = useSchools();
-  const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role?.slug;
+  const currentRole = schoolUsers.find((su) => su.school?.id === schoolId)?.role?.slug;
   const canManage = MANAGER_ROLE_SLUGS.includes(currentRole);
 
   const { data: events, loading, error, reload } = useApiGet(schoolId ? `/schools/${schoolId}/events` : null);

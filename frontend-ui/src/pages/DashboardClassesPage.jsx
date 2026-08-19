@@ -179,7 +179,7 @@ export default function DashboardClassesPage() {
                     {c.class_subject_teachers.map((assignment) => (
                       <Chip
                         key={assignment.id}
-                        label={`${assignment.subject.name} · ${assignment.teacher.fullname} (coef. ${assignment.coefficient})`}
+                        label={`${assignment.subject?.name} · ${assignment.teacher?.fullname} (coef. ${assignment.coefficient})`}
                         size="small"
                       />
                     ))}
@@ -270,7 +270,7 @@ export default function DashboardClassesPage() {
             >
               {teachers.map((t) => (
                 <MenuItem key={t.id} value={t.user_id}>
-                  {t.user.fullname}
+                  {t.user?.fullname}
                 </MenuItem>
               ))}
             </TextField>

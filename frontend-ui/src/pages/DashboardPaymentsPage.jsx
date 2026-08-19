@@ -303,7 +303,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     setCollectError(null);
     try {
       const response = await api.get(
-        `/schools/${schoolId}/students/${schoolStudent.student.id}/payments`,
+        `/schools/${schoolId}/students/${schoolStudent.student?.id}/payments`,
       );
       setCollectSummary(response.data);
     } catch (err) {

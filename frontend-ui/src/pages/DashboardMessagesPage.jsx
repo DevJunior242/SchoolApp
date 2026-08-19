@@ -135,21 +135,21 @@ export default function DashboardMessagesPage() {
             <List disablePadding>
               {(threads ?? []).map((t) => (
                 <ListItemButton
-                  key={t.user.id}
-                  selected={selectedUserId === t.user.id}
-                  onClick={() => handleSelect(t.user.id)}
+                  key={t.user?.id}
+                  selected={selectedUserId === t.user?.id}
+                  onClick={() => handleSelect(t.user?.id)}
                   alignItems="flex-start"
                 >
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: 'primary.main', color: 'background.default' }}>
-                      {t.user.fullname?.charAt(0).toUpperCase()}
+                      {t.user?.fullname?.charAt(0).toUpperCase()}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
                     primary={
                       <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
                         <Typography variant="body2" fontWeight={t.unread_count > 0 ? 700 : 500} noWrap>
-                          {t.user.fullname}
+                          {t.user?.fullname}
                         </Typography>
                         {t.unread_count > 0 && <Chip label={t.unread_count} size="small" color="primary" />}
                       </Stack>

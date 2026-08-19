@@ -103,10 +103,10 @@ export default function TeacherTimetablePage() {
                             })}
                           >
                             <Typography variant="body2" fontWeight={600} noWrap>
-                              {slot.class_subject_teacher.subject.name}
+                              {slot.class_subject_teacher?.subject?.name}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" display="block" noWrap>
-                              {slot.class_subject_teacher.school_class.name}
+                              {slot.class_subject_teacher?.school_class?.name}
                               {slot.room ? ` · ${slot.room}` : ''}
                             </Typography>
                           </Box>

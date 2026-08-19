@@ -239,8 +239,8 @@ export default function DashboardBusesPage() {
             >
               <MenuItem value="">Aucun</MenuItem>
               {driverList.map((m) => (
-                <MenuItem key={m.user.id} value={m.user.id}>
-                  {m.user.fullname}
+                <MenuItem key={m.user?.id} value={m.user?.id}>
+                  {m.user?.fullname}
                 </MenuItem>
               ))}
             </TextField>

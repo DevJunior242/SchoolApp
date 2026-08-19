@@ -48,7 +48,7 @@ export default function DashboardParentsPage() {
     setChildrenLoading(true);
     setChildrenError(null);
     try {
-      const response = await api.get(`/schools/${schoolId}/parents/${parent.user.id}/children`);
+      const response = await api.get(`/schools/${schoolId}/parents/${parent.user?.id}/children`);
       setChildren(response.data);
     } catch (err) {
       setChildrenError(err.response?.data?.message || 'Impossible de charger les enfants de ce parent.');
@@ -112,13 +112,13 @@ export default function DashboardParentsPage() {
               <Card variant="outlined">
                 <CardActionArea onClick={() => openParent(p)} sx={{ p: 1 }}>
                   <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>{p.user.fullname.charAt(0).toUpperCase()}</Avatar>
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>{p.user?.fullname?.charAt(0).toUpperCase()}</Avatar>
                     <Box sx={{ minWidth: 0 }}>
                       <Typography variant="subtitle1" noWrap>
-                        {p.user.fullname}
+                        {p.user?.fullname}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" noWrap>
-                        {p.user.email} {p.user.phone ? `· ${p.user.phone}` : ''}
+                        {p.user?.email} {p.user?.phone ? `· ${p.user.phone}` : ''}
                       </Typography>
                     </Box>
                   </CardContent>
@@ -137,7 +137,7 @@ export default function DashboardParentsPage() {
       )}
 
       <Dialog open={Boolean(selectedParent)} onClose={closeModal} fullWidth maxWidth="sm">
-        <DialogTitle>Enfants de {selectedParent?.user.fullname}</DialogTitle>
+        <DialogTitle>Enfants de {selectedParent?.user?.fullname}</DialogTitle>
         <DialogContent>
           {childrenError && (
             <Alert severity="error" sx={{ mb: 2 }}>

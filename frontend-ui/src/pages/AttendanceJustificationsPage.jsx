@@ -71,7 +71,7 @@ export default function AttendanceJustificationsPage() {
             <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="subtitle2">
-                  {a.student.fullname} — {a.class_subject_teacher.subject.name} · {a.class_subject_teacher.school_class.name}
+                  {a.student?.fullname} — {a.class_subject_teacher?.subject?.name} · {a.class_subject_teacher?.school_class?.name}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {a.date.slice(0, 10)} · {a.status === 0 ? 'Absent' : 'Retard'}

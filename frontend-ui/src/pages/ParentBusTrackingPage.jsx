@@ -65,7 +65,7 @@ export default function ParentBusTrackingPage() {
             STATUS_LABELS[child.status] ?? STATUS_LABELS.no_active_trip;
 
           return (
-            <Card key={child.student.id} variant="outlined">
+            <Card key={child.student?.id} variant="outlined">
               <CardContent>
                 <Stack
                   direction="row"

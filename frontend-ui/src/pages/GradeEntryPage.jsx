@@ -397,8 +397,8 @@ export default function GradeEntryPage() {
       </Stack>
       {assignment && (
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          {assignment.subject.name} · {assignment.school_class.name}
-          {assignment.school_class.level
+          {assignment.subject?.name} · {assignment.school_class?.name}
+          {assignment.school_class?.level
             ? ` (${assignment.school_class.level.name})`
             : ""}
         </Typography>
@@ -466,7 +466,7 @@ export default function GradeEntryPage() {
               </TextField>
               <Autocomplete
                 options={students}
-                getOptionLabel={(s) => s.student.fullname}
+                getOptionLabel={(s) => s.student?.fullname ?? ""}
                 isOptionEqualToValue={(option, value) =>
                   option.student_id === value.student_id
                 }
