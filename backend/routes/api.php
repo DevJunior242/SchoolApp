@@ -204,6 +204,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/my-children', [ParentController::class, 'mine']);
         Route::get('/schools/{school}/my-student-profile', [StudentController::class, 'mine']);
         Route::get('/schools/{school}/my-dashboard-summary', [DashboardController::class, 'studentSummary']);
+        Route::get('/schools/{school}/my-teaching-summary', [DashboardController::class, 'teacherSummary']);
         Route::get('/schools/{school}/classes/{schoolClass}/timetable', [TimetableController::class, 'index']);
         Route::get('/schools/{school}/my-assignments', [AssignmentController::class, 'mine']);
         Route::get('/schools/{school}/my-timetable', [TimetableController::class, 'mine']);

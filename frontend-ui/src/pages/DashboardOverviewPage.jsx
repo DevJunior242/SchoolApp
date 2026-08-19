@@ -31,6 +31,7 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import DescriptionIcon from "@mui/icons-material/Description";
 import MonthlyFinanceChart from "../components/MonthlyFinanceChart.jsx";
+import ClassAverageChart from "../components/ClassAverageChart.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
@@ -118,6 +119,14 @@ export default function DashboardOverviewPage() {
     const { data: studentSummary } = useApiGet(
         isEleve ? `/schools/${current.school?.id}/my-dashboard-summary` : null,
         { enabled: isEleve },
+    );
+    // Résumé pour un professeur : ses propres classes/matières/élèves et
+    // son emploi du temps du jour — jamais les données des autres profs ni
+    // les finances de l'école.
+    const isProfesseur = current?.role?.slug === "professeur";
+    const { data: teachingSummary } = useApiGet(
+        isProfesseur ? `/schools/${current.school?.id}/my-teaching-summary` : null,
+        { enabled: isProfesseur },
     );
 
     // Le superadmin n'a pas d'école : son tableau de bord est une vue
@@ -446,6 +455,91 @@ export default function DashboardOverviewPage() {
                             </Card>
                         </Grid>
                     </Grid>
+                </>
+            )}
+
+            {isProfesseur && teachingSummary && (
+                <>
+                    <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
+                        Mon enseignement
+                    </Typography>
+                    <Grid container spacing={3}>
+                        {[
+                            { icon: <School2Icon color="primary" />, label: "Mes classes", value: teachingSummary.classes_count },
+                            { icon: <MenuBookOutlinedIcon color="primary" />, label: "Mes matières", value: teachingSummary.subjects_count },
+                            { icon: <PersonIcon color="primary" />, label: "Mes élèves", value: teachingSummary.students_count },
+                            { icon: <ScheduleIcon color="primary" />, label: "Cours aujourd'hui", value: teachingSummary.today_slots.length },
+                        ].map((stat, i) => (
+                            <Grid key={stat.label} size={{ xs: 12, sm: 6, md: 3 }}>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 16 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.3, delay: i * 0.06 }}
+                                >
+                                    <Card
+                                        variant="outlined"
+                                        sx={(theme) => ({
+                                            height: "100%",
+                                            bgcolor: alpha(theme.palette.text.primary, 0.025),
+                                            borderColor: "divider",
+                                        })}
+                                    >
+                                        <CardContent>
+                                            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                                                {stat.icon}
+                                                <Box>
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        {stat.label}
+                                                    </Typography>
+                                                    <Typography variant="h6">{stat.value}</Typography>
+                                                </Box>
+                                            </Stack>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            </Grid>
+                        ))}
+                    </Grid>
+
+                    {teachingSummary.today_slots.length > 0 && (
+                        <Paper
+                            sx={(theme) => ({
+                                mt: 3,
+                                p: { xs: 3, md: 4 },
+                                border: "1px solid",
+                                borderColor: "divider",
+                                bgcolor: alpha(theme.palette.text.primary, 0.03),
+                            })}
+                        >
+                            <Typography variant="h6" gutterBottom>
+                                Mon emploi du temps aujourd'hui
+                            </Typography>
+                            <Stack divider={<Box sx={{ borderTop: "1px solid", borderColor: "divider" }} />}>
+                                {teachingSummary.today_slots.map((slot, i) => (
+                                    <Stack key={i} direction="row" spacing={2} sx={{ py: 1.25, alignItems: "center" }}>
+                                        <Typography variant="body2" fontWeight={600} sx={{ minWidth: 92 }}>
+                                            {slot.start_time} – {slot.end_time}
+                                        </Typography>
+                                        <Box sx={{ minWidth: 0 }}>
+                                            <Typography variant="body2" fontWeight={600} noWrap>
+                                                {slot.subject}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {slot.classe}
+                                                {slot.room ? ` · Salle ${slot.room}` : ""}
+                                            </Typography>
+                                        </Box>
+                                    </Stack>
+                                ))}
+                            </Stack>
+                        </Paper>
+                    )}
+
+                    {teachingSummary.average_by_class.length > 0 && (
+                        <Box sx={{ mt: 3 }}>
+                            <ClassAverageChart data={teachingSummary.average_by_class} />
+                        </Box>
+                    )}
                 </>
             )}
 

@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Controller;
+use App\Models\ClassStudent;
+use App\Models\Grade;
 use App\Models\School;
+use App\Models\TimetableSlot;
 use App\Services\SchoolSummaryService;
 use App\Services\StudentRiskService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
@@ -56,6 +60,82 @@ class DashboardController extends Controller
                 'absences' => $myScore['absences'],
                 'retards' => $myScore['retards'],
             ],
+        ]);
+    }
+
+    /**
+     * Résumé pour un professeur : ses classes/matières/élèves, son emploi du
+     * temps du jour et la moyenne de ses classes — jamais les finances ni
+     * les autres enseignants. Toutes les requêtes sont groupées (une passe
+     * sur les affectations, une sur les notes, une sur les élèves) au lieu
+     * de boucler par classe, pour éviter le N+1.
+     */
+    public function teacherSummary(Request $request, School $school)
+    {
+        $userId = $request->user()->id;
+
+        $assignments = $request->user()->teachingAssignments()
+            ->whereHas('schoolClass', fn ($query) => $query
+                ->where('school_id', $school->id)
+                ->whereHas('schoolYear', fn ($q) => $q->where('is_current', true)))
+            ->with(['subject', 'schoolClass'])
+            ->get();
+
+        $classIds = $assignments->pluck('class_id')->unique()->values();
+
+        $studentsCount = $classIds->isEmpty() ? 0 : ClassStudent::query()
+            ->whereIn('class_id', $classIds)
+            ->where('status', ClassStudent::STATUS_ACTIVE)
+            ->distinct('student_id')
+            ->count('student_id');
+
+        // Une seule requête pour toutes les notes de toutes les classes,
+        // regroupées ensuite en mémoire par classe — pas une requête par
+        // affectation.
+        $assignmentIds = $assignments->pluck('id');
+        $grades = $assignmentIds->isEmpty() ? collect() : Grade::query()
+            ->whereIn('class_subject_teacher_id', $assignmentIds)
+            ->get(['class_subject_teacher_id', 'score', 'max_score', 'coefficient']);
+
+        $classNameByAssignment = $assignments->pluck('schoolClass.name', 'id');
+
+        $averageByClass = $grades
+            ->groupBy(fn (Grade $grade) => $classNameByAssignment[$grade->class_subject_teacher_id] ?? 'Classe inconnue')
+            ->map(function (Collection $group, string $className) {
+                $totalWeight = $group->sum('coefficient');
+
+                return [
+                    'classe' => $className,
+                    'moyenne' => $totalWeight > 0
+                        ? round($group->sum(fn (Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight, 2)
+                        : null,
+                ];
+            })
+            ->filter(fn ($row) => $row['moyenne'] !== null)
+            ->values();
+
+        $todaySlots = TimetableSlot::query()
+            ->whereHas('classSubjectTeacher', fn ($query) => $query
+                ->where('user_id', $userId)
+                ->whereHas('schoolClass', fn ($q) => $q->where('school_id', $school->id)))
+            ->where('day_of_week', now()->dayOfWeekIso)
+            ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.schoolClass'])
+            ->orderBy('start_time')
+            ->get()
+            ->map(fn (TimetableSlot $slot) => [
+                'start_time' => substr($slot->start_time, 0, 5),
+                'end_time' => substr($slot->end_time, 0, 5),
+                'subject' => $slot->classSubjectTeacher->subject?->name,
+                'classe' => $slot->classSubjectTeacher->schoolClass?->name,
+                'room' => $slot->room,
+            ]);
+
+        return response()->json([
+            'classes_count' => $classIds->count(),
+            'subjects_count' => $assignments->pluck('subject_id')->unique()->count(),
+            'students_count' => $studentsCount,
+            'today_slots' => $todaySlots,
+            'average_by_class' => $averageByClass,
         ]);
     }
 }
