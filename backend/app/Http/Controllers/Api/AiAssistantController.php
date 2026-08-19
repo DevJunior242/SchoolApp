@@ -6,6 +6,7 @@ use App\Exceptions\AiNotConfiguredException;
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Controller;
 use App\Models\School;
+use App\Services\Ai\ParentAssistantService;
 use App\Services\Ai\SchoolAssistantService;
 use App\Services\StudentRiskService;
 use Illuminate\Http\Request;
@@ -38,6 +39,33 @@ class AiAssistantController extends Controller
             // Erreurs du fournisseur IA (limite de débit, panne, quota
             // dépassé...) : jamais de trace brute renvoyée au client, un
             // message actionnable à la place.
+            report($e);
+
+            return response()->json([
+                'message' => "L'assistant IA est momentanément indisponible (quota ou limite de débit atteinte). Réessayez dans quelques instants.",
+            ], 503);
+        }
+
+        return response()->json(['answer' => $answer]);
+    }
+
+    /**
+     * Pas d'authorizeDirecteur ici : n'importe quel membre de l'école peut
+     * appeler cette route, mais ParentAssistantService ne cherche et ne
+     * renvoie jamais que les données des enfants réellement rattachés à
+     * l'utilisateur connecté (voir ParentAssistantService::children).
+     */
+    public function askAsParent(Request $request, School $school, ParentAssistantService $assistant)
+    {
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $answer = $assistant->ask($request->user(), $school, $validated['question']);
+        } catch (AiNotConfiguredException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
             report($e);
 
             return response()->json([

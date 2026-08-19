@@ -183,6 +183,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // la vérification d'email pour ne pas casser la navigation de base.
         Route::post('/schools/{school}/switch', [SchoolController::class, 'switchTo']);
 
+        // Assistant IA côté parent : mêmes garde-fous que celui du directeur
+        // (voir ParentAssistantService) mais scopé à ses propres enfants
+        // uniquement, pas besoin d'email vérifié pour poser une question.
+        Route::post('/schools/{school}/ai/ask-parent', [AiAssistantController::class, 'askAsParent']);
+
         Route::get('/schools/{school}/settings', [SchoolController::class, 'show']);
         Route::get('/schools/{school}/seasons', [SeasonController::class, 'index']);
         Route::get('/schools/{school}/school-years', [SchoolYearController::class, 'index']);

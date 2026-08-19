@@ -162,6 +162,7 @@ const PROFESSEUR_NAV_GROUPS = singleGroup([
 
 const PARENT_NAV_GROUPS = singleGroup([
     OVERVIEW_ITEM,
+    { label: "Assistant IA", to: "/dashboard/my-children-ai-assistant", icon: <SmartToyIcon />, badge: "IA" },
     { label: "Paiements", to: "/dashboard/my-children-payments", icon: <PaymentsIcon /> },
     { label: "Absences de mes enfants", to: "/dashboard/my-children-attendances", icon: <EventBusyIcon /> },
     { label: "Bulletins", to: "/dashboard/my-children-bulletins", icon: <DescriptionIcon /> },

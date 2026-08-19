@@ -3,9 +3,14 @@
 namespace App\Services\Ai;
 
 use App\Models\Attendance;
+use App\Models\BookLoan;
+use App\Models\CafeteriaMealService;
 use App\Models\ClassStudent;
+use App\Models\ClassSubjectTeacher;
+use App\Models\EnrollmentRequest;
 use App\Models\Event;
 use App\Models\Expense;
+use App\Models\Payment;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\SchoolStudent;
@@ -121,6 +126,14 @@ TXT;
             'evenements_a_venir' => $this->toolEvenementsAVenir($school),
             'solde_tresorerie' => $this->toolSoldeTresorerie($school),
             'depenses_par_categorie' => $this->toolDepensesParCategorie($school),
+            'paiements_par_categorie' => $this->toolPaiementsParCategorie($school),
+            'cantine_du_jour' => $this->toolCantineDuJour($school),
+            'emprunts_en_retard' => $this->toolEmpruntsEnRetard($school),
+            'charge_enseignants' => $this->toolChargeEnseignants($school),
+            'eleves_transport' => $this->toolElevesTransport($school),
+            'meilleurs_eleves' => $this->toolMeilleursEleves($school),
+            'taux_presence' => $this->toolTauxPresence($school),
+            'demandes_preinscription_en_attente' => $this->toolDemandesPreinscription($school),
             default => [['error' => 'Outil inconnu.'], []],
         };
     }
@@ -134,6 +147,23 @@ TXT;
         [$anonymized, $tokenMap] = $this->anonymize($report);
 
         return [['eleves_a_risque' => $anonymized], $tokenMap];
+    }
+
+    /**
+     * Meilleures moyennes de l'école, complément "positif" de
+     * toolElevesARisque — même source de données (reportForSchool), juste
+     * triée dans l'autre sens et sans le filtre sur le niveau de risque.
+     */
+    private function toolMeilleursEleves(School $school): array
+    {
+        $report = $this->riskService->reportForSchool($school)
+            ->filter(fn ($row) => $row['average'] !== null)
+            ->sortByDesc('average')
+            ->take(10);
+
+        [$anonymized, $tokenMap] = $this->anonymize($report);
+
+        return [['meilleurs_eleves' => $anonymized], $tokenMap];
     }
 
     private function toolPaiementsEnRetard(School $school): array
@@ -303,6 +333,151 @@ TXT;
         return [['depenses_par_categorie_ce_mois' => $parCategorie->all()], []];
     }
 
+    /**
+     * Répartition des paiements confirmés du mois en cours, par catégorie de
+     * frais — miroir de toolDepensesParCategorie côté recettes.
+     */
+    private function toolPaiementsParCategorie(School $school): array
+    {
+        $payments = Payment::query()
+            ->where('school_id', $school->id)
+            ->where('status', Payment::STATUS_CONFIRMED)
+            ->whereBetween('confirmed_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->with('feeStructure.feeCategory')
+            ->get();
+
+        $parCategorie = $payments
+            ->groupBy(fn (Payment $payment) => $payment->feeStructure?->feeCategory?->name ?? 'Sans catégorie')
+            ->map(fn (Collection $group, string $categorie) => [
+                'categorie' => $categorie,
+                'montant' => round((float) $group->sum('amount'), 2),
+            ])
+            ->sortByDesc('montant')
+            ->values();
+
+        return [['recettes_par_categorie_ce_mois' => $parCategorie->all()], []];
+    }
+
+    private function toolCantineDuJour(School $school): array
+    {
+        $services = CafeteriaMealService::query()
+            ->where('school_id', $school->id)
+            ->whereDate('served_at', now()->toDateString())
+            ->get();
+
+        return [[
+            'repas_servis_aujourd_hui' => $services->count(),
+            'via_portefeuille' => $services->where('covered_by', CafeteriaMealService::COVERED_BY_WALLET)->count(),
+            'via_abonnement' => $services->where('covered_by', CafeteriaMealService::COVERED_BY_SUBSCRIPTION)->count(),
+        ], []];
+    }
+
+    /**
+     * Emprunts actifs dont la date de retour est dépassée. Les noms d'élèves
+     * sont anonymisés comme partout ailleurs pour cette même raison.
+     */
+    private function toolEmpruntsEnRetard(School $school): array
+    {
+        $loans = BookLoan::query()
+            ->where('school_id', $school->id)
+            ->where('status', BookLoan::STATUS_ACTIVE)
+            ->where('due_at', '<', now()->toDateString())
+            ->with(['student', 'copy.book'])
+            ->orderBy('due_at')
+            ->limit(15)
+            ->get();
+
+        $rows = collect($loans->map(fn (BookLoan $loan) => [
+            'fullname' => $loan->student?->fullname ?? 'Élève inconnu',
+            'livre' => $loan->copy?->book?->title ?? 'Titre inconnu',
+            'jours_de_retard' => now()->diffInDays($loan->due_at),
+        ]));
+
+        [$anonymized, $tokenMap] = $this->anonymize($rows);
+
+        return [['emprunts_en_retard' => $anonymized], $tokenMap];
+    }
+
+    /**
+     * Nombre de cours (classe+matière) assignés à chaque enseignant pour
+     * l'année scolaire en cours — pas de nom d'élève ici, donc pas
+     * d'anonymisation nécessaire (des enseignants, pas des élèves).
+     */
+    private function toolChargeEnseignants(School $school): array
+    {
+        $assignments = ClassSubjectTeacher::query()
+            ->whereHas('schoolClass', fn ($query) => $query
+                ->where('school_id', $school->id)
+                ->whereHas('schoolYear', fn ($q) => $q->where('is_current', true)))
+            ->with('teacher')
+            ->get();
+
+        $parEnseignant = $assignments
+            ->groupBy(fn (ClassSubjectTeacher $a) => $a->teacher?->fullname ?? 'Enseignant inconnu')
+            ->map(fn (Collection $group, string $nom) => [
+                'enseignant' => $nom,
+                'nombre_de_cours' => $group->count(),
+            ])
+            ->sortByDesc('nombre_de_cours')
+            ->values();
+
+        return [['charge_par_enseignant' => $parEnseignant->all()], []];
+    }
+
+    private function toolElevesTransport(School $school): array
+    {
+        $total = SchoolStudent::query()
+            ->where('school_id', $school->id)
+            ->where('status', SchoolStudent::STATUS_ACTIVE)
+            ->count();
+
+        $avecBus = SchoolStudent::query()
+            ->where('school_id', $school->id)
+            ->where('status', SchoolStudent::STATUS_ACTIVE)
+            ->whereNotNull('bus_stop_id')
+            ->count();
+
+        return [[
+            'effectif_total' => $total,
+            'eleves_avec_arret_bus' => $avecBus,
+            'eleves_sans_arret_bus' => $total - $avecBus,
+        ], []];
+    }
+
+    /**
+     * Taux de présence global (tous cours confondus) sur le mois en cours —
+     * complète le nombre brut d'absences du jour déjà présent dans
+     * resume_ecole par une vue en pourcentage sur une période plus large.
+     */
+    private function toolTauxPresence(School $school): array
+    {
+        $query = Attendance::query()
+            ->whereHas('classSubjectTeacher.schoolClass', fn ($q) => $q->where('school_id', $school->id))
+            ->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()]);
+
+        $total = (clone $query)->count();
+        $presents = (clone $query)->where('status', Attendance::STATUS_PRESENT)->count();
+
+        return [[
+            'taux_presence_ce_mois' => $total > 0 ? round(($presents / $total) * 100, 1) : null,
+            'total_appels_ce_mois' => $total,
+        ], []];
+    }
+
+    /**
+     * Demandes de pré-inscription reçues depuis la page publique de l'école
+     * (formulaire home page / chatbot) et pas encore traitées.
+     */
+    private function toolDemandesPreinscription(School $school): array
+    {
+        $count = EnrollmentRequest::query()
+            ->where('school_id', $school->id)
+            ->where('status', EnrollmentRequest::STATUS_PENDING)
+            ->count();
+
+        return [['demandes_preinscription_en_attente' => $count], []];
+    }
+
     private function findClass(School $school, string $nomClasse): ?SchoolClass
     {
         if (trim($nomClasse) === '') {
@@ -370,6 +545,11 @@ TXT;
                 []
             ),
             $this->tool(
+                'meilleurs_eleves',
+                "Utilise cet outil quand la question porte sur les MEILLEURS élèves / les meilleures moyennes de l'école (ex: \"qui sont les meilleurs élèves ?\", \"quels sont les élèves les plus performants ?\"). Retourne les 10 meilleures moyennes générales.",
+                []
+            ),
+            $this->tool(
                 'paiements_en_retard',
                 "Utilise cet outil quand la question porte spécifiquement sur les PAIEMENTS, FRAIS DE SCOLARITÉ ou IMPAYÉS (ex: \"qui n'a pas payé ?\", \"paiements en retard\"). Retourne la liste des élèves ayant des échéances de paiement dépassées non couvertes par un paiement confirmé.",
                 []
@@ -415,6 +595,41 @@ TXT;
             $this->tool(
                 'depenses_par_categorie',
                 "Utilise cet outil quand la question porte sur la RÉPARTITION des dépenses par catégorie ce mois-ci (ex: \"sur quoi dépense-t-on le plus ?\", \"combien pour les salaires ce mois ?\"). Ne pas utiliser pour un montant total unique : c'est resume_ecole. Retourne le montant confirmé par catégorie de dépense pour le mois en cours.",
+                []
+            ),
+            $this->tool(
+                'paiements_par_categorie',
+                "Utilise cet outil quand la question porte sur la RÉPARTITION des recettes/paiements par catégorie de frais ce mois-ci (ex: \"quelles sont nos recettes par catégorie ?\", \"combien a rapporté la cantine ce mois ?\"). Ne pas utiliser pour un montant total unique : c'est resume_ecole. Retourne le montant confirmé par catégorie de frais pour le mois en cours.",
+                []
+            ),
+            $this->tool(
+                'cantine_du_jour',
+                "Utilise cet outil quand la question porte sur la CANTINE aujourd'hui (ex: \"combien d'élèves ont mangé aujourd'hui ?\"). Retourne le nombre de repas servis aujourd'hui, répartis entre paiement au portefeuille et couverture par abonnement.",
+                []
+            ),
+            $this->tool(
+                'emprunts_en_retard',
+                "Utilise cet outil quand la question porte sur les LIVRES EMPRUNTÉS EN RETARD à la bibliothèque (ex: \"quels livres ne sont pas encore rendus ?\", \"y a-t-il des retards à la bibliothèque ?\"). Retourne la liste des emprunts actifs dont la date de retour est dépassée.",
+                []
+            ),
+            $this->tool(
+                'charge_enseignants',
+                "Utilise cet outil quand la question porte sur la CHARGE DE TRAVAIL des enseignants (nombre de cours/classes assignés à chacun) pour l'année scolaire en cours (ex: \"quel enseignant a le plus de cours ?\", \"combien de cours a M. Diallo ?\").",
+                []
+            ),
+            $this->tool(
+                'eleves_transport',
+                "Utilise cet outil quand la question porte sur le TRANSPORT SCOLAIRE / BUS (ex: \"combien d'élèves prennent le bus ?\", \"combien n'ont pas d'arrêt assigné ?\"). Retourne le nombre d'élèves actifs avec et sans arrêt de bus assigné.",
+                []
+            ),
+            $this->tool(
+                'taux_presence',
+                "Utilise cet outil quand la question porte sur le TAUX DE PRÉSENCE GLOBAL ce mois-ci, en pourcentage (ex: \"quel est notre taux de présence ?\", \"est-ce que l'assiduité est bonne ce mois-ci ?\"). Ne pas utiliser pour un nombre d'absences précis : ce sont d'autres outils (absences_eleve, resume_ecole pour aujourd'hui).",
+                []
+            ),
+            $this->tool(
+                'demandes_preinscription_en_attente',
+                "Utilise cet outil quand la question porte sur les DEMANDES DE PRÉ-INSCRIPTION reçues via le site public et pas encore traitées (ex: \"combien de demandes d'inscription en attente ?\", \"y a-t-il de nouvelles demandes ?\").",
                 []
             ),
         ];
