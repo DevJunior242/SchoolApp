@@ -6,6 +6,7 @@ import {
     CardContent,
     Container,
     Grid,
+    LinearProgress,
     Link as MuiLink,
     Paper,
     Stack,
@@ -107,6 +108,15 @@ export default function DashboardOverviewPage() {
     const { data: summary, error: summaryError } = useApiGet(
         isStaff ? `/schools/${current.school?.id}/dashboard-summary` : null,
         { enabled: isStaff },
+    );
+    // Résumé équivalent pour un élève avec son propre compte, mais scopé à
+    // des chiffres non-sensibles (effectifs, pas de paiement/montant d'un
+    // autre élève) + ses propres statistiques — jamais /dashboard-summary,
+    // qui contient les finances de l'école entière.
+    const isEleve = current?.role?.slug === "eleve";
+    const { data: studentSummary } = useApiGet(
+        isEleve ? `/schools/${current.school?.id}/my-dashboard-summary` : null,
+        { enabled: isEleve },
     );
 
     // Le superadmin n'a pas d'école : son tableau de bord est une vue
@@ -333,6 +343,101 @@ export default function DashboardOverviewPage() {
                                 </motion.div>
                             </Grid>
                         ))}
+                    </Grid>
+                </>
+            )}
+
+            {isEleve && studentSummary && (
+                <>
+                    <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
+                        Mon école
+                    </Typography>
+                    <Grid container spacing={3}>
+                        {[
+                            { icon: <School2Icon color="primary" />, label: "Élèves inscrits", value: studentSummary.school.students_count },
+                            { icon: <PersonIcon color="primary" />, label: "Professeurs", value: studentSummary.school.teachers_count },
+                            { icon: <MenuBookIcon color="primary" />, label: "Classes", value: studentSummary.school.classes_count },
+                        ].map((stat, i) => (
+                            <Grid key={stat.label} size={{ xs: 12, sm: 6, md: 4 }}>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 16 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.3, delay: i * 0.06 }}
+                                >
+                                    <Card
+                                        variant="outlined"
+                                        sx={(theme) => ({
+                                            height: "100%",
+                                            bgcolor: alpha(theme.palette.text.primary, 0.025),
+                                            borderColor: "divider",
+                                        })}
+                                    >
+                                        <CardContent>
+                                            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                                                {stat.icon}
+                                                <Box>
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        {stat.label}
+                                                    </Typography>
+                                                    <Typography variant="h6">{stat.value}</Typography>
+                                                </Box>
+                                            </Stack>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            </Grid>
+                        ))}
+                    </Grid>
+
+                    <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
+                        Mes résultats
+                    </Typography>
+                    <Grid container spacing={3}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                            <Paper variant="outlined" sx={{ p: 2.5, height: "100%" }}>
+                                <Typography variant="body2" color="text.secondary" gutterBottom>
+                                    Moyenne générale
+                                </Typography>
+                                <Typography variant="h6" sx={{ mb: 1 }}>
+                                    {studentSummary.me.average != null ? `${studentSummary.me.average}/20` : "—"}
+                                </Typography>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={studentSummary.me.average != null ? (studentSummary.me.average / 20) * 100 : 0}
+                                    sx={{ height: 7, borderRadius: 4 }}
+                                />
+                            </Paper>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                            <Card variant="outlined" sx={{ height: "100%" }}>
+                                <CardContent>
+                                    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                                        <EventBusyIcon color="primary" />
+                                        <Box>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Absences (année en cours)
+                                            </Typography>
+                                            <Typography variant="h6">{studentSummary.me.absences}</Typography>
+                                        </Box>
+                                    </Stack>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                            <Card variant="outlined" sx={{ height: "100%" }}>
+                                <CardContent>
+                                    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                                        <ScheduleIcon color="primary" />
+                                        <Box>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Retards (année en cours)
+                                            </Typography>
+                                            <Typography variant="h6">{studentSummary.me.retards}</Typography>
+                                        </Box>
+                                    </Stack>
+                                </CardContent>
+                            </Card>
+                        </Grid>
                     </Grid>
                 </>
             )}
