@@ -36,6 +36,7 @@ import DashboardEventsPage from './pages/DashboardEventsPage.jsx';
 import DashboardEnrollmentRequestsPage from './pages/DashboardEnrollmentRequestsPage.jsx';
 import DashboardSettingsPage from './pages/DashboardSettingsPage.jsx';
 import AccountSecurityPage from './pages/AccountSecurityPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 import DashboardSchoolYearPage from './pages/DashboardSchoolYearPage.jsx';
 import DashboardMessagesPage from './pages/DashboardMessagesPage.jsx';
 import EventRecapPage from './pages/EventRecapPage.jsx';
@@ -140,6 +141,7 @@ function App() {
         <Route path="events/:eventId/recap" element={<EventRecapPage />} />
         <Route path="enrollment-requests" element={<DashboardEnrollmentRequestsPage />} />
         <Route path="settings" element={<DashboardSettingsPage />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="security" element={<AccountSecurityPage />} />
         <Route path="school-year" element={<DashboardSchoolYearPage />} />
         <Route path="messages" element={<DashboardMessagesPage />} />

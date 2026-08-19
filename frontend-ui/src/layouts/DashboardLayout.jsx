@@ -680,6 +680,7 @@ export default function DashboardLayout() {
                         size="small"
                     >
                         <Avatar
+                            src={user.avatar_url ?? undefined}
                             sx={{
                                 width: 36,
                                 height: 36,
@@ -701,6 +702,16 @@ export default function DashboardLayout() {
                             {user.fullname}
                         </MenuItem>
                         <Divider />
+                        <MenuItem
+                            component={RouterLink}
+                            to="/dashboard/profile"
+                            onClick={() => setAnchorEl(null)}
+                        >
+                            <ListItemIcon>
+                                <PersonIcon fontSize="small" />
+                            </ListItemIcon>
+                            Mon profil
+                        </MenuItem>
                         <MenuItem
                             component={RouterLink}
                             to="/dashboard/security"

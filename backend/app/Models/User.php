@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
+use App\Notifications\VerifyEmailNotification;
+use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,22 +20,20 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\Role;
-use App\Models\School;
-use App\Models\SchoolUser;
-use App\Models\Student;
-use App\Models\ParentStudent;
-use App\Models\ClassSubjectTeacher;
-use App\Models\ServiceProvider;
-use App\Notifications\ResetPasswordNotification;
-use App\Notifications\VerifyEmailNotification;
 
-#[Fillable(['fullname', 'email', 'phone', 'password', 'language', 'current_school_id', 'role_id', 'terms_accepted_version', 'terms_accepted_at'])]
+#[Fillable(['fullname', 'email', 'phone', 'password', 'avatar', 'language', 'current_school_id', 'role_id', 'terms_accepted_version', 'terms_accepted_at'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasUuids, MustVerifyEmail, Notifiable;
+
+    protected $appends = ['avatar_url'];
+
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->avatar ? asset('storage/'.$this->avatar) : null);
+    }
 
     /**
      * Get the attributes that should be cast.

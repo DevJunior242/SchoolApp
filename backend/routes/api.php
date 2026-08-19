@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ParentController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentMethodController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SchoolMemberController;
@@ -105,6 +106,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/2fa/confirm', [TwoFactorAuthController::class, 'confirm']);
     Route::post('/2fa/disable', [TwoFactorAuthController::class, 'disable']);
     Route::post('/2fa/recovery-codes/regenerate', [TwoFactorAuthController::class, 'regenerateRecoveryCodes']);
+
+    Route::post('/profile', [ProfileController::class, 'update']);
+    Route::post('/profile/password', [ProfileController::class, 'updatePassword']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
