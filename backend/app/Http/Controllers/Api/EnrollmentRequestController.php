@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\User;
 use App\Models\School;
 use App\Models\SchoolUser;
+use App\Rules\ValidTurnstileToken;
 use Illuminate\Http\Request;
 use App\Models\EnrollmentRequest;
 use App\Http\Controllers\Controller;
@@ -37,6 +38,7 @@ class EnrollmentRequestController extends Controller
             'parent_phone' => ['nullable', 'string', 'max:30'],
             'parent_email' => ['nullable', 'email', 'max:255'],
             'message' => ['nullable', 'string', 'max:1000'],
+            'turnstile_token' => [new ValidTurnstileToken],
         ]);
 
         if (empty($validated['parent_phone']) && empty($validated['parent_email'])) {

@@ -45,4 +45,12 @@ return [
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
     ],
 
+    // Anti-robot Cloudflare sur les formulaires publics (inscription,
+    // pré-inscription). Seule la clé secrète sert côté backend (vérification
+    // du jeton) ; la clé publique (site key) va dans frontend-ui/.env sous
+    // VITE_TURNSTILE_SITE_KEY, jamais ici.
+    'turnstile' => [
+        'secret' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
 ];

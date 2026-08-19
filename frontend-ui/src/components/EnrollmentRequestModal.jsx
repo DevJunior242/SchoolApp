@@ -12,6 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import api from '../api/axios.jsx';
+import TurnstileWidget from './TurnstileWidget.jsx';
 
 function emptyForm() {
   return {
@@ -23,6 +24,7 @@ function emptyForm() {
     parent_email: '',
     message: '',
     company: '', // honeypot : laissé vide par un humain
+    turnstile_token: '',
   };
 }
 
@@ -153,6 +155,10 @@ export default function EnrollmentRequestModal({ open, onClose, school }) {
                 onChange={handleChange('company')}
               />
             </Box>
+
+            <TurnstileWidget
+              onVerify={(token) => setForm((prev) => ({ ...prev, turnstile_token: token }))}
+            />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={handleClose}>Annuler</Button>

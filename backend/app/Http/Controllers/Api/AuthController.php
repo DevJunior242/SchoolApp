@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\ValidTurnstileToken;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'language' => ['nullable', 'string', 'size:2'],
             'terms_accepted' => ['required', 'accepted'],
+            'turnstile_token' => [new ValidTurnstileToken],
         ]);
 
         $user = User::create([

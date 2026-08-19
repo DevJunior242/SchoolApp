@@ -17,6 +17,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import intellinoMark from "../assets/intellino-mark.svg";
+import TurnstileWidget from "../components/TurnstileWidget.jsx";
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export default function RegisterPage() {
     password: "",
     password_confirmation: "",
     terms_accepted: false,
+    turnstile_token: "",
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -231,6 +233,11 @@ export default function RegisterPage() {
                     politique de confidentialité
                   </RouterLink>
                 </Typography>
+              }
+            />
+            <TurnstileWidget
+              onVerify={(token) =>
+                setForm((prev) => ({ ...prev, turnstile_token: token }))
               }
             />
             <Button
