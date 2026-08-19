@@ -22,6 +22,7 @@ import { useApiGet } from "../hooks/useApiGet.js";
 import DashboardPaymentsPage from "./DashboardPaymentsPage.jsx";
 import DashboardExpensesPage from "./DashboardExpensesPage.jsx";
 import DashboardTreasuryPage from "./DashboardTreasuryPage.jsx";
+import CafeteriaRechargesTab from "../components/CafeteriaRechargesTab.jsx";
 
 function fmt(n) {
   return `${Number(n ?? 0).toLocaleString()} FCFA`;
@@ -361,6 +362,7 @@ export default function DashboardAccountingPage() {
         <Tab value="depenses" label="Dépenses" />
         <Tab value="caisse" label="Caisse" />
         <Tab value="comptes-bancaires" label="Comptes bancaires" />
+        <Tab value="recharges-cantine" label="Recharges cantine" />
         <Tab value="tableau-de-bord" label="Tableau de bord" />
         <Tab value="rapports" label="Rapports" />
       </Tabs>
@@ -369,6 +371,7 @@ export default function DashboardAccountingPage() {
       {tab === "depenses" && <DashboardExpensesPage embedded />}
       {tab === "caisse" && <DashboardTreasuryPage embedded typeFilter="CASH" />}
       {tab === "comptes-bancaires" && <DashboardTreasuryPage embedded typeFilter="BANK" />}
+      {tab === "recharges-cantine" && <CafeteriaRechargesTab schoolId={schoolId} />}
       {tab === "tableau-de-bord" && <AccountingDashboardTab schoolId={schoolId} />}
       {tab === "rapports" && <AccountingReportsTab schoolId={schoolId} />}
     </Box>

@@ -3,9 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   IconButton,
   Stack,
   Tab,
@@ -15,10 +12,9 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
 import api from '../api/axios.jsx';
 import CafeteriaServiceTab from '../components/CafeteriaServiceTab.jsx';
+import CafeteriaRechargesTab from '../components/CafeteriaRechargesTab.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
 
@@ -46,7 +42,7 @@ export default function DashboardCafeteriaPage() {
 
       {tab === 'service' && <CafeteriaServiceTab schoolId={schoolId} />}
       {tab === 'menu' && <MenuTab schoolId={schoolId} />}
-      {tab === 'recharges' && <RechargesTab schoolId={schoolId} />}
+      {tab === 'recharges' && <CafeteriaRechargesTab schoolId={schoolId} />}
     </Box>
   );
 }
@@ -152,59 +148,5 @@ function MenuTab({ schoolId }) {
         </Button>
       </Box>
     </Box>
-  );
-}
-
-function RechargesTab({ schoolId }) {
-  const { data, loading, error, reload } = useApiGet(schoolId ? `/schools/${schoolId}/cafeteria/wallet-transactions` : null, {
-    params: { status: 0 },
-  });
-
-  async function handleConfirm(id) {
-    await api.post(`/schools/${schoolId}/cafeteria/wallet-transactions/${id}/confirm`);
-    await reload();
-  }
-
-  async function handleReject(id) {
-    await api.post(`/schools/${schoolId}/cafeteria/wallet-transactions/${id}/reject`);
-    await reload();
-  }
-
-  if (loading) return <Typography color="text.secondary">Chargement...</Typography>;
-
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ maxWidth: 480 }}>
-        {error}
-      </Alert>
-    );
-  }
-
-  const transactions = data?.data ?? [];
-
-  return (
-    <Stack spacing={1.5}>
-      {transactions.map((t) => (
-        <Card key={t.id} variant="outlined">
-          <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="subtitle2">{t.wallet?.student?.fullname}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {Number(t.amount).toLocaleString()} FCFA · {t.payment_method?.name}
-                {t.transaction_id ? ` · Réf. ${t.transaction_id}` : ''}
-              </Typography>
-            </Box>
-            <Chip label="En attente" color="warning" size="small" />
-            <IconButton color="success" onClick={() => handleConfirm(t.id)}>
-              <CheckIcon />
-            </IconButton>
-            <IconButton color="error" onClick={() => handleReject(t.id)}>
-              <CloseIcon />
-            </IconButton>
-          </CardContent>
-        </Card>
-      ))}
-      {transactions.length === 0 && <Typography color="text.secondary">Aucune recharge en attente.</Typography>}
-    </Stack>
   );
 }
