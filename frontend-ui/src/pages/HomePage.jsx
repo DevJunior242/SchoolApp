@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Avatar,
   Box,
   Button,
@@ -16,6 +17,7 @@ import {
 import { motion } from "motion/react";
 import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
+import api from "../api/axios.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import EnrollmentRequestModal from "../components/EnrollmentRequestModal.jsx";
 import ChatbotWidget from "../components/ChatbotWidget.jsx";
@@ -153,6 +155,40 @@ function IconTile({ children, size = 48, radius = 12 }) {
 function MarketingHome() {
   const [dashTab, setDashTab] = useState("dashboard");
   const [demoSubmitted, setDemoSubmitted] = useState(false);
+  const [demoForm, setDemoForm] = useState({
+    school_name: "",
+    email: "",
+    phone: "",
+    description: "",
+    company: "", // honeypot : laissé vide par un humain
+  });
+  const [demoError, setDemoError] = useState(null);
+  const [demoSubmitting, setDemoSubmitting] = useState(false);
+
+  function handleDemoChange(field) {
+    return (e) => setDemoForm((prev) => ({ ...prev, [field]: e.target.value }));
+  }
+
+  async function handleDemoSubmit(e) {
+    e.preventDefault();
+    setDemoError(null);
+
+    if (!demoForm.email.trim() && !demoForm.phone.trim()) {
+      setDemoError("Indiquez au moins un email ou un numéro de téléphone pour être recontacté.");
+      return;
+    }
+
+    setDemoSubmitting(true);
+    try {
+      await api.post("/demo-requests", demoForm);
+      setDemoSubmitted(true);
+    } catch (err) {
+      const messages = err.response?.data?.errors;
+      setDemoError(messages ? Object.values(messages).flat().join(" ") : "Impossible d'envoyer la demande.");
+    } finally {
+      setDemoSubmitting(false);
+    }
+  }
 
   return (
     <Box sx={{ bgcolor: "background.default", color: "text.primary" }}>
@@ -700,43 +736,62 @@ function MarketingHome() {
                     </Typography>
                   </Box>
                 ) : (
-                  <Box
-                    component="form"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      setDemoSubmitted(true);
-                    }}
-                  >
+                  <Box component="form" onSubmit={handleDemoSubmit}>
                     <Stack spacing={2.5}>
+                      {demoError && <Alert severity="error">{demoError}</Alert>}
                       <TextField
-                        label="Nom de l'établissement"
+                        label="Nom de l'établissement (optionnel)"
                         placeholder="Ex : Lycée Notre-Dame de Bobo"
+                        value={demoForm.school_name}
+                        onChange={handleDemoChange("school_name")}
                         fullWidth
-                        required
                       />
                       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                         <TextField
-                          label="Ville"
-                          placeholder="Ouagadougou"
-                          fullWidth
-                          required
-                        />
-                        <TextField
                           label="Téléphone"
                           placeholder="+226 70 00 00 00"
+                          value={demoForm.phone}
+                          onChange={handleDemoChange("phone")}
                           fullWidth
-                          required
+                        />
+                        <TextField
+                          label="Email"
+                          type="email"
+                          placeholder="vous@ecole.bf"
+                          value={demoForm.email}
+                          onChange={handleDemoChange("email")}
+                          fullWidth
                         />
                       </Stack>
                       <TextField
-                        label="Email"
-                        type="email"
-                        placeholder="vous@ecole.bf"
-                        fullWidth
+                        label="Votre besoin"
+                        placeholder="Décrivez votre établissement et ce que vous cherchez..."
+                        value={demoForm.description}
+                        onChange={handleDemoChange("description")}
+                        multiline
+                        minRows={3}
                         required
+                        fullWidth
                       />
-                      <Button type="submit" variant="contained" color="primary" size="large">
-                        Demander une démo
+                      {/* Honeypot anti-bot : invisible et non atteignable pour un humain */}
+                      <Box sx={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }} aria-hidden="true">
+                        <TextField
+                          label="Entreprise"
+                          name="company"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          value={demoForm.company}
+                          onChange={handleDemoChange("company")}
+                        />
+                      </Box>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        size="large"
+                        disabled={demoSubmitting}
+                      >
+                        {demoSubmitting ? "Envoi..." : "Demander une démo"}
                       </Button>
                     </Stack>
                   </Box>

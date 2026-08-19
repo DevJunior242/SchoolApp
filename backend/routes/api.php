@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\ClassTeacherController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\CourseContentController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DemoRequestController;
 use App\Http\Controllers\Api\EnrollmentRequestController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventRecapController;
@@ -91,6 +92,10 @@ Route::get('/subjects', [SubjectController::class, 'index']);
 // throttle serré car c'est une route d'écriture ouverte à tous.
 Route::middleware('throttle:enrollment-requests')->post('/schools/{school}/enrollment-requests', [EnrollmentRequestController::class, 'store']);
 
+// Formulaire public de demande de démo (homepage) : même logique, pas
+// rattaché à une école (le visiteur n'en a pas forcément une encore).
+Route::middleware('throttle:demo-requests')->post('/demo-requests', [DemoRequestController::class, 'store']);
+
 // Formules et moyens de paiement affichés avant inscription/paiement :
 // public, pas de donnée sensible.
 Route::get('/marketplace/plans', [MarketplacePlanController::class, 'index']);
@@ -143,6 +148,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/schools', [AdminController::class, 'schools']);
         Route::post('/admin/schools/{school}/toggle-status', [AdminController::class, 'toggleSchoolStatus']);
         Route::post('/admin/schools/{school}/reactivate', [AdminController::class, 'reactivateSchool']);
+
+        Route::get('/admin/demo-requests', [DemoRequestController::class, 'index']);
+        Route::put('/admin/demo-requests/{demoRequest}/status', [DemoRequestController::class, 'updateStatus']);
 
         Route::get('/admin/marketplace/providers', [ServiceProviderController::class, 'adminIndex']);
         Route::post('/admin/marketplace/providers/{provider}/approve', [ServiceProviderController::class, 'approve']);

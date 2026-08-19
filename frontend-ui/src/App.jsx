@@ -4,6 +4,7 @@ import DashboardLayout from './layouts/DashboardLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import SuperAdminActivationKeysPage from './pages/SuperAdminActivationKeysPage.jsx';
 import SuperAdminSchoolsPage from './pages/SuperAdminSchoolsPage.jsx';
+import SuperAdminDemoRequestsPage from './pages/SuperAdminDemoRequestsPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import CreateSchoolPage from './pages/CreateSchoolPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -147,6 +148,7 @@ function App() {
         <Route path="messages" element={<DashboardMessagesPage />} />
         <Route path="activation-keys" element={<SuperAdminActivationKeysPage />} />
         <Route path="all-schools" element={<SuperAdminSchoolsPage />} />
+        <Route path="demo-requests" element={<SuperAdminDemoRequestsPage />} />
       </Route>
     </Routes>
   );

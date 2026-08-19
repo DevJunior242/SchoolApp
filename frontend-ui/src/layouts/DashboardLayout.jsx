@@ -50,6 +50,7 @@ import LocalLibraryIcon from "@mui/icons-material/LocalLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
+import ContactMailIcon from "@mui/icons-material/ContactMail";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -239,6 +240,7 @@ const SUPERADMIN_NAV_GROUPS = singleGroup([
     OVERVIEW_ITEM,
     { label: "Écoles", to: "/dashboard/all-schools", icon: <ApartmentIcon /> },
     { label: "Clés d'activation", to: "/dashboard/activation-keys", icon: <VpnKeyIcon /> },
+    { label: "Demandes de démo", to: "/dashboard/demo-requests", icon: <ContactMailIcon /> },
     { label: "Marketplace", to: "/dashboard/marketplace-moderation", icon: <StorefrontIcon /> },
 ]);
 
