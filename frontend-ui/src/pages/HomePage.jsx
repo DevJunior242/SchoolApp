@@ -230,8 +230,8 @@ function MarketingHome() {
                   }}
                 >
                   Écoles, enseignants, parents et élèves réunis dans un seul
-                  espace — conçu pour fonctionner avec une connexion limitée, en
-                  Mobile Money, et dans les langues nationales.
+                  espace — conçu pour fonctionner avec une connexion limitée,
+                  en Mobile Money, et dans les langues nationales.
                 </Typography>
 
                 <Stack
@@ -306,9 +306,7 @@ function MarketingHome() {
                       <Chip
                         label="Tableau de bord"
                         color={dashTab === "dashboard" ? "primary" : "default"}
-                        variant={
-                          dashTab === "dashboard" ? "filled" : "outlined"
-                        }
+                        variant={dashTab === "dashboard" ? "filled" : "outlined"}
                         onClick={() => setDashTab("dashboard")}
                       />
                       <Chip
@@ -337,10 +335,7 @@ function MarketingHome() {
                             }}
                           >
                             <Box>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
+                              <Typography variant="body2" color="text.secondary">
                                 Établissement
                               </Typography>
                               <Typography variant="subtitle1" fontWeight={700}>
@@ -361,19 +356,13 @@ function MarketingHome() {
                                   sx={(theme) => ({
                                     p: 1.2,
                                     textAlign: "center",
-                                    bgcolor: alpha(
-                                      theme.palette.primary.main,
-                                      0.08,
-                                    ),
+                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
                                   })}
                                 >
                                   <Typography variant="h6" color="primary.main">
                                     {stat.value}
                                   </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
+                                  <Typography variant="caption" color="text.secondary">
                                     {stat.label}
                                   </Typography>
                                 </Paper>
@@ -398,10 +387,7 @@ function MarketingHome() {
                               sx={(theme) => ({
                                 height: 8,
                                 borderRadius: 999,
-                                bgcolor: alpha(
-                                  theme.palette.text.primary,
-                                  0.08,
-                                ),
+                                bgcolor: alpha(theme.palette.text.primary, 0.08),
                                 overflow: "hidden",
                               })}
                             >
@@ -426,25 +412,16 @@ function MarketingHome() {
                           </Typography>
                           <Stack spacing={1}>
                             {[
-                              {
-                                label: "Orange Money",
-                                value: "1 240 000 FCFA",
-                              },
+                              { label: "Orange Money", value: "1 240 000 FCFA" },
                               { label: "Moov Money", value: "860 000 FCFA" },
-                              {
-                                label: "Espèces suivies",
-                                value: "410 000 FCFA",
-                              },
+                              { label: "Espèces suivies", value: "410 000 FCFA" },
                             ].map((row) => (
                               <Stack
                                 key={row.label}
                                 direction="row"
                                 sx={(theme) => ({
                                   justifyContent: "space-between",
-                                  bgcolor: alpha(
-                                    theme.palette.primary.main,
-                                    0.06,
-                                  ),
+                                  bgcolor: alpha(theme.palette.primary.main, 0.06),
                                   borderRadius: 2,
                                   px: 1.5,
                                   py: 1,
@@ -587,8 +564,8 @@ function MarketingHome() {
               Pensé pour les réalités du terrain
             </Typography>
             <Typography color="text.secondary">
-              Pas une adaptation d'un outil étranger — une plateforme conçue dès
-              le départ pour le Burkina Faso.
+              Pas une adaptation d'un outil étranger — une plateforme conçue
+              dès le départ pour le Burkina Faso.
             </Typography>
           </Box>
           <Grid container spacing={4}>
@@ -596,9 +573,7 @@ function MarketingHome() {
               <Grid key={item.title} size={{ xs: 12, md: 4 }}>
                 <Box sx={{ textAlign: "center", px: 1.5 }}>
                   <Box sx={{ display: "flex", justifyContent: "center" }}>
-                    <IconTile size={64} radius={16}>
-                      {item.icon}
-                    </IconTile>
+                    <IconTile size={64} radius={16}>{item.icon}</IconTile>
                   </Box>
                   <Typography variant="h6" sx={{ mb: 1 }}>
                     {item.title}
@@ -614,11 +589,7 @@ function MarketingHome() {
       </Container>
 
       {/* À PROPOS + TÉMOIGNAGE */}
-      <Container
-        id="apropos"
-        maxWidth="lg"
-        sx={{ py: { xs: 6, md: 10 }, scrollMarginTop: 80 }}
-      >
+      <Container id="apropos" maxWidth="lg" sx={{ py: { xs: 6, md: 10 }, scrollMarginTop: 80 }}>
         <Grid container spacing={6} alignItems="center">
           <Grid size={{ xs: 12, md: 6 }}>
             <SectionEyebrow>À propos</SectionEyebrow>
@@ -626,9 +597,10 @@ function MarketingHome() {
               Une confiance qui se construit établissement par établissement
             </Typography>
             <Typography color="text.secondary" sx={{ mb: 4 }}>
-              Intellino accompagne des écoles maternelles, primaires et
-              secondaires à Ouagadougou, Bobo-Dioulasso, Koudougou et au-delà,
-              avec un support en français et un accompagnement de proximité.
+              EduAfrique accompagne des écoles maternelles, primaires et
+              secondaires à Ouagadougou, Bobo-Dioulasso, Koudougou et
+              au-delà, avec un support en français et un accompagnement de
+              proximité.
             </Typography>
             <Grid container spacing={2}>
               {aboutStats.map((stat) => (
@@ -654,21 +626,16 @@ function MarketingHome() {
                 background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.16)}, ${alpha(theme.palette.text.primary, 0.03)})`,
               })}
             >
-              <Typography
-                sx={{
-                  fontSize: 40,
-                  lineHeight: 1,
-                  color: "primary.main",
-                  mb: 1,
-                }}
-              >
+              <Typography sx={{ fontSize: 40, lineHeight: 1, color: "primary.main", mb: 1 }}>
                 "
               </Typography>
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
                 Témoignage à venir — à remplacer par le retour d'un
                 établissement qui utilise réellement la plateforme.
               </Typography>
-              <Typography fontWeight={700}>[Nom, fonction]</Typography>
+              <Typography fontWeight={700}>
+                [Nom, fonction]
+              </Typography>
               <Typography variant="body2" color="text.secondary">
                 [Établissement — Ville]
               </Typography>
@@ -747,10 +714,7 @@ function MarketingHome() {
                         fullWidth
                         required
                       />
-                      <Stack
-                        direction={{ xs: "column", sm: "row" }}
-                        spacing={2}
-                      >
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                         <TextField
                           label="Ville"
                           placeholder="Ouagadougou"
@@ -771,12 +735,7 @@ function MarketingHome() {
                         fullWidth
                         required
                       />
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        color="primary"
-                        size="large"
-                      >
+                      <Button type="submit" variant="contained" color="primary" size="large">
                         Demander une démo
                       </Button>
                     </Stack>
@@ -848,8 +807,8 @@ function SchoolsSlider() {
         Nos écoles
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Des établissements déjà présents sur EduAfrique. Envoyez une demande de
-        pré-inscription en quelques clics.
+        Des établissements déjà présents sur EduAfrique. Envoyez une demande de pré-inscription en
+        quelques clics.
       </Typography>
 
       <Box
@@ -877,11 +836,7 @@ function SchoolsSlider() {
               })}
             >
               <CardContent>
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  sx={{ mb: 1.5, alignItems: "center" }}
-                >
+                <Stack direction="row" spacing={1.5} sx={{ mb: 1.5, alignItems: "center" }}>
                   <Avatar src={school.logo_url ?? undefined} variant="rounded">
                     {school.name.charAt(0).toUpperCase()}
                   </Avatar>
@@ -890,9 +845,7 @@ function SchoolsSlider() {
                       {school.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" noWrap>
-                      {[school.city, school.country?.name]
-                        .filter(Boolean)
-                        .join(", ")}
+                      {[school.city, school.country?.name].filter(Boolean).join(", ")}
                     </Typography>
                   </Box>
                 </Stack>
