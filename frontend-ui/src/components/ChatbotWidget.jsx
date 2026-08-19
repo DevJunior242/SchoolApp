@@ -19,6 +19,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SchoolIcon from "@mui/icons-material/School";
 import AddBusinessIcon from "@mui/icons-material/AddBusiness";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import SellIcon from "@mui/icons-material/Sell";
 import LoginIcon from "@mui/icons-material/Login";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutlineOutlined";
 import { useNavigate } from "react-router-dom";
@@ -26,10 +27,8 @@ import api from "../api/axios.jsx";
 import EnrollmentRequestModal from "./EnrollmentRequestModal.jsx";
 
 // Réponses tirées telles quelles du contenu déjà publié sur la page (sections
-// Fonctionnalités / Notre approche) : pas de chiffre ni de promesse inventés
-// pour ce bot. Les tarifs ne sont volontairement pas abordés ici — aucune
-// grille n'est publiée sur le site pour l'instant, donc on renvoie vers le
-// contact plutôt que d'inventer un prix.
+// Fonctionnalités / Notre approche / Tarifs) : pas de chiffre ni de promesse
+// inventés pour ce bot.
 const FAQ = [
   {
     q: "Quelles fonctionnalités sont incluses ?",
@@ -65,7 +64,19 @@ const FAQ = [
   },
   {
     q: "Quels sont les tarifs ?",
-    r: "Ça dépend de la taille de votre établissement — le plus simple est d'en discuter directement avec notre équipe (bouton « Parler à un humain »).",
+    r: "Trois paliers selon la taille de votre établissement : École (25 000 FCFA/mois, jusqu'à 150 élèves), Établissement (60 000 FCFA/mois, 151 à 500 élèves) et Réseau scolaire (120 000 FCFA/mois, 500+ élèves ou plusieurs écoles). Détail complet sur la page Tarifs.",
+  },
+  {
+    q: "Y a-t-il un essai gratuit ?",
+    r: "Oui, 30 jours d'essai gratuit sur tous les paliers, sans engagement.",
+  },
+  {
+    q: "Comment se passe le paiement des tarifs ?",
+    r: "Par Orange Money, Moov Money ou virement. Le paiement est confirmé manuellement par notre équipe.",
+  },
+  {
+    q: "Puis-je changer de palier plus tard ?",
+    r: "Oui, contactez-nous quand l'effectif de votre établissement évolue — vos données restent intactes lors du changement.",
   },
 ];
 
@@ -114,6 +125,11 @@ export default function ChatbotWidget() {
 
   function seConnecter() {
     navigate("/login");
+    fermer();
+  }
+
+  function voirLesTarifs() {
+    navigate("/pricing");
     fermer();
   }
 
@@ -184,6 +200,9 @@ export default function ChatbotWidget() {
                   </Button>
                   <Button variant="outlined" startIcon={<AddBusinessIcon />} onClick={creerEcole}>
                     Créer l'espace de mon établissement
+                  </Button>
+                  <Button variant="outlined" startIcon={<SellIcon />} onClick={voirLesTarifs}>
+                    Voir les tarifs
                   </Button>
                   <Button variant="outlined" startIcon={<HelpOutlineIcon />} onClick={() => setEtape("faq")}>
                     Questions fréquentes
