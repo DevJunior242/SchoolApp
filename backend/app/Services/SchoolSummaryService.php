@@ -126,6 +126,44 @@ class SchoolSummaryService
     }
 
     /**
+     * Recettes et dépenses confirmées des N derniers mois (mois en cours
+     * inclus) — pour le graphique de tendance du tableau de bord directeur.
+     * Même statut CONFIRMED que summary(), juste étalé dans le temps.
+     *
+     * @return array<int, array{month: string, label: string, payments: float, expenses: float}>
+     */
+    public function monthlyTrend(School $school, int $months = 6): array
+    {
+        $result = [];
+
+        for ($i = $months - 1; $i >= 0; $i--) {
+            $monthStart = now()->subMonthsNoOverflow($i)->startOfMonth();
+            $monthEnd = $monthStart->copy()->endOfMonth();
+
+            $payments = Payment::query()
+                ->where('school_id', $school->id)
+                ->where('status', Payment::STATUS_CONFIRMED)
+                ->whereBetween('confirmed_at', [$monthStart, $monthEnd])
+                ->sum('amount');
+
+            $expenses = Expense::query()
+                ->where('school_id', $school->id)
+                ->where('status', Expense::STATUS_CONFIRMED)
+                ->whereBetween('confirmed_at', [$monthStart, $monthEnd])
+                ->sum('amount');
+
+            $result[] = [
+                'month' => $monthStart->format('Y-m'),
+                'label' => ucfirst($monthStart->locale('fr')->isoFormat('MMM')),
+                'payments' => (float) $payments,
+                'expenses' => (float) $expenses,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
      * Croissance de l'effectif ce mois-ci : élèves admis ce mois rapportés à
      * l'effectif du mois précédent. Basé sur SchoolStudent::admission_date,
      * déjà renseigné à l'inscription — pas de nouvelle donnée à tracer.

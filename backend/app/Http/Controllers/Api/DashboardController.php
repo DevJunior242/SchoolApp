@@ -26,6 +26,7 @@ class DashboardController extends Controller
         return response()->json([
             ...$summaryService->summary($school),
             'recent_activity' => $summaryService->recentActivity($school),
+            'monthly_trend' => $summaryService->monthlyTrend($school),
         ]);
     }
 

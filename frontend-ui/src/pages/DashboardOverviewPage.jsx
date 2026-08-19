@@ -30,6 +30,7 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import BadgeIcon from "@mui/icons-material/Badge";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import DescriptionIcon from "@mui/icons-material/Description";
+import MonthlyFinanceChart from "../components/MonthlyFinanceChart.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
@@ -344,6 +345,12 @@ export default function DashboardOverviewPage() {
                             </Grid>
                         ))}
                     </Grid>
+
+                    {summary.monthly_trend && (
+                        <Box sx={{ mt: 3 }}>
+                            <MonthlyFinanceChart data={summary.monthly_trend} />
+                        </Box>
+                    )}
                 </>
             )}
 
