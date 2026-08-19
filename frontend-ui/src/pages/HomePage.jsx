@@ -589,7 +589,7 @@ function MarketingHome() {
               Une confiance qui se construit établissement par établissement
             </Typography>
             <Typography color="text.secondary">
-              EduAfrique est conçu pour accompagner les écoles maternelles,
+              INTELLINO est conçu pour accompagner les écoles maternelles,
               primaires et secondaires du Burkina Faso, avec un support en
               français et un accompagnement de proximité.
             </Typography>
