@@ -26,6 +26,9 @@ import EventIcon from "@mui/icons-material/Event";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import ScheduleIcon from "@mui/icons-material/Schedule";
+import BadgeIcon from "@mui/icons-material/Badge";
+import RestaurantIcon from "@mui/icons-material/Restaurant";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
@@ -83,6 +86,12 @@ const QUICK_ACTIONS_BY_ROLE = {
         { label: "Paiements", to: "/dashboard/my-children-payments", icon: <PaymentsIcon /> },
         { label: "Absences de mes enfants", to: "/dashboard/my-children-attendances", icon: <EventBusyIcon /> },
         { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
+    ],
+    eleve: [
+        { label: "Mon bulletin", to: "/dashboard/my-bulletin", icon: <DescriptionIcon /> },
+        { label: "Ma cantine", to: "/dashboard/my-wallet", icon: <RestaurantIcon /> },
+        { label: "Mon badge cantine", to: "/dashboard/my-badge", icon: <BadgeIcon /> },
+        { label: "Mes cours", to: "/dashboard/my-courses", icon: <MenuBookOutlinedIcon /> },
     ],
 };
 
