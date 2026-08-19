@@ -40,7 +40,7 @@ class StudentWalletController extends Controller
 
     public function show(Request $request, School $school, Student $student)
     {
-        $this->authorizeStaffOrParent($request, $school, $student);
+        $this->authorizeStaffParentOrSelf($request, $school, $student);
 
         $wallet = StudentWallet::query()->firstOrCreate(
             ['school_id' => $school->id, 'student_id' => $student->id]
@@ -57,7 +57,7 @@ class StudentWalletController extends Controller
 
     public function requestRecharge(Request $request, School $school, Student $student)
     {
-        $this->authorizeStaffOrParent($request, $school, $student);
+        $this->authorizeStaffParentOrSelf($request, $school, $student);
 
         $validated = $request->validate([
             'payment_method_id' => ['required', 'uuid', 'exists:payment_methods,id'],
@@ -143,9 +143,18 @@ class StudentWalletController extends Controller
         $wallet->update(['low_balance_notified' => false]);
     }
 
-    private function authorizeStaffOrParent(Request $request, School $school, Student $student): void
+    /**
+     * Un élève majeur avec son propre compte peut consulter et recharger
+     * son propre portefeuille, comme un parent le fait pour ses enfants
+     * (même schéma que BookReservationController::abortUnlessSelfParentOrStaff).
+     */
+    private function authorizeStaffParentOrSelf(Request $request, School $school, Student $student): void
     {
         $userId = $request->user()->id;
+
+        if ($student->user_id === $userId) {
+            return;
+        }
 
         $isStaff = SchoolUser::query()
             ->where('school_id', $school->id)

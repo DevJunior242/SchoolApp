@@ -156,11 +156,16 @@ class BulletinController extends Controller
 
     /**
      * Le directeur consulte le bulletin de n'importe quel élève de son
-     * école ; un parent ne consulte que celui de ses propres enfants.
+     * école ; un parent ne consulte que celui de ses propres enfants ; un
+     * élève majeur avec son propre compte consulte le sien.
      */
     private function authorizeBulletinViewer(Request $request, School $school, Student $student): void
     {
         $userId = $request->user()->id;
+
+        if ($student->user_id === $userId) {
+            return;
+        }
 
         $isDirecteur = SchoolUser::query()
             ->where('school_id', $school->id)

@@ -174,12 +174,15 @@ const PARENT_NAV_GROUPS = singleGroup([
     { label: "Marketplace", to: "/dashboard/marketplace", icon: <StorefrontIcon /> },
 ]);
 
-// L'élève majeur (compte propre) n'a accès qu'à son propre badge cantine
-// pour l'instant. Rôle précédemment sans menu dédié : il héritait par
-// défaut du menu complet du directeur, inutilisable pour lui (tout 403).
+// L'élève majeur (compte propre) a le même accès qu'un parent à ses propres
+// données (cantine, bulletin), en plus de son badge/bibliothèque/cours.
+// Rôle précédemment sans menu dédié : il héritait par défaut du menu complet
+// du directeur, inutilisable pour lui (tout 403).
 const ELEVE_NAV_GROUPS = singleGroup([
     OVERVIEW_ITEM,
     { label: "Mon badge cantine", to: "/dashboard/my-badge", icon: <BadgeIcon /> },
+    { label: "Ma cantine", to: "/dashboard/my-wallet", icon: <RestaurantIcon /> },
+    { label: "Mon bulletin", to: "/dashboard/my-bulletin", icon: <DescriptionIcon /> },
     { label: "Ma bibliothèque", to: "/dashboard/my-library", icon: <LocalLibraryIcon /> },
     { label: "Mes cours", to: "/dashboard/my-courses", icon: <OndemandVideoIcon /> },
     { label: "Marketplace", to: "/dashboard/marketplace", icon: <StorefrontIcon /> },

@@ -46,6 +46,8 @@ import StudentQrBadgePage from './pages/StudentQrBadgePage.jsx';
 import DashboardCafeteriaPage from './pages/DashboardCafeteriaPage.jsx';
 import ParentCafeteriaPage from './pages/ParentCafeteriaPage.jsx';
 import StudentSelfBadgePage from './pages/StudentSelfBadgePage.jsx';
+import StudentSelfWalletPage from './pages/StudentSelfWalletPage.jsx';
+import StudentSelfBulletinPage from './pages/StudentSelfBulletinPage.jsx';
 import DashboardBusesPage from './pages/DashboardBusesPage.jsx';
 import BusDriverTripPage from './pages/BusDriverTripPage.jsx';
 import ParentBusTrackingPage from './pages/ParentBusTrackingPage.jsx';
@@ -105,6 +107,8 @@ function App() {
         <Route path="students/:studentId/qr-badge" element={<StudentQrBadgePage />} />
         <Route path="my-children-cafeteria" element={<ParentCafeteriaPage />} />
         <Route path="my-badge" element={<StudentSelfBadgePage />} />
+        <Route path="my-wallet" element={<StudentSelfWalletPage />} />
+        <Route path="my-bulletin" element={<StudentSelfBulletinPage />} />
         <Route path="buses" element={<DashboardBusesPage />} />
         <Route path="my-bus-trip" element={<BusDriverTripPage />} />
         <Route path="my-children-bus" element={<ParentBusTrackingPage />} />
