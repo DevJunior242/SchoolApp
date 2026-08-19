@@ -284,11 +284,11 @@ export default function DashboardLayout() {
     }, [collapsed]);
 
     useEffect(() => {
-        function handleReadOnly(e) {
+        function handleAccessBlocked(e) {
             setReadOnlyMessage(e.detail);
         }
-        window.addEventListener("school-read-only", handleReadOnly);
-        return () => window.removeEventListener("school-read-only", handleReadOnly);
+        window.addEventListener("school-access-blocked", handleAccessBlocked);
+        return () => window.removeEventListener("school-access-blocked", handleAccessBlocked);
     }, []);
 
     const currentDrawerWidth = collapsed ? collapsedDrawerWidth : drawerWidth;

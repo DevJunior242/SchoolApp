@@ -7,6 +7,7 @@ import SuperAdminSchoolsPage from './pages/SuperAdminSchoolsPage.jsx';
 import SuperAdminDemoRequestsPage from './pages/SuperAdminDemoRequestsPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import CreateSchoolPage from './pages/CreateSchoolPage.jsx';
+import PricingPage from './pages/PricingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
@@ -75,6 +76,7 @@ function App() {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/create-school" element={<CreateSchoolPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

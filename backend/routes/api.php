@@ -148,6 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/schools', [AdminController::class, 'schools']);
         Route::post('/admin/schools/{school}/toggle-status', [AdminController::class, 'toggleSchoolStatus']);
         Route::post('/admin/schools/{school}/reactivate', [AdminController::class, 'reactivateSchool']);
+        Route::put('/admin/schools/{school}/plan', [AdminController::class, 'updateSchoolPlan']);
 
         Route::get('/admin/demo-requests', [DemoRequestController::class, 'index']);
         Route::put('/admin/demo-requests/{demoRequest}/status', [DemoRequestController::class, 'updateStatus']);
@@ -199,7 +200,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Assistant IA côté parent : mêmes garde-fous que celui du directeur
         // (voir ParentAssistantService) mais scopé à ses propres enfants
         // uniquement, pas besoin d'email vérifié pour poser une question.
-        Route::post('/schools/{school}/ai/ask-parent', [AiAssistantController::class, 'askAsParent']);
+        Route::post('/schools/{school}/ai/ask-parent', [AiAssistantController::class, 'askAsParent'])->middleware('school.plan:ai');
 
         Route::get('/schools/{school}/settings', [SchoolController::class, 'show']);
         Route::get('/schools/{school}/seasons', [SeasonController::class, 'index']);
@@ -244,34 +245,34 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/messages/inbox', [MessageController::class, 'inbox']);
         Route::get('/schools/{school}/messages/threads/{user}', [MessageController::class, 'thread']);
 
-        Route::get('/schools/{school}/health/summary', [HealthDashboardController::class, 'summary']);
-        Route::get('/schools/{school}/students/{student}/health/profile', [StudentHealthProfileController::class, 'show']);
-        Route::get('/schools/{school}/students/{student}/health/allergies', [StudentAllergyController::class, 'index']);
-        Route::get('/schools/{school}/students/{student}/health/vaccinations', [StudentVaccinationController::class, 'index']);
-        Route::get('/schools/{school}/students/{student}/health/vaccinations/{vaccination}/document', [StudentVaccinationController::class, 'downloadDocument']);
-        Route::get('/schools/{school}/students/{student}/health/visits', [StudentMedicalVisitController::class, 'index']);
-        Route::get('/schools/{school}/students/{student}/health/medications', [StudentMedicationController::class, 'index']);
-        Route::get('/schools/{school}/students/{student}/health/documents', [StudentHealthDocumentController::class, 'index']);
-        Route::get('/schools/{school}/students/{student}/health/documents/{document}/download', [StudentHealthDocumentController::class, 'download']);
+        Route::get('/schools/{school}/health/summary', [HealthDashboardController::class, 'summary'])->middleware('school.plan:health');
+        Route::get('/schools/{school}/students/{student}/health/profile', [StudentHealthProfileController::class, 'show'])->middleware('school.plan:health');
+        Route::get('/schools/{school}/students/{student}/health/allergies', [StudentAllergyController::class, 'index'])->middleware('school.plan:health');
+        Route::get('/schools/{school}/students/{student}/health/vaccinations', [StudentVaccinationController::class, 'index'])->middleware('school.plan:health');
+        Route::get('/schools/{school}/students/{student}/health/vaccinations/{vaccination}/document', [StudentVaccinationController::class, 'downloadDocument'])->middleware('school.plan:health');
+        Route::get('/schools/{school}/students/{student}/health/visits', [StudentMedicalVisitController::class, 'index'])->middleware('school.plan:health');
+        Route::get('/schools/{school}/students/{student}/health/medications', [StudentMedicationController::class, 'index'])->middleware('school.plan:health');
+        Route::get('/schools/{school}/students/{student}/health/documents', [StudentHealthDocumentController::class, 'index'])->middleware('school.plan:health');
+        Route::get('/schools/{school}/students/{student}/health/documents/{document}/download', [StudentHealthDocumentController::class, 'download'])->middleware('school.plan:health');
 
-        Route::get('/schools/{school}/cafeteria/menu', [CafeteriaMenuController::class, 'show']);
-        Route::get('/schools/{school}/cafeteria/wallet-transactions', [StudentWalletController::class, 'index']);
-        Route::get('/schools/{school}/students/{student}/wallet', [StudentWalletController::class, 'show']);
+        Route::get('/schools/{school}/cafeteria/menu', [CafeteriaMenuController::class, 'show'])->middleware('school.plan:cafeteria');
+        Route::get('/schools/{school}/cafeteria/wallet-transactions', [StudentWalletController::class, 'index'])->middleware('school.plan:cafeteria');
+        Route::get('/schools/{school}/students/{student}/wallet', [StudentWalletController::class, 'show'])->middleware('school.plan:cafeteria');
         Route::get('/schools/{school}/students/{student}/cafeteria/lookup', [CafeteriaMealServiceController::class, 'lookup']);
 
-        Route::get('/schools/{school}/buses', [BusController::class, 'index']);
-        Route::get('/schools/{school}/buses/{bus}/trip', [BusTripController::class, 'show']);
+        Route::get('/schools/{school}/buses', [BusController::class, 'index'])->middleware('school.plan:buses');
+        Route::get('/schools/{school}/buses/{bus}/trip', [BusTripController::class, 'show'])->middleware('school.plan:buses');
         Route::get('/schools/{school}/my-children-bus', [BusTripController::class, 'mine']);
 
-        Route::get('/schools/{school}/library/books', [BookController::class, 'index']);
-        Route::get('/schools/{school}/library/books/{book}', [BookController::class, 'show']);
-        Route::get('/schools/{school}/library/reservations', [BookReservationController::class, 'index']);
-        Route::get('/schools/{school}/library/documents', [BookDocumentController::class, 'index']);
-        Route::get('/schools/{school}/library/documents/{document}/download', [BookDocumentController::class, 'download']);
-        Route::get('/schools/{school}/students/{student}/library/lookup', [BookLoanController::class, 'lookup']);
-        Route::get('/schools/{school}/library/copies/{copy}/lookup', [BookLoanController::class, 'copyLookup']);
-        Route::get('/schools/{school}/my-library', [BookLoanController::class, 'mine']);
-        Route::get('/schools/{school}/my-children-library', [BookLoanController::class, 'forParent']);
+        Route::get('/schools/{school}/library/books', [BookController::class, 'index'])->middleware('school.plan:library');
+        Route::get('/schools/{school}/library/books/{book}', [BookController::class, 'show'])->middleware('school.plan:library');
+        Route::get('/schools/{school}/library/reservations', [BookReservationController::class, 'index'])->middleware('school.plan:library');
+        Route::get('/schools/{school}/library/documents', [BookDocumentController::class, 'index'])->middleware('school.plan:library');
+        Route::get('/schools/{school}/library/documents/{document}/download', [BookDocumentController::class, 'download'])->middleware('school.plan:library');
+        Route::get('/schools/{school}/students/{student}/library/lookup', [BookLoanController::class, 'lookup'])->middleware('school.plan:library');
+        Route::get('/schools/{school}/library/copies/{copy}/lookup', [BookLoanController::class, 'copyLookup'])->middleware('school.plan:library');
+        Route::get('/schools/{school}/my-library', [BookLoanController::class, 'mine'])->middleware('school.plan:library');
+        Route::get('/schools/{school}/my-children-library', [BookLoanController::class, 'forParent'])->middleware('school.plan:library');
 
         // Toute création/modification/suppression de données d'école exige
         // un email vérifié, et est bloquée si l'école est en lecture seule
@@ -329,61 +330,61 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/schools/{school}/treasury-accounts/{treasuryAccount}', [TreasuryAccountController::class, 'destroy']);
             Route::post('/schools/{school}/treasury-accounts/{treasuryAccount}/movements', [TreasuryMovementController::class, 'store']);
 
-            Route::post('/schools/{school}/ai/ask', [AiAssistantController::class, 'ask']);
+            Route::post('/schools/{school}/ai/ask', [AiAssistantController::class, 'ask'])->middleware('school.plan:ai');
 
             Route::post('/schools/{school}/attendances/{attendance}/justify', [AttendanceController::class, 'justify']);
             Route::post('/schools/{school}/attendances/{attendance}/approve-justification', [AttendanceController::class, 'approveJustification']);
             Route::post('/schools/{school}/attendances/{attendance}/reject-justification', [AttendanceController::class, 'rejectJustification']);
 
-            Route::put('/schools/{school}/students/{student}/health/profile', [StudentHealthProfileController::class, 'update']);
+            Route::put('/schools/{school}/students/{student}/health/profile', [StudentHealthProfileController::class, 'update'])->middleware('school.plan:health');
 
-            Route::post('/schools/{school}/students/{student}/health/allergies', [StudentAllergyController::class, 'store']);
-            Route::delete('/schools/{school}/students/{student}/health/allergies/{allergy}', [StudentAllergyController::class, 'destroy']);
+            Route::post('/schools/{school}/students/{student}/health/allergies', [StudentAllergyController::class, 'store'])->middleware('school.plan:health');
+            Route::delete('/schools/{school}/students/{student}/health/allergies/{allergy}', [StudentAllergyController::class, 'destroy'])->middleware('school.plan:health');
 
-            Route::post('/schools/{school}/students/{student}/health/vaccinations', [StudentVaccinationController::class, 'store']);
-            Route::delete('/schools/{school}/students/{student}/health/vaccinations/{vaccination}', [StudentVaccinationController::class, 'destroy']);
+            Route::post('/schools/{school}/students/{student}/health/vaccinations', [StudentVaccinationController::class, 'store'])->middleware('school.plan:health');
+            Route::delete('/schools/{school}/students/{student}/health/vaccinations/{vaccination}', [StudentVaccinationController::class, 'destroy'])->middleware('school.plan:health');
 
-            Route::post('/schools/{school}/students/{student}/health/visits', [StudentMedicalVisitController::class, 'store']);
+            Route::post('/schools/{school}/students/{student}/health/visits', [StudentMedicalVisitController::class, 'store'])->middleware('school.plan:health');
 
-            Route::post('/schools/{school}/students/{student}/health/medications', [StudentMedicationController::class, 'store']);
-            Route::delete('/schools/{school}/students/{student}/health/medications/{medication}', [StudentMedicationController::class, 'destroy']);
+            Route::post('/schools/{school}/students/{student}/health/medications', [StudentMedicationController::class, 'store'])->middleware('school.plan:health');
+            Route::delete('/schools/{school}/students/{student}/health/medications/{medication}', [StudentMedicationController::class, 'destroy'])->middleware('school.plan:health');
 
-            Route::post('/schools/{school}/students/{student}/health/documents', [StudentHealthDocumentController::class, 'store']);
-            Route::delete('/schools/{school}/students/{student}/health/documents/{document}', [StudentHealthDocumentController::class, 'destroy']);
+            Route::post('/schools/{school}/students/{student}/health/documents', [StudentHealthDocumentController::class, 'store'])->middleware('school.plan:health');
+            Route::delete('/schools/{school}/students/{student}/health/documents/{document}', [StudentHealthDocumentController::class, 'destroy'])->middleware('school.plan:health');
 
-            Route::post('/schools/{school}/cafeteria/menu', [CafeteriaMenuController::class, 'store']);
+            Route::post('/schools/{school}/cafeteria/menu', [CafeteriaMenuController::class, 'store'])->middleware('school.plan:cafeteria');
             Route::post('/schools/{school}/students/{student}/cafeteria/serve', [CafeteriaMealServiceController::class, 'store']);
 
-            Route::post('/schools/{school}/students/{student}/wallet/recharge', [StudentWalletController::class, 'requestRecharge']);
-            Route::post('/schools/{school}/cafeteria/wallet-transactions/{walletTransaction}/confirm', [StudentWalletController::class, 'confirmRecharge']);
-            Route::post('/schools/{school}/cafeteria/wallet-transactions/{walletTransaction}/reject', [StudentWalletController::class, 'rejectRecharge']);
+            Route::post('/schools/{school}/students/{student}/wallet/recharge', [StudentWalletController::class, 'requestRecharge'])->middleware('school.plan:cafeteria');
+            Route::post('/schools/{school}/cafeteria/wallet-transactions/{walletTransaction}/confirm', [StudentWalletController::class, 'confirmRecharge'])->middleware('school.plan:cafeteria');
+            Route::post('/schools/{school}/cafeteria/wallet-transactions/{walletTransaction}/reject', [StudentWalletController::class, 'rejectRecharge'])->middleware('school.plan:cafeteria');
 
-            Route::post('/schools/{school}/buses', [BusController::class, 'store']);
-            Route::put('/schools/{school}/buses/{bus}', [BusController::class, 'update']);
-            Route::delete('/schools/{school}/buses/{bus}', [BusController::class, 'destroy']);
-            Route::post('/schools/{school}/buses/{bus}/stops', [BusStopController::class, 'store']);
+            Route::post('/schools/{school}/buses', [BusController::class, 'store'])->middleware('school.plan:buses');
+            Route::put('/schools/{school}/buses/{bus}', [BusController::class, 'update'])->middleware('school.plan:buses');
+            Route::delete('/schools/{school}/buses/{bus}', [BusController::class, 'destroy'])->middleware('school.plan:buses');
+            Route::post('/schools/{school}/buses/{bus}/stops', [BusStopController::class, 'store'])->middleware('school.plan:buses');
             Route::put('/schools/{school}/students/{student}/bus-stop', [StudentController::class, 'assignBusStop']);
 
-            Route::post('/schools/{school}/buses/{bus}/trips/start', [BusTripController::class, 'start']);
-            Route::post('/schools/{school}/bus-trips/{trip}/ping', [BusTripController::class, 'ping']);
-            Route::post('/schools/{school}/bus-trips/{trip}/end', [BusTripController::class, 'end']);
+            Route::post('/schools/{school}/buses/{bus}/trips/start', [BusTripController::class, 'start'])->middleware('school.plan:buses');
+            Route::post('/schools/{school}/bus-trips/{trip}/ping', [BusTripController::class, 'ping'])->middleware('school.plan:buses');
+            Route::post('/schools/{school}/bus-trips/{trip}/end', [BusTripController::class, 'end'])->middleware('school.plan:buses');
 
-            Route::post('/schools/{school}/library/books', [BookController::class, 'store']);
-            Route::put('/schools/{school}/library/books/{book}', [BookController::class, 'update']);
-            Route::delete('/schools/{school}/library/books/{book}', [BookController::class, 'destroy']);
-            Route::post('/schools/{school}/library/books/{book}/copies', [BookCopyController::class, 'store']);
-            Route::put('/schools/{school}/library/copies/{copy}', [BookCopyController::class, 'update']);
-            Route::delete('/schools/{school}/library/copies/{copy}', [BookCopyController::class, 'destroy']);
+            Route::post('/schools/{school}/library/books', [BookController::class, 'store'])->middleware('school.plan:library');
+            Route::put('/schools/{school}/library/books/{book}', [BookController::class, 'update'])->middleware('school.plan:library');
+            Route::delete('/schools/{school}/library/books/{book}', [BookController::class, 'destroy'])->middleware('school.plan:library');
+            Route::post('/schools/{school}/library/books/{book}/copies', [BookCopyController::class, 'store'])->middleware('school.plan:library');
+            Route::put('/schools/{school}/library/copies/{copy}', [BookCopyController::class, 'update'])->middleware('school.plan:library');
+            Route::delete('/schools/{school}/library/copies/{copy}', [BookCopyController::class, 'destroy'])->middleware('school.plan:library');
 
-            Route::post('/schools/{school}/students/{student}/library/loans', [BookLoanController::class, 'store']);
-            Route::post('/schools/{school}/library/loans/{loan}/return', [BookLoanController::class, 'returnLoan']);
-            Route::post('/schools/{school}/library/loans/{loan}/lost', [BookLoanController::class, 'markLost']);
+            Route::post('/schools/{school}/students/{student}/library/loans', [BookLoanController::class, 'store'])->middleware('school.plan:library');
+            Route::post('/schools/{school}/library/loans/{loan}/return', [BookLoanController::class, 'returnLoan'])->middleware('school.plan:library');
+            Route::post('/schools/{school}/library/loans/{loan}/lost', [BookLoanController::class, 'markLost'])->middleware('school.plan:library');
 
-            Route::post('/schools/{school}/students/{student}/library/reservations', [BookReservationController::class, 'store']);
-            Route::post('/schools/{school}/library/reservations/{reservation}/cancel', [BookReservationController::class, 'cancel']);
+            Route::post('/schools/{school}/students/{student}/library/reservations', [BookReservationController::class, 'store'])->middleware('school.plan:library');
+            Route::post('/schools/{school}/library/reservations/{reservation}/cancel', [BookReservationController::class, 'cancel'])->middleware('school.plan:library');
 
-            Route::post('/schools/{school}/library/documents', [BookDocumentController::class, 'store']);
-            Route::delete('/schools/{school}/library/documents/{document}', [BookDocumentController::class, 'destroy']);
+            Route::post('/schools/{school}/library/documents', [BookDocumentController::class, 'store'])->middleware('school.plan:library');
+            Route::delete('/schools/{school}/library/documents/{document}', [BookDocumentController::class, 'destroy'])->middleware('school.plan:library');
 
             Route::middleware('throttle:message-send')->group(function () {
                 Route::post('/schools/{school}/messages', [MessageController::class, 'store']);

@@ -115,6 +115,15 @@ export default function Navbar() {
               {link.label}
             </Button>
           ))}
+          <Button
+            component={RouterLink}
+            to="/pricing"
+            color="inherit"
+            size="small"
+            sx={{ px: 1.5, fontSize: "0.875rem" }}
+          >
+            Tarifs
+          </Button>
         </Box>
 
         <Box sx={{ display: { xs: "none", md: "flex" }, gap: 1 }}>
@@ -221,6 +230,13 @@ export default function Navbar() {
               <ListItemText primary={link.label} />
             </ListItemButton>
           ))}
+          <ListItemButton
+            component={RouterLink}
+            to="/pricing"
+            onClick={() => setMobileOpen(false)}
+          >
+            <ListItemText primary="Tarifs" />
+          </ListItemButton>
           <ListItemButton
             component={RouterLink}
             to="/devenir-prestataire"

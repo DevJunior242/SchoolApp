@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\EnforcesStaffQuota;
 use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
@@ -12,7 +13,7 @@ use Illuminate\Http\Request;
 
 class TeacherController extends Controller
 {
-    use AuthorizesSchoolDirecteur, ResolvesMemberUser;
+    use AuthorizesSchoolDirecteur, EnforcesStaffQuota, ResolvesMemberUser;
 
     public function index(Request $request, School $school)
     {
@@ -44,6 +45,16 @@ class TeacherController extends Controller
         $professeurRole = Role::query()->where('slug', 'professeur')->firstOrFail();
         $user = $this->resolveUser($validated);
         $this->guardAgainstRoleConflict($school, $user, $professeurRole->id);
+
+        $isNewMember = ! SchoolUser::query()
+            ->where('school_id', $school->id)
+            ->where('user_id', $user->id)
+            ->where('status', SchoolUser::STATUS_ACTIVE)
+            ->exists();
+
+        if ($isNewMember) {
+            $this->guardAgainstStaffQuota($school);
+        }
 
         $schoolUser = SchoolUser::query()->updateOrCreate(
             [

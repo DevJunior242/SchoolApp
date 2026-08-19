@@ -25,9 +25,25 @@ class School extends Model
 
     const LANGUAGE_EN = 'en';
 
+    const PLAN_ECOLE = 'ecole';
+
+    const PLAN_ETABLISSEMENT = 'etablissement';
+
+    const PLAN_RESEAU = 'reseau';
+
+    // Ordre croissant : sert à comparer deux paliers (ex. palier assez élevé
+    // pour un module donné) sans dupliquer cette logique partout.
+    const PLAN_ORDER = [self::PLAN_ECOLE, self::PLAN_ETABLISSEMENT, self::PLAN_RESEAU];
+
+    // Modules réservés au palier Établissement et au-dessus (cf. page tarifs) :
+    // le palier École couvre uniquement la gestion scolaire de base.
+    const PLAN_RESTRICTED_MODULES = ['ai', 'library', 'cafeteria', 'health', 'buses'];
+
+    const PLAN_ECOLE_MAX_STAFF_ACCOUNTS = 5;
+
     protected $fillable = [
         'country_id', 'name', 'logo', 'slogan', 'address', 'city', 'phone', 'email', 'website',
-        'status', 'language', 'currency', 'academic_period_type', 'cafeteria_low_balance_threshold',
+        'status', 'plan', 'language', 'currency', 'academic_period_type', 'cafeteria_low_balance_threshold',
         'library_loan_duration_days', 'trial_ends_at', 'trial_reminder_sent_at',
     ];
 
@@ -41,6 +57,28 @@ class School extends Model
     public function isReadOnly(): bool
     {
         return $this->status === self::STATUS_READ_ONLY;
+    }
+
+    /**
+     * Un module "restreint" (IA, bibliothèque, cantine, santé, bus) n'est
+     * inclus qu'à partir du palier Établissement — cf. page tarifs.
+     */
+    public function hasModule(string $module): bool
+    {
+        if (! in_array($module, self::PLAN_RESTRICTED_MODULES, true)) {
+            return true;
+        }
+
+        return array_search($this->plan, self::PLAN_ORDER, true)
+            >= array_search(self::PLAN_ETABLISSEMENT, self::PLAN_ORDER, true);
+    }
+
+    /**
+     * Null = pas de limite (paliers Établissement et Réseau).
+     */
+    public function maxStaffAccounts(): ?int
+    {
+        return $this->plan === self::PLAN_ECOLE ? self::PLAN_ECOLE_MAX_STAFF_ACCOUNTS : null;
     }
 
     protected function logoUrl(): Attribute

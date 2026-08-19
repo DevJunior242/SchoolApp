@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureSchoolIsWritable;
 use App\Http\Middleware\EnsureSchoolMembership;
+use App\Http\Middleware\EnsureSchoolPlanIncludesModule;
 use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'school.member' => EnsureSchoolMembership::class,
             'school.writable' => EnsureSchoolIsWritable::class,
+            'school.plan' => EnsureSchoolPlanIncludesModule::class,
             'super.admin' => EnsureSuperAdmin::class,
         ]);
     })

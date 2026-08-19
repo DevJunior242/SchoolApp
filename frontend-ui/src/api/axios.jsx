@@ -26,16 +26,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// École en lecture seule (essai gratuit expiré) : signale l'événement pour
-// qu'un composant global (cf. DashboardLayout) affiche un message clair,
-// plutôt que de laisser chaque formulaire retomber sur son texte d'erreur
-// générique qui ne mentionne pas la vraie cause.
+// École en lecture seule (essai gratuit expiré) ou module hors palier :
+// signale l'événement pour qu'un composant global (cf. DashboardLayout)
+// affiche un message clair, plutôt que de laisser chaque formulaire
+// retomber sur son texte d'erreur générique qui ne mentionne pas la vraie
+// cause.
+const BLOCKED_ACCESS_CODES = ["school_read_only", "plan_upgrade_required"];
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.data?.code === "school_read_only") {
+    if (BLOCKED_ACCESS_CODES.includes(error.response?.data?.code)) {
       window.dispatchEvent(
-        new CustomEvent("school-read-only", { detail: error.response.data.message }),
+        new CustomEvent("school-access-blocked", { detail: error.response.data.message }),
       );
     }
     return Promise.reject(error);

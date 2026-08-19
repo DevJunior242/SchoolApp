@@ -56,7 +56,10 @@ class SchoolController extends Controller
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'activation_key' => ['nullable', 'string'],
+            'plan' => ['nullable', 'in:'.School::PLAN_ECOLE.','.School::PLAN_ETABLISSEMENT.','.School::PLAN_RESEAU],
         ]);
+
+        $validated['plan'] = $validated['plan'] ?? School::PLAN_ECOLE;
 
         $rawKey = trim((string) ($validated['activation_key'] ?? ''));
         $activationKey = null;

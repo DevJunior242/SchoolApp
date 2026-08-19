@@ -85,4 +85,19 @@ class AdminController extends Controller
 
         return response()->json($school->load('country'));
     }
+
+    /**
+     * Change le palier d'une école (paiement confirmé manuellement, pas
+     * d'API de facturation automatique pour l'instant — cf. page tarifs).
+     */
+    public function updateSchoolPlan(Request $request, School $school)
+    {
+        $validated = $request->validate([
+            'plan' => ['required', 'in:'.School::PLAN_ECOLE.','.School::PLAN_ETABLISSEMENT.','.School::PLAN_RESEAU],
+        ]);
+
+        $school->update($validated);
+
+        return response()->json($school->load('country'));
+    }
 }

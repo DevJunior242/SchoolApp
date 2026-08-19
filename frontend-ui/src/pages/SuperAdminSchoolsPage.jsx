@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   Chip,
+  MenuItem,
   Pagination,
   Stack,
   TextField,
@@ -15,6 +16,12 @@ import { Navigate } from 'react-router-dom';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { usePaginatedList } from '../hooks/usePaginatedList.js';
+
+const PLAN_LABELS = {
+  ecole: 'École',
+  etablissement: 'Établissement',
+  reseau: 'Réseau scolaire',
+};
 
 export default function SuperAdminSchoolsPage() {
   const { user } = useAuth();
@@ -49,6 +56,19 @@ export default function SuperAdminSchoolsPage() {
       await reload();
     } catch (err) {
       setActionError(err.response?.data?.message || "Impossible de réactiver cette école.");
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  async function handlePlanChange(school, plan) {
+    setActionError(null);
+    setActingId(school.id);
+    try {
+      await api.put(`/admin/schools/${school.id}/plan`, { plan });
+      await reload();
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'Impossible de changer le palier de cette école.');
     } finally {
       setActingId(null);
     }
@@ -103,6 +123,21 @@ export default function SuperAdminSchoolsPage() {
                   color={school.status === 1 ? 'success' : school.status === 2 ? 'warning' : 'default'}
                   size="small"
                 />
+                <TextField
+                  select
+                  label="Palier"
+                  value={school.plan}
+                  onChange={(e) => handlePlanChange(school, e.target.value)}
+                  disabled={actingId === school.id}
+                  size="small"
+                  sx={{ minWidth: 160 }}
+                >
+                  {Object.entries(PLAN_LABELS).map(([value, label]) => (
+                    <MenuItem key={value} value={value}>
+                      {label}
+                    </MenuItem>
+                  ))}
+                </TextField>
                 {school.status === 2 ? (
                   <Button
                     size="small"

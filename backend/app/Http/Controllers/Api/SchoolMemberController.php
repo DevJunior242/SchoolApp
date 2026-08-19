@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\EnforcesStaffQuota;
+use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
+use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\School;
 use App\Models\SchoolUser;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use Illuminate\Validation\ValidationException;
-use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class SchoolMemberController extends Controller
 {
-    use AuthorizesSchoolDirecteur, ResolvesMemberUser;
+    use AuthorizesSchoolDirecteur, EnforcesStaffQuota, ResolvesMemberUser;
 
     /**
      * Rôles non attribuables via l'ajout de membre générique : le directeur est
@@ -36,10 +37,10 @@ class SchoolMemberController extends Controller
         return response()->json(
             SchoolUser::query()
                 ->where('school_id', $school->id)
-                ->whereHas('role', fn($query) => $query->whereNotIn('slug', self::HIDDEN_FROM_LIST_ROLE_SLUGS))
+                ->whereHas('role', fn ($query) => $query->whereNotIn('slug', self::HIDDEN_FROM_LIST_ROLE_SLUGS))
                 ->when(
                     $request->query('search'),
-                    fn($query, $search) => $query->whereHas('user', fn($q) => $q->where('fullname', 'like', "%{$search}%"))
+                    fn ($query, $search) => $query->whereHas('user', fn ($q) => $q->where('fullname', 'like', "%{$search}%"))
                 )
                 ->with(['user', 'role'])
                 ->paginate($request->integer('per_page', 10))
@@ -67,6 +68,16 @@ class SchoolMemberController extends Controller
 
         $user = $this->resolveUser($validated);
         $this->guardAgainstRoleConflict($school, $user, $validated['role_id']);
+
+        $isNewMember = ! SchoolUser::query()
+            ->where('school_id', $school->id)
+            ->where('user_id', $user->id)
+            ->where('status', SchoolUser::STATUS_ACTIVE)
+            ->exists();
+
+        if ($isNewMember) {
+            $this->guardAgainstStaffQuota($school);
+        }
 
         $schoolUser = SchoolUser::query()->updateOrCreate(
             [
