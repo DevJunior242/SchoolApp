@@ -45,9 +45,23 @@ export default function AiChatTab({ endpoint, suggestions, placeholder, caption 
           <Typography variant="body2" color="text.secondary">
             Exemples de questions :
           </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ maxWidth: "100%" }}>
             {suggestions.map((s) => (
-              <Chip key={s} label={s} onClick={() => ask(s)} variant="outlined" />
+              <Chip
+                key={s}
+                label={s}
+                onClick={() => ask(s)}
+                variant="outlined"
+                sx={{
+                  maxWidth: "100%",
+                  height: "auto",
+                  "& .MuiChip-label": {
+                    whiteSpace: "normal",
+                    display: "block",
+                    py: 0.75,
+                  },
+                }}
+              />
             ))}
           </Stack>
         </Stack>

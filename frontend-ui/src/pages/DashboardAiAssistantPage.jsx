@@ -21,6 +21,9 @@ const SUGGESTIONS = [
   "Y a-t-il des livres en retard à la bibliothèque ?",
   "Quel enseignant a le plus de cours ?",
   "Combien d'élèves prennent le bus ?",
+  "Qui est le premier de chaque classe ?",
+  "Quels élèves ont une faible moyenne ?",
+  "Dans quelle matière les élèves ont-ils le plus de mal ?",
 ];
 
 function RiskTab({ schoolId }) {

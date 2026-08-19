@@ -10,6 +10,7 @@ use App\Models\ClassSubjectTeacher;
 use App\Models\EnrollmentRequest;
 use App\Models\Event;
 use App\Models\Expense;
+use App\Models\Grade;
 use App\Models\Payment;
 use App\Models\School;
 use App\Models\SchoolClass;
@@ -132,6 +133,9 @@ TXT;
             'charge_enseignants' => $this->toolChargeEnseignants($school),
             'eleves_transport' => $this->toolElevesTransport($school),
             'meilleurs_eleves' => $this->toolMeilleursEleves($school),
+            'premier_de_chaque_classe' => $this->toolPremierDeChaqueClasse($school),
+            'eleves_faible_moyenne' => $this->toolElevesFaibleMoyenne($school),
+            'matieres_difficiles' => $this->toolMatieresDifficiles($school),
             'taux_presence' => $this->toolTauxPresence($school),
             'demandes_preinscription_en_attente' => $this->toolDemandesPreinscription($school),
             default => [['error' => 'Outil inconnu.'], []],
@@ -164,6 +168,95 @@ TXT;
         [$anonymized, $tokenMap] = $this->anonymize($report);
 
         return [['meilleurs_eleves' => $anonymized], $tokenMap];
+    }
+
+    /**
+     * L'élève avec la meilleure moyenne dans CHAQUE classe de l'année en
+     * cours — différent de toolMeilleursEleves qui donne un top 10 unique
+     * pour toute l'école, sans distinction de classe.
+     */
+    private function toolPremierDeChaqueClasse(School $school): array
+    {
+        $classes = SchoolClass::query()
+            ->where('school_id', $school->id)
+            ->whereHas('schoolYear', fn ($query) => $query->where('is_current', true))
+            ->get(['id', 'name']);
+
+        $rows = $classes
+            ->map(function (SchoolClass $schoolClass) use ($school) {
+                $premier = ClassStudent::query()
+                    ->where('class_id', $schoolClass->id)
+                    ->where('status', ClassStudent::STATUS_ACTIVE)
+                    ->with('student')
+                    ->get()
+                    ->map(fn (ClassStudent $classStudent) => [
+                        'student' => $classStudent->student,
+                        'average' => $this->riskService->scoreFor($school, $classStudent->student)['average'],
+                    ])
+                    ->filter(fn ($row) => $row['average'] !== null)
+                    ->sortByDesc('average')
+                    ->first();
+
+                if (! $premier) {
+                    return null;
+                }
+
+                return [
+                    'classe' => $schoolClass->name,
+                    'fullname' => $premier['student']->fullname,
+                    'moyenne' => $premier['average'],
+                ];
+            })
+            ->filter()
+            ->values();
+
+        [$anonymized, $tokenMap] = $this->anonymize($rows);
+
+        return [['premier_de_chaque_classe' => $anonymized], $tokenMap];
+    }
+
+    /**
+     * Élèves dont la moyenne générale passe sous la barre des 10/20 — une
+     * lecture purement académique, contrairement à eleves_a_risque qui
+     * combine aussi absences/retards/impayés dans un score composite.
+     */
+    private function toolElevesFaibleMoyenne(School $school): array
+    {
+        $report = $this->riskService->reportForSchool($school)
+            ->filter(fn ($row) => $row['average'] !== null && $row['average'] < 10)
+            ->sortBy('average')
+            ->take(10);
+
+        [$anonymized, $tokenMap] = $this->anonymize($report);
+
+        return [['eleves_faible_moyenne' => $anonymized], $tokenMap];
+    }
+
+    /**
+     * Moyenne (sur 20) toutes classes confondues, par matière, pour l'année
+     * en cours — permet de repérer la/les matière(s) où les élèves ont le
+     * plus de mal. Pas de nom d'élève ici, donc pas d'anonymisation.
+     */
+    private function toolMatieresDifficiles(School $school): array
+    {
+        $grades = Grade::query()
+            ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query
+                ->where('school_id', $school->id)
+                ->whereHas('schoolYear', fn ($q) => $q->where('is_current', true)))
+            ->with('classSubjectTeacher.subject')
+            ->get();
+
+        $parMatiere = $grades
+            ->groupBy(fn (Grade $grade) => $grade->classSubjectTeacher?->subject?->name ?? 'Matière inconnue')
+            ->map(fn (Collection $group, string $matiere) => [
+                'matiere' => $matiere,
+                'moyenne_sur_20' => round($group->avg(fn (Grade $g) => ((float) $g->score / (float) $g->max_score) * 20), 2),
+                'nombre_notes' => $group->count(),
+            ])
+            ->sortBy('moyenne_sur_20')
+            ->values();
+
+        return [['moyenne_par_matiere' => $parMatiere->all()], []];
     }
 
     private function toolPaiementsEnRetard(School $school): array
@@ -545,8 +638,23 @@ TXT;
                 []
             ),
             $this->tool(
+                'eleves_faible_moyenne',
+                "Utilise cet outil quand la question porte spécifiquement sur les élèves ayant une FAIBLE MOYENNE / de MAUVAISES NOTES (ex: \"quels élèves ont une faible moyenne ?\", \"qui a une moyenne en dessous de 10 ?\"). Une lecture purement académique (moyenne uniquement) — pas absences/paiements : pour ça c'est eleves_a_risque. Retourne les élèves dont la moyenne est sous 10/20, triés de la plus faible à la plus haute.",
+                []
+            ),
+            $this->tool(
+                'matieres_difficiles',
+                "Utilise cet outil quand la question porte sur la/les MATIÈRE(S) où les élèves ont le plus de mal, ou sur la moyenne PAR MATIÈRE (ex: \"quelle matière pose problème aux élèves ?\", \"dans quelle matière les notes sont les plus faibles ?\"). Retourne la moyenne sur 20 de chaque matière, toutes classes confondues, triée de la plus faible à la plus haute.",
+                []
+            ),
+            $this->tool(
                 'meilleurs_eleves',
-                "Utilise cet outil quand la question porte sur les MEILLEURS élèves / les meilleures moyennes de l'école (ex: \"qui sont les meilleurs élèves ?\", \"quels sont les élèves les plus performants ?\"). Retourne les 10 meilleures moyennes générales.",
+                "Utilise cet outil quand la question porte sur les MEILLEURS élèves / les meilleures moyennes de TOUTE L'ÉCOLE, sans distinction de classe (ex: \"qui sont les meilleurs élèves ?\", \"quels sont les élèves les plus performants ?\"). Ne pas utiliser si la question demande le premier élève DE CHAQUE CLASSE : c'est premier_de_chaque_classe. Retourne les 10 meilleures moyennes générales.",
+                []
+            ),
+            $this->tool(
+                'premier_de_chaque_classe',
+                "Utilise cet outil quand la question porte sur le/la MEILLEUR(E) ÉLÈVE DE CHAQUE CLASSE, classe par classe (ex: \"qui est le premier de chaque classe ?\", \"quel est le meilleur élève dans chaque classe ?\"). Retourne, pour chaque classe de l'année en cours, l'élève ayant la meilleure moyenne.",
                 []
             ),
             $this->tool(
