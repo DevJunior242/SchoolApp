@@ -3,8 +3,8 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Messages\MailMessage;
 
 class ResetPasswordNotification extends Notification
 {
@@ -20,7 +20,7 @@ class ResetPasswordNotification extends Notification
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Réinitialisation de votre mot de passe — EduAfrique')
+            ->subject('Réinitialisation de votre mot de passe — Intellino Services')
             ->line('Vous recevez cet email car une réinitialisation de mot de passe a été demandée pour votre compte.')
             ->action('Réinitialiser le mot de passe', $this->url)
             ->line('Ce lien expire dans 60 minutes.')

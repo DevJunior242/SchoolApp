@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh root@62.238.60.188 'cd /var/www/SchoolApp/backend && php8.5 artisan tinker --execute=\" *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8000/api/schools --max-time 5)",
+      "Read(//home/devjunior/Intellino/frontend/**)",
+      "Bash(grep -iE \"sk-|xkeysib|AIza|ghp_|gsk_|-----BEGIN|password\\\\s*[:=]\\\\s*['\\\\\"][^'\\\\\"]{4,}\" /home/devjunior/.claude/projects/-home-devjunior-IBC/145fd31f-b06f-4ee5-9343-a2d0ff4af8ba/tool-results/br8i93545.txt)",
+      "Bash(gh repo *)",
+      "Bash(ssh root@62.238.60.188 \"cd /var/www/MartialSaaS/backend && php8.5 artisan config:clear && php8.5 artisan config:cache\")",
+      "Bash(curl -s -w '\\\\nHTTP_%{http_code}\\\\n' -X POST http://62.238.60.188:8081/api/register -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{\"fullname\":\"Test Martial\",\"phone\":\"70000000\",\"email\":\"test-martial@example.com\",\"password\":\"TestPass123!\",\"password_confirmation\":\"TestPass123!\"}')",
+      "Bash(ssh root@62.238.60.188 \"deploy-martial-backend 2>&1 | tail -15\")",
+      "Bash(ssh root@62.238.60.188 \"deploy-martial-frontend 2>&1 | tail -10\")",
+      "Bash(cd /home/devjunior/Intellino/lara-saas && find . -path ./node_modules -prune -o -iname \"*Club*\" -print 2>/dev/null | grep -v node_modules *)",
+      "Read(//home/devjunior/Intellino/lara-saas/**)",
+      "Read(//home/devjunior/Intellino/lara-saas/app/Models/**)",
+      "Read(//home/devjunior/Intellino/lara-saas/app/Http/Controllers/**)",
+      "Read(//home/devjunior/Intellino/lara-saas/app/Http/Requests/**)",
+      "Bash(ssh root@62.238.60.188 'cd /var/www/MartialSaaS/backend && php8.5 artisan tinker --execute=\" *)"
+    ]
+  }
+}

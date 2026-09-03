@@ -3,8 +3,8 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Messages\MailMessage;
 
 class VerifyEmailNotification extends Notification
 {
@@ -20,7 +20,7 @@ class VerifyEmailNotification extends Notification
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Vérifiez votre adresse email — EduAfrique')
+            ->subject('Vérifiez votre adresse email — Intellino Services.')
             ->line('Merci de confirmer votre adresse email pour activer toutes les fonctionnalités de votre compte.')
             ->action('Vérifier mon email', $this->url)
             ->line('Ce lien expire dans 60 minutes.')

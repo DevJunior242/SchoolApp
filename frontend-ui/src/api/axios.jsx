@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
+  baseURL: import.meta.env.VITE_API_URL || "https://edu.intellino.tech/api",
   // Sans timeout, une requête sur une connexion coupée/instable reste en
   // attente indéfiniment au lieu d'échouer — ce qui bloque des écrans comme
   // la saisie de présences hors-ligne, qui dépendent d'un rejet rapide pour
@@ -38,7 +38,9 @@ api.interceptors.response.use(
   (error) => {
     if (BLOCKED_ACCESS_CODES.includes(error.response?.data?.code)) {
       window.dispatchEvent(
-        new CustomEvent("school-access-blocked", { detail: error.response.data.message }),
+        new CustomEvent("school-access-blocked", {
+          detail: error.response.data.message,
+        }),
       );
     }
     return Promise.reject(error);
