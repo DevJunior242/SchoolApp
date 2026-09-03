@@ -272,6 +272,7 @@ export default function DashboardOverviewPage() {
             color="primary"
             size="large"
             fullWidth
+            sx={{ m: 2 }}
           >
             Créer une école
           </Button>
