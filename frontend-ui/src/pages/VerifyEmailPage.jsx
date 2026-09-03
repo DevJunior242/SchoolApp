@@ -57,59 +57,63 @@ export default function VerifyEmailPage() {
       <Paper
         elevation={3}
         sx={{
-          p: { xs: 3, sm: 4 },
+          p: { xs: 3, sm: 5 },
           width: "100%",
-          maxWidth: 420,
+          maxWidth: 480,
           textAlign: "center",
         }}
       >
         {status === "loading" && (
-          <Typography color="text.secondary">
+          <Typography color="text.secondary" sx={{ py: 2 }}>
             Vérification en cours...
           </Typography>
         )}
 
         {status === "success" && (
-          <>
-            <Alert severity="success" sx={{ mb: 3 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <Alert severity="success" sx={{ textAlign: "left" }}>
               Votre email a été vérifié avec succès.
             </Alert>
 
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              sx={{ mb: 4 }}
-            >
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Button
                 component={RouterLink}
                 to="/create-school"
                 variant="contained"
                 color="primary"
                 size="large"
+                fullWidth
               >
                 Créer mon école
               </Button>
               <Button
                 component={RouterLink}
                 to={user ? "/dashboard" : "/login"}
-                variant="contained"
+                variant="outlined"
+                size="large"
                 fullWidth
               >
                 {user ? "Aller au tableau de bord" : "Se connecter"}
               </Button>
-            </Stack>
-          </>
+            </Box>
+          </Box>
         )}
 
         {status === "error" && (
-          <>
-            <Alert severity="error" sx={{ mb: 3 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <Alert severity="error" sx={{ textAlign: "left" }}>
               {message}
             </Alert>
-            <Button component={RouterLink} to="/" variant="outlined" fullWidth>
+            <Button
+              component={RouterLink}
+              to="/"
+              variant="outlined"
+              size="large"
+              fullWidth
+            >
               Retour à l'accueil
             </Button>
-          </>
+          </Box>
         )}
       </Paper>
     </Box>
