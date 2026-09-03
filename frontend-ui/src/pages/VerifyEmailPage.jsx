@@ -73,7 +73,7 @@ export default function VerifyEmailPage() {
           <Box
             sx={{
               display: "flex",
-              flexDirection: { xs: "column", md: "row" },
+              flexDirection: "column",
               gap: 3,
             }}
           >
@@ -81,7 +81,13 @@ export default function VerifyEmailPage() {
               Votre email a été vérifié avec succès.
             </Alert>
 
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                gap: 2,
+              }}
+            >
               <Button
                 component={RouterLink}
                 to="/create-school"
