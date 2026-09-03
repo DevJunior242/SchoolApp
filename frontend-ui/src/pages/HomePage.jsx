@@ -792,8 +792,8 @@ function SchoolsSlider() {
         Nos écoles
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Des établissements déjà présents sur EduAfrique. Envoyez une demande de
-        pré-inscription en quelques clics.
+        Des établissements déjà présents sur Edu.Intellino. Envoyez une demande
+        de pré-inscription en quelques clics.
       </Typography>
 
       <Box
