@@ -70,7 +70,13 @@ export default function VerifyEmailPage() {
         )}
 
         {status === "success" && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              gap: 3,
+            }}
+          >
             <Alert severity="success" sx={{ textAlign: "left" }}>
               Votre email a été vérifié avec succès.
             </Alert>

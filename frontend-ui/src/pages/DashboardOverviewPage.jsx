@@ -265,7 +265,6 @@ export default function DashboardOverviewPage() {
             Créez ou rejoignez une école depuis l'accueil pour accéder à votre
             tableau de bord.
           </Typography>
-          mettre en flex et row pour desktop row et column pour mobile
           <Button
             component={RouterLink}
             to="/create-school"
