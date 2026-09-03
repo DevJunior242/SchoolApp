@@ -11,16 +11,16 @@ import {
   Typography,
 } from "@mui/material";
 import { motion } from "motion/react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import InputAdornment from "@mui/material/InputAdornment";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import intellinoMark from "../assets/intellino-mark.svg";
 import TurnstileWidget from "../components/TurnstileWidget.jsx";
+
 export default function RegisterPage() {
   const { register } = useAuth();
-  const navigate = useNavigate();
   const [form, setForm] = useState({
     fullname: "",
     email: "",
@@ -31,10 +31,12 @@ export default function RegisterPage() {
     turnstile_token: "",
   });
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirmation, setShowPasswordConfirmation] =
     useState(false);
+
   function handleChange(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
   }
@@ -45,7 +47,8 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       await register(form);
-      navigate("/dashboard");
+      // On n'appelle plus navigate("/dashboard"), on active le message de succès
+      setSuccessMessage(true);
     } catch (err) {
       const messages = err.response?.data?.errors;
       setError(
@@ -119,139 +122,171 @@ export default function RegisterPage() {
             </Alert>
           )}
 
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-          >
-            <TextField
-              id="fullname"
-              label="Nom complet"
-              value={form.fullname}
-              onChange={handleChange("fullname")}
-              required
-              fullWidth
-            />
-            <TextField
-              id="email"
-              label="Email"
-              type="email"
-              value={form.email}
-              onChange={handleChange("email")}
-              required
-              fullWidth
-            />
-            <TextField
-              id="phone"
-              label="Téléphone"
-              value={form.phone}
-              onChange={handleChange("phone")}
-              fullWidth
-            />
-            <TextField
-              id="password"
-              label="Mot de passe"
-              type={showPassword ? "text" : "password"}
-              value={form.password}
-              onChange={handleChange("password")}
-              required
-              fullWidth
-              slotProps={{
-                input: {
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword((show) => !show)}
-                        edge="end"
-                        aria-label={
-                          showPassword
-                            ? "Masquer le mot de passe"
-                            : "Afficher le mot de passe"
-                        }
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <TextField
-              id="password_confirmation"
-              label="Confirmer le mot de passe"
-              type={showPasswordConfirmation ? "text" : "password"}
-              value={form.password_confirmation}
-              onChange={handleChange("password_confirmation")}
-              required
-              fullWidth
-              slotProps={{
-                input: {
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() =>
-                          setShowPasswordConfirmation((show) => !show)
-                        }
-                        edge="end"
-                        aria-label={
-                          showPasswordConfirmation
-                            ? "Masquer le mot de passe"
-                            : "Afficher le mot de passe"
-                        }
-                      >
-                        {showPasswordConfirmation ? (
-                          <VisibilityOff />
-                        ) : (
-                          <Visibility />
-                        )}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={form.terms_accepted}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      terms_accepted: e.target.checked,
-                    }))
-                  }
-                />
-              }
-              label={
-                <Typography variant="body2" color="text.secondary">
-                  J'accepte les{" "}
-                  <RouterLink to="/terms" target="_blank">
-                    CGU
-                  </RouterLink>{" "}
-                  et la{" "}
-                  <RouterLink to="/privacy" target="_blank">
-                    politique de confidentialité
-                  </RouterLink>
-                </Typography>
-              }
-            />
-            <TurnstileWidget
-              onVerify={(token) =>
-                setForm((prev) => ({ ...prev, turnstile_token: token }))
-              }
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={submitting || !form.terms_accepted}
-              fullWidth
+          {successMessage ? (
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
             >
-              {submitting ? "Création..." : "Créer mon compte"}
-            </Button>
-            <Button component={RouterLink} to="/login" variant="text" fullWidth>
-              J'ai déjà un compte
-            </Button>
-          </Box>
+              <Alert severity="success">
+                Inscription réussie ! Un e-mail de vérification a été envoyé à{" "}
+                <strong>{form.email}</strong>. Veuillez vérifier votre boîte de
+                réception pour activer votre compte.
+              </Alert>
+              <Button
+                component={RouterLink}
+                to="/login"
+                variant="contained"
+                fullWidth
+              >
+                Aller à la connexion
+              </Button>
+              <Button
+                variant="text"
+                fullWidth
+                onClick={() => setSuccessMessage(false)}
+              >
+                Fermer
+              </Button>
+            </Box>
+          ) : (
+            <Box
+              component="form"
+              onSubmit={handleSubmit}
+              sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+            >
+              <TextField
+                id="fullname"
+                label="Nom complet"
+                value={form.fullname}
+                onChange={handleChange("fullname")}
+                required
+                fullWidth
+              />
+              <TextField
+                id="email"
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={handleChange("email")}
+                required
+                fullWidth
+              />
+              <TextField
+                id="phone"
+                label="Téléphone"
+                value={form.phone}
+                onChange={handleChange("phone")}
+                fullWidth
+              />
+              <TextField
+                id="password"
+                label="Mot de passe"
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={handleChange("password")}
+                required
+                fullWidth
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword((show) => !show)}
+                          edge="end"
+                          aria-label={
+                            showPassword
+                              ? "Masquer le mot de passe"
+                              : "Afficher le mot de passe"
+                          }
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <TextField
+                id="password_confirmation"
+                label="Confirmer le mot de passe"
+                type={showPasswordConfirmation ? "text" : "password"}
+                value={form.password_confirmation}
+                onChange={handleChange("password_confirmation")}
+                required
+                fullWidth
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() =>
+                            setShowPasswordConfirmation((show) => !show)
+                          }
+                          edge="end"
+                          aria-label={
+                            showPasswordConfirmation
+                              ? "Masquer le mot de passe"
+                              : "Afficher le mot de passe"
+                          }
+                        >
+                          {showPasswordConfirmation ? (
+                            <VisibilityOff />
+                          ) : (
+                            <Visibility />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={form.terms_accepted}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        terms_accepted: e.target.checked,
+                      }))
+                    }
+                  />
+                }
+                label={
+                  <Typography variant="body2" color="text.secondary">
+                    J'accepte les{" "}
+                    <RouterLink to="/terms" target="_blank">
+                      CGU
+                    </RouterLink>{" "}
+                    et la{" "}
+                    <RouterLink to="/privacy" target="_blank">
+                      politique de confidentialité
+                    </RouterLink>
+                  </Typography>
+                }
+              />
+              <TurnstileWidget
+                onVerify={(token) =>
+                  setForm((prev) => ({ ...prev, turnstile_token: token }))
+                }
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={submitting || !form.terms_accepted}
+                fullWidth
+              >
+                {submitting ? "Création..." : "Créer mon compte"}
+              </Button>
+              <Button
+                component={RouterLink}
+                to="/login"
+                variant="text"
+                fullWidth
+              >
+                J'ai déjà un compte
+              </Button>
+            </Box>
+          )}
         </Paper>
       </motion.div>
     </Box>
