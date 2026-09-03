@@ -14,6 +14,9 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
+import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import { motion } from "motion/react";
 import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
@@ -620,19 +623,37 @@ function MarketingHome() {
                 formation du personnel et le suivi.
               </Typography>
               <Stack spacing={2}>
-                <Typography color="text.secondary">
-                  📍 Ouagadougou, Burkina Faso
-                </Typography>
-                <Typography color="text.secondary">
-                  📞 56 56 56 70 / 58 11 68 11
-                </Typography>
-                <Typography color="text.secondary">
-                  ✉️ contact@intellino.tech
-                </Typography>
-                <Typography color="text.secondary">
-                  🌐 www.intellino.tech · Assistance en français, mooré et
-                  dioula
-                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <LocationOnOutlinedIcon color="action" fontSize="small" />
+                  <Typography color="text.secondary">
+                    Ouagadougou, Burkina Faso
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <PhoneOutlinedIcon color="action" fontSize="small" />
+                  <Typography color="text.secondary">
+                    56 56 56 70 / 58 11 68 11
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <EmailOutlinedIcon color="action" fontSize="small" />
+                  <Box
+                    component="a"
+                    href="mailto:contact@intellino.tech"
+                    sx={{
+                      color: "text.secondary",
+                      textDecoration: "none",
+                      "&:hover": {
+                        color: "primary.main",
+                        textDecoration: "underline",
+                      },
+                    }}
+                  >
+                    contact@intellino.tech
+                  </Box>
+                </Box>
               </Stack>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
