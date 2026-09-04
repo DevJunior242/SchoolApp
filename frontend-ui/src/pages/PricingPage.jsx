@@ -16,54 +16,6 @@ import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
 import { useApiGet } from "../hooks/useApiGet.js";
 
-const PLANS = [
-  {
-    id: "ecole",
-    name: "École",
-    for: "Petites structures — jusqu'à 150 élèves",
-    price: "25 000",
-    featured: false,
-    features: [
-      "Élèves, classes et emplois du temps",
-      "Notes, présences et bulletins",
-      "Paiement de la scolarité (Mobile Money, espèces)",
-      "Comptabilité de base",
-      "Événements et messagerie",
-      "Jusqu'à 5 comptes personnel",
-    ],
-  },
-  {
-    id: "etablissement",
-    name: "Établissement",
-    for: "Structures moyennes — de 151 à 500 élèves",
-    price: "60 000",
-    featured: true,
-    features: [
-      "Comptes personnel illimités",
-      "Assistant IA Intellino",
-      "Bibliothèque",
-      "Cantine scolaire",
-      "Infirmerie / suivi santé",
-      "Transport scolaire (bus)",
-      "Demandes de pré-inscription en ligne",
-      "Support prioritaire",
-    ],
-  },
-  {
-    id: "reseau",
-    name: "Réseau scolaire",
-    for: "Groupes et réseaux — 500+ élèves ou plusieurs écoles",
-    price: "120 000",
-    featured: false,
-    features: [
-      "Tout Établissement",
-      "Tarif dégressif par école supplémentaire",
-      "Accompagnement dédié au déploiement",
-      "Interlocuteur commercial attitré",
-    ],
-  },
-];
-
 const INCLUDED_EVERYWHERE = [
   "Interface en français, ressources en mooré et dioula",
   "Fonctionne avec une connexion limitée",
@@ -93,33 +45,24 @@ const FAQ = [
 ];
 
 export default function PricingPage() {
-  const { data: remotePlans } = useApiGet("/school-pricing-plans");
+  const { data: remotePlans, loading } = useApiGet("/school-pricing-plans");
   const [billingCycle, setBillingCycle] = useState("monthly");
-  const plans = remotePlans?.length
-    ? remotePlans.map((plan) => ({
-        id: plan.slug,
-        name: plan.name,
-        for: plan.max_staff_accounts
-          ? `Jusqu'à ${plan.max_staff_accounts} comptes du personnel`
-          : "Accès selon les modules inclus",
-        monthlyEnabled: plan.monthly_enabled,
-        annualEnabled: plan.annual_enabled,
-        monthlyPrice: Number(plan.monthly_amount),
-        annualPrice: Number(plan.annual_amount),
-        annualDiscount: plan.annual_discount_enabled
-          ? Number(plan.annual_discount_percentage)
-          : 0,
-        featured: false,
-        features: plan.modules ?? [],
-      }))
-    : PLANS.map((plan) => ({
-        ...plan,
-        monthlyEnabled: true,
-        annualEnabled: false,
-        monthlyPrice: Number(plan.price.replaceAll(" ", "")),
-        annualPrice: 0,
-        annualDiscount: 0,
-      }));
+  const plans = (remotePlans ?? []).map((plan) => ({
+    id: plan.slug,
+    name: plan.name,
+    for: plan.max_staff_accounts
+      ? `Jusqu'à ${plan.max_staff_accounts} comptes du personnel`
+      : "Accès selon les modules inclus",
+    monthlyEnabled: plan.monthly_enabled,
+    annualEnabled: plan.annual_enabled,
+    monthlyPrice: Number(plan.monthly_amount),
+    annualPrice: Number(plan.annual_amount),
+    annualDiscount: plan.annual_discount_enabled
+      ? Number(plan.annual_discount_percentage)
+      : 0,
+    featured: false,
+    features: plan.modules ?? [],
+  }));
 
   const visiblePlans = plans.filter((plan) =>
     billingCycle === "annual" ? plan.annualEnabled : plan.monthlyEnabled,
@@ -177,7 +120,16 @@ export default function PricingPage() {
         </Box>
 
         <Grid container spacing={3} alignItems="stretch">
-          {visiblePlans.length === 0 ? (
+          {loading ? (
+            <Grid size={{ xs: 12 }}>
+              <Typography
+                color="text.secondary"
+                sx={{ textAlign: "center", py: 4 }}
+              >
+                Chargement des tarifs...
+              </Typography>
+            </Grid>
+          ) : visiblePlans.length === 0 ? (
             <Grid size={{ xs: 12 }}>
               <Typography
                 color="text.secondary"

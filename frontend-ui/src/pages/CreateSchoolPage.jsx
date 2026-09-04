@@ -25,18 +25,6 @@ import { useApiGet } from "../hooks/useApiGet.js";
 
 const STEPS = ["Informations de l'école", "Activation"];
 
-const PLAN_OPTIONS = [
-  { value: "ecole", label: "École — 25 000 FCFA/mois (jusqu'à 150 élèves)" },
-  {
-    value: "etablissement",
-    label: "Établissement — 60 000 FCFA/mois (151 à 500 élèves)",
-  },
-  {
-    value: "reseau",
-    label: "Réseau scolaire — 120 000 FCFA/mois (500+ élèves)",
-  },
-];
-
 export default function CreateSchoolPage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -47,15 +35,15 @@ export default function CreateSchoolPage() {
   const { data: pricingPlans } = useApiGet("/school-pricing-plans");
 
   const requestedPlan = searchParams.get("plan");
-  const planOptions = pricingPlans?.length
-    ? pricingPlans.map((plan) => ({
-        value: plan.slug,
-        label: `${plan.name} — ${Number(plan.monthly_amount).toLocaleString("fr-FR")} ${plan.currency}/mois`,
-      }))
-    : PLAN_OPTIONS;
+  const planOptions = (pricingPlans ?? [])
+    .filter((plan) => plan.monthly_enabled || plan.annual_enabled)
+    .map((plan) => ({
+      value: plan.slug,
+      label: `${plan.name} — ${Number(plan.monthly_amount).toLocaleString("fr-FR")} ${plan.currency}/mois`,
+    }));
   const initialPlan = planOptions.some((plan) => plan.value === requestedPlan)
     ? requestedPlan
-    : planOptions[0]?.value || "ecole";
+    : planOptions[0]?.value || "";
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
