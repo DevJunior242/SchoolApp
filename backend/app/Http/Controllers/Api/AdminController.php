@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivationKey;
 use App\Models\EnrollmentRequest;
 use App\Models\School;
+use App\Models\SchoolPricingPlan;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -45,7 +46,7 @@ class AdminController extends Controller
     {
         return response()->json(
             School::query()
-                ->with('country')
+                ->with(['country', 'pricingPlan'])
                 ->when(
                     $request->query('search'),
                     fn ($query, $search) => $query->where('name', 'like', "%{$search}%")
@@ -93,10 +94,20 @@ class AdminController extends Controller
     public function updateSchoolPlan(Request $request, School $school)
     {
         $validated = $request->validate([
-            'plan' => ['required', 'in:'.School::PLAN_ECOLE.','.School::PLAN_ETABLISSEMENT.','.School::PLAN_RESEAU],
+            'plan' => ['required', 'string', 'max:120'],
         ]);
 
-        $school->update($validated);
+        $pricingPlan = SchoolPricingPlan::query()
+            ->where('active', true)
+            ->where('slug', $validated['plan'])
+            ->firstOrFail();
+
+        $school->update([
+            'plan' => $pricingPlan->slug,
+            'pricing_plan_id' => $pricingPlan->id,
+            'staff_quota_deadline_at' => null,
+            'staff_quota_reminder_sent_at' => null,
+        ]);
 
         return response()->json($school->load('country'));
     }

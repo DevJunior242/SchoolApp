@@ -42,14 +42,34 @@ class School extends Model
     const PLAN_ECOLE_MAX_STAFF_ACCOUNTS = 5;
 
     protected $fillable = [
-        'country_id', 'name', 'logo', 'slogan', 'address', 'city', 'phone', 'email', 'website',
-        'status', 'plan', 'language', 'currency', 'academic_period_type', 'cafeteria_low_balance_threshold',
-        'library_loan_duration_days', 'trial_ends_at', 'trial_reminder_sent_at',
+        'country_id',
+        'name',
+        'logo',
+        'slogan',
+        'address',
+        'city',
+        'phone',
+        'email',
+        'website',
+        'status',
+        'plan',
+        'pricing_plan_id',
+        'language',
+        'currency',
+        'academic_period_type',
+        'cafeteria_low_balance_threshold',
+        'library_loan_duration_days',
+        'trial_ends_at',
+        'trial_reminder_sent_at',
+        'staff_quota_deadline_at',
+        'staff_quota_reminder_sent_at',
     ];
 
     protected $casts = [
         'trial_ends_at' => 'datetime',
         'trial_reminder_sent_at' => 'datetime',
+        'staff_quota_deadline_at' => 'datetime',
+        'staff_quota_reminder_sent_at' => 'datetime',
     ];
 
     protected $appends = ['logo_url'];
@@ -65,6 +85,10 @@ class School extends Model
      */
     public function hasModule(string $module): bool
     {
+        if ($this->pricingPlan) {
+            return in_array($module, $this->pricingPlan->modules ?? [], true);
+        }
+
         if (! in_array($module, self::PLAN_RESTRICTED_MODULES, true)) {
             return true;
         }
@@ -78,17 +102,42 @@ class School extends Model
      */
     public function maxStaffAccounts(): ?int
     {
+        if ($this->pricingPlan) {
+            return $this->pricingPlan->max_staff_accounts;
+        }
+
         return $this->plan === self::PLAN_ECOLE ? self::PLAN_ECOLE_MAX_STAFF_ACCOUNTS : null;
+    }
+
+    public function staffAccountCount(): int
+    {
+        return SchoolUser::query()
+            ->where('school_id', $this->id)
+            ->where('status', SchoolUser::STATUS_ACTIVE)
+            ->whereHas('role', fn($query) => $query->whereNotIn('slug', ['parent', 'eleve']))
+            ->count();
+    }
+
+    public function exceedsStaffQuota(): bool
+    {
+        $max = $this->maxStaffAccounts();
+
+        return $max !== null && $this->staffAccountCount() > $max;
     }
 
     protected function logoUrl(): Attribute
     {
-        return Attribute::make(get: fn () => $this->logo ? asset('storage/'.$this->logo) : null);
+        return Attribute::make(get: fn() => $this->logo ? asset('storage/' . $this->logo) : null);
     }
 
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
+    }
+
+    public function pricingPlan(): BelongsTo
+    {
+        return $this->belongsTo(SchoolPricingPlan::class, 'pricing_plan_id');
     }
 
     public function schoolUsers(): HasMany

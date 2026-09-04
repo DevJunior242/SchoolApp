@@ -2,24 +2,25 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Role;
-use App\Models\User;
-use App\Models\School;
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreStudentsRequest;
 use App\Models\BusStop;
-use App\Models\Student;
-use App\Models\SchoolUser;
-use App\Models\SchoolClass;
 use App\Models\ClassStudent;
-use Illuminate\Http\Request;
 use App\Models\ParentStudent;
+use App\Models\Role;
+use App\Models\School;
+use App\Models\SchoolClass;
 use App\Models\SchoolStudent;
+use App\Models\SchoolUser;
+use App\Models\Student;
+use App\Models\User;
+use App\Notifications\StudentEnrolledNotification;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
-use App\Notifications\StudentEnrolledNotification;
-use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class StudentController extends Controller
 {
@@ -116,35 +117,11 @@ class StudentController extends Controller
      * Inscrit un ou plusieurs élèves en une seule fois (le secrétariat
      * saisit souvent toute une classe d'un coup).
      */
-    public function store(Request $request, School $school)
+    public function store(StoreStudentsRequest $request, School $school)
     {
         $this->authorizeStudentRegistrar($request, $school);
 
-        $validated = $request->validate([
-            'students' => ['required', 'array', 'min:1'],
-            'students.*.fullname' => ['required', 'string', 'max:255'],
-            'students.*.date_of_birth' => ['required', 'date', 'before:today'],
-            'students.*.gender' => ['required', 'string', 'max:10'],
-            'students.*.birth_place' => ['nullable', 'string', 'max:255'],
-            'students.*.blood_type' => ['nullable', 'string', 'max:10'],
-            'students.*.medical_notes' => ['nullable', 'string'],
-
-            'students.*.class_id' => ['required', 'uuid', 'exists:classes,id'],
-            'students.*.matricule' => ['nullable', 'string', 'max:50'],
-            'students.*.previous_school' => ['nullable', 'string', 'max:255'],
-
-            'students.*.student_email' => ['nullable', 'email'],
-
-            'students.*.parent_fullname' => ['nullable', 'string', 'max:255'],
-            'students.*.parent_email' => ['nullable', 'required_without:students.*.parent_phone', 'email'],
-            'students.*.parent_phone' => ['nullable', 'required_without:students.*.parent_email', 'string', 'max:30'],
-            'students.*.parent_relationship' => ['required', 'string', 'max:30'],
-        ], [
-            'students.*.parent_email.required_without' => 'Renseignez l’email ou le téléphone du parent.',
-            'students.*.parent_email.email' => 'L’email du parent doit être valide.',
-            'students.*.parent_phone.required_without' => 'Renseignez le téléphone ou l’email du parent.',
-            'students.*.parent_relationship.required' => 'Indiquez le lien entre le parent et l’élève.',
-        ]);
+        $validated = $request->validated();
 
         $results = DB::transaction(fn () => array_map(
             fn (array $entry) => $this->enrollStudent($school, $entry),

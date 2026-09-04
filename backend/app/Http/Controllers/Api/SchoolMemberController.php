@@ -69,16 +69,6 @@ class SchoolMemberController extends Controller
         $user = $this->resolveUser($validated);
         $this->guardAgainstRoleConflict($school, $user, $validated['role_id']);
 
-        $isNewMember = ! SchoolUser::query()
-            ->where('school_id', $school->id)
-            ->where('user_id', $user->id)
-            ->where('status', SchoolUser::STATUS_ACTIVE)
-            ->exists();
-
-        if ($isNewMember) {
-            $this->guardAgainstStaffQuota($school);
-        }
-
         $schoolUser = SchoolUser::query()->updateOrCreate(
             [
                 'school_id' => $school->id,
@@ -89,6 +79,8 @@ class SchoolMemberController extends Controller
                 'status' => SchoolUser::STATUS_ACTIVE,
             ]
         );
+
+        $this->syncStaffQuota($school->fresh());
 
         if (! $user->current_school_id) {
             $user->update(['current_school_id' => $school->id]);

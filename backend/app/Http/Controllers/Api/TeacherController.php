@@ -46,16 +46,6 @@ class TeacherController extends Controller
         $user = $this->resolveUser($validated);
         $this->guardAgainstRoleConflict($school, $user, $professeurRole->id);
 
-        $isNewMember = ! SchoolUser::query()
-            ->where('school_id', $school->id)
-            ->where('user_id', $user->id)
-            ->where('status', SchoolUser::STATUS_ACTIVE)
-            ->exists();
-
-        if ($isNewMember) {
-            $this->guardAgainstStaffQuota($school);
-        }
-
         $schoolUser = SchoolUser::query()->updateOrCreate(
             [
                 'school_id' => $school->id,
@@ -66,6 +56,8 @@ class TeacherController extends Controller
                 'status' => SchoolUser::STATUS_ACTIVE,
             ]
         );
+
+        $this->syncStaffQuota($school->fresh());
 
         // Ne bascule l'école active que si le prof n'en a pas encore une
         // (on n'écrase pas le contexte d'un prof déjà actif ailleurs).

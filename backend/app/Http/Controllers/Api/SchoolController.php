@@ -10,6 +10,7 @@ use App\Models\ActivationKey;
 use App\Models\Grade;
 use App\Models\Role;
 use App\Models\School;
+use App\Models\SchoolPricingPlan;
 use App\Models\SchoolUser;
 use App\Models\SchoolYear;
 use App\Models\Season;
@@ -55,29 +56,40 @@ class SchoolController extends Controller
             'address' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
-            'activation_key' => ['nullable', 'string'],
-            'plan' => ['nullable', 'in:'.School::PLAN_ECOLE.','.School::PLAN_ETABLISSEMENT.','.School::PLAN_RESEAU],
+            'activation_key' => ['nullable', 'string', 'max:80'],
+            'plan' => ['nullable', 'string', 'max:120'],
+            'pricing_plan_id' => ['nullable', 'uuid', 'exists:school_pricing_plans,id'],
         ]);
 
-        $validated['plan'] = $validated['plan'] ?? School::PLAN_ECOLE;
+        $pricingPlan = ! empty($validated['pricing_plan_id'])
+            ? SchoolPricingPlan::query()->where('active', true)->find($validated['pricing_plan_id'])
+            : SchoolPricingPlan::query()->where('active', true)->where('slug', $validated['plan'] ?? School::PLAN_ECOLE)->first();
+
+        if (! $pricingPlan) {
+            throw ValidationException::withMessages([
+                'pricing_plan_id' => ['Le tarif sélectionné n’est pas disponible.'],
+            ]);
+        }
+
+        $validated['pricing_plan_id'] = $pricingPlan->id;
+        $validated['plan'] = $pricingPlan->slug;
 
         $rawKey = trim((string) ($validated['activation_key'] ?? ''));
-        $activationKey = null;
-
-        if ($rawKey !== '') {
-            $activationKey = ActivationKey::query()->where('key', $rawKey)->first();
-
-            if (! $activationKey || $activationKey->status !== ActivationKey::STATUS_DISPONIBLE) {
-                throw ValidationException::withMessages([
-                    'activation_key' => ["Cette clé d'activation est invalide ou déjà utilisée."],
-                ]);
-            }
-        }
 
         $user = $request->user();
         $directeurRole = Role::query()->where('slug', 'directeur')->firstOrFail();
 
-        $school = DB::transaction(function () use ($validated, $user, $directeurRole, $activationKey) {
+        $school = DB::transaction(function () use ($validated, $rawKey, $user, $directeurRole) {
+            $activationKey = $rawKey !== ''
+                ? ActivationKey::query()->where('key', $rawKey)->lockForUpdate()->first()
+                : null;
+
+            if ($rawKey !== '' && (! $activationKey || $activationKey->status !== ActivationKey::STATUS_DISPONIBLE)) {
+                throw ValidationException::withMessages([
+                    'activation_key' => ["Cette clé d'activation est invalide ou déjà utilisée."],
+                ]);
+            }
+
             $school = School::query()->create([
                 ...collect($validated)->except('activation_key')->all(),
                 'status' => School::STATUS_ACTIVE,

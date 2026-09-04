@@ -43,6 +43,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SchoolMemberController;
+use App\Http\Controllers\Api\SchoolPricingPlanController;
 use App\Http\Controllers\Api\SchoolYearController;
 use App\Http\Controllers\Api\SeasonController;
 use App\Http\Controllers\Api\ServiceProviderController;
@@ -77,6 +78,7 @@ Route::middleware('throttle:2fa-challenge')->post('/2fa/challenge', [TwoFactorAu
 // Plus strict : peut envoyer un email à n'importe quelle adresse sans
 // authentification (risque de "email bombing" d'un tiers).
 Route::middleware('throttle:password-email')->post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::get('/school-pricing-plans', [SchoolPricingPlanController::class, 'publicIndex']);
 
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
     ->middleware('signed')
@@ -149,6 +151,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/schools/{school}/toggle-status', [AdminController::class, 'toggleSchoolStatus']);
         Route::post('/admin/schools/{school}/reactivate', [AdminController::class, 'reactivateSchool']);
         Route::put('/admin/schools/{school}/plan', [AdminController::class, 'updateSchoolPlan']);
+        Route::get('/admin/school-pricing-plans', [SchoolPricingPlanController::class, 'index']);
+        Route::post('/admin/school-pricing-plans', [SchoolPricingPlanController::class, 'store']);
+        Route::put('/admin/school-pricing-plans/{schoolPricingPlan}', [SchoolPricingPlanController::class, 'update']);
+        Route::delete('/admin/school-pricing-plans/{schoolPricingPlan}', [SchoolPricingPlanController::class, 'destroy']);
 
         Route::get('/admin/demo-requests', [DemoRequestController::class, 'index']);
         Route::put('/admin/demo-requests/{demoRequest}/status', [DemoRequestController::class, 'updateStatus']);

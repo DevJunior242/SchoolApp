@@ -14,7 +14,11 @@ import {
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link as RouterLink,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
@@ -23,11 +27,15 @@ const STEPS = ["Informations de l'école", "Activation"];
 
 const PLAN_OPTIONS = [
   { value: "ecole", label: "École — 25 000 FCFA/mois (jusqu'à 150 élèves)" },
-  { value: "etablissement", label: "Établissement — 60 000 FCFA/mois (151 à 500 élèves)" },
-  { value: "reseau", label: "Réseau scolaire — 120 000 FCFA/mois (500+ élèves)" },
+  {
+    value: "etablissement",
+    label: "Établissement — 60 000 FCFA/mois (151 à 500 élèves)",
+  },
+  {
+    value: "reseau",
+    label: "Réseau scolaire — 120 000 FCFA/mois (500+ élèves)",
+  },
 ];
-
-const PLAN_VALUES = PLAN_OPTIONS.map((p) => p.value);
 
 export default function CreateSchoolPage() {
   const { user, refreshUser } = useAuth();
@@ -36,12 +44,25 @@ export default function CreateSchoolPage() {
   const { data: countries } = useApiGet("/countries", {
     enabled: Boolean(user),
   });
+  const { data: pricingPlans } = useApiGet("/school-pricing-plans");
 
   const requestedPlan = searchParams.get("plan");
-  const initialPlan = PLAN_VALUES.includes(requestedPlan) ? requestedPlan : "ecole";
+  const planOptions = pricingPlans?.length
+    ? pricingPlans.map((plan) => ({
+        value: plan.slug,
+        label: `${plan.name} — ${Number(plan.monthly_amount).toLocaleString("fr-FR")} ${plan.currency}/mois`,
+      }))
+    : PLAN_OPTIONS;
+  const initialPlan = planOptions.some((plan) => plan.value === requestedPlan)
+    ? requestedPlan
+    : planOptions[0]?.value || "ecole";
 
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: "", country_id: "", plan: initialPlan });
+  const [form, setForm] = useState({
+    name: "",
+    country_id: "",
+    plan: initialPlan,
+  });
   const [activationKey, setActivationKey] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -178,14 +199,17 @@ export default function CreateSchoolPage() {
                   }
                   helperText={
                     <>
-                      Choisissez selon la taille de votre école — modifiable plus tard.{" "}
-                      <RouterLink to="/pricing">Voir le détail des tarifs</RouterLink>
+                      Choisissez selon la taille de votre école — modifiable
+                      plus tard.{" "}
+                      <RouterLink to="/pricing">
+                        Voir le détail des tarifs
+                      </RouterLink>
                     </>
                   }
                   required
                   fullWidth
                 >
-                  {PLAN_OPTIONS.map((plan) => (
+                  {planOptions.map((plan) => (
                     <MenuItem key={plan.value} value={plan.value}>
                       {plan.label}
                     </MenuItem>

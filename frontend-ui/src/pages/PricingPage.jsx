@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -6,11 +7,14 @@ import {
   Grid,
   Paper,
   Stack,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
+import { useApiGet } from "../hooks/useApiGet.js";
 
 const PLANS = [
   {
@@ -89,6 +93,40 @@ const FAQ = [
 ];
 
 export default function PricingPage() {
+  const { data: remotePlans } = useApiGet("/school-pricing-plans");
+  const [billingCycle, setBillingCycle] = useState("monthly");
+  const plans = remotePlans?.length
+    ? remotePlans.map((plan) => ({
+        id: plan.slug,
+        name: plan.name,
+        for: plan.max_staff_accounts
+          ? `Jusqu'à ${plan.max_staff_accounts} comptes du personnel`
+          : "Accès selon les modules inclus",
+        monthlyEnabled: plan.monthly_enabled,
+        annualEnabled: plan.annual_enabled,
+        monthlyPrice: Number(plan.monthly_amount),
+        annualPrice: Number(plan.annual_amount),
+        annualDiscount: Number(plan.annual_discount_percentage),
+        featured: false,
+        features: plan.modules ?? [],
+      }))
+    : PLANS.map((plan) => ({
+        ...plan,
+        monthlyEnabled: true,
+        annualEnabled: false,
+        monthlyPrice: Number(plan.price.replaceAll(" ", "")),
+        annualPrice: 0,
+        annualDiscount: 0,
+      }));
+
+  const visiblePlans = plans.filter((plan) =>
+    billingCycle === "annual" ? plan.annualEnabled : plan.monthlyEnabled,
+  );
+
+  function handleBillingCycleChange(_, value) {
+    if (value) setBillingCycle(value);
+  }
+
   return (
     <Box sx={{ bgcolor: "background.default", color: "text.primary" }}>
       <Container maxWidth="lg" sx={{ py: { xs: 6, md: 10 } }}>
@@ -105,81 +143,161 @@ export default function PricingPage() {
           >
             Tarifs
           </Typography>
-          <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: "1.9rem", md: "2.6rem" } }}>
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 800,
+              mb: 2,
+              fontSize: { xs: "1.9rem", md: "2.6rem" },
+            }}
+          >
             Un tarif simple, pensé pour votre établissement
           </Typography>
           <Typography color="text.secondary" sx={{ fontSize: 17 }}>
-            Sans engagement, paiement en FCFA par Mobile Money. Essai gratuit de 30 jours sur tous
-            les paliers.
+            Sans engagement, paiement en FCFA par Mobile Money. Essai gratuit de
+            30 jours sur tous les paliers.
           </Typography>
+          <ToggleButtonGroup
+            value={billingCycle}
+            exclusive
+            onChange={handleBillingCycleChange}
+            color="primary"
+            sx={{ mt: 3 }}
+            aria-label="Périodicité de paiement"
+          >
+            <ToggleButton value="monthly" aria-label="Paiement mensuel">
+              Mensuel
+            </ToggleButton>
+            <ToggleButton value="annual" aria-label="Paiement annuel">
+              Annuel
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
         <Grid container spacing={3} alignItems="stretch">
-          {PLANS.map((plan) => (
-            <Grid key={plan.id} size={{ xs: 12, md: 4 }}>
-              <Paper
-                variant="outlined"
-                sx={(theme) => ({
-                  p: 3.5,
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  position: "relative",
-                  borderColor: plan.featured ? "primary.main" : "divider",
-                  borderWidth: plan.featured ? 2 : 1,
-                  bgcolor: plan.featured
-                    ? alpha(theme.palette.primary.main, 0.04)
-                    : "transparent",
-                })}
+          {visiblePlans.length === 0 ? (
+            <Grid size={{ xs: 12 }}>
+              <Typography
+                color="text.secondary"
+                sx={{ textAlign: "center", py: 4 }}
               >
-                {plan.featured && (
-                  <Chip
-                    label="Le plus choisi"
-                    color="primary"
-                    size="small"
-                    sx={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", fontWeight: 700 }}
-                  />
-                )}
-                <Typography variant="h6" fontWeight={700}>
-                  {plan.name}
-                </Typography>
-                <Typography color="text.secondary" sx={{ fontSize: 13.5, mb: 2, minHeight: 34 }}>
-                  {plan.for}
-                </Typography>
-                <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mb: 3 }}>
-                  <Typography variant="h4" fontWeight={800}>
-                    {plan.price}
-                  </Typography>
-                  <Typography color="text.secondary" sx={{ fontSize: 13.5 }}>
-                    FCFA / mois
-                  </Typography>
-                </Stack>
-                <Button
-                  component={RouterLink}
-                  to={`/create-school?plan=${plan.id}`}
-                  variant={plan.featured ? "contained" : "outlined"}
-                  size="large"
-                  fullWidth
-                  sx={{ mb: 3 }}
-                >
-                  Créer mon école
-                </Button>
-                <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
-                  {plan.id === "ecole" ? "Inclus" : "Tout École, plus"}
-                </Typography>
-                <Stack spacing={1.2} sx={{ flexGrow: 1 }}>
-                  {plan.features.map((feature) => (
-                    <Stack key={feature} direction="row" spacing={1.2} alignItems="flex-start">
-                      <CheckCircleIcon sx={{ fontSize: 18, color: "success.main", mt: 0.2, flexShrink: 0 }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {feature}
-                      </Typography>
-                    </Stack>
-                  ))}
-                </Stack>
-              </Paper>
+                Aucun tarif annuel n’est disponible pour le moment.
+              </Typography>
             </Grid>
-          ))}
+          ) : (
+            visiblePlans.map((plan) => (
+              <Grid key={plan.id} size={{ xs: 12, md: 4 }}>
+                <Paper
+                  variant="outlined"
+                  sx={(theme) => ({
+                    p: 3.5,
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    position: "relative",
+                    borderColor: plan.featured ? "primary.main" : "divider",
+                    borderWidth: plan.featured ? 2 : 1,
+                    bgcolor: plan.featured
+                      ? alpha(theme.palette.primary.main, 0.04)
+                      : "transparent",
+                  })}
+                >
+                  {plan.featured && (
+                    <Chip
+                      label="Le plus choisi"
+                      color="primary"
+                      size="small"
+                      sx={{
+                        position: "absolute",
+                        top: -14,
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        fontWeight: 700,
+                      }}
+                    />
+                  )}
+                  <Typography variant="h6" fontWeight={700}>
+                    {plan.name}
+                  </Typography>
+                  <Typography
+                    color="text.secondary"
+                    sx={{ fontSize: 13.5, mb: 2, minHeight: 34 }}
+                  >
+                    {plan.for}
+                  </Typography>
+                  <Stack
+                    direction="row"
+                    alignItems="baseline"
+                    spacing={0.5}
+                    sx={{ mb: 3 }}
+                  >
+                    <Typography variant="h4" fontWeight={800}>
+                      {(billingCycle === "annual"
+                        ? plan.annualPrice
+                        : plan.monthlyPrice
+                      ).toLocaleString("fr-FR")}
+                    </Typography>
+                    <Typography color="text.secondary" sx={{ fontSize: 13.5 }}>
+                      {billingCycle === "annual" ? "FCFA / an" : "FCFA / mois"}
+                    </Typography>
+                  </Stack>
+                  {billingCycle === "annual" && plan.annualDiscount > 0 && (
+                    <Typography
+                      color="success.main"
+                      variant="body2"
+                      sx={{ mt: -2, mb: 2, fontWeight: 700 }}
+                    >
+                      Économisez {plan.annualDiscount}%
+                    </Typography>
+                  )}
+                  <Button
+                    component={RouterLink}
+                    to={`/create-school?plan=${plan.id}`}
+                    variant={plan.featured ? "contained" : "outlined"}
+                    size="large"
+                    fullWidth
+                    sx={{ mb: 3 }}
+                  >
+                    Créer mon école
+                  </Button>
+                  <Typography
+                    sx={{
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      letterSpacing: 0.5,
+                      textTransform: "uppercase",
+                      color: "text.secondary",
+                      mb: 1.5,
+                    }}
+                  >
+                    {plan.id === "ecole" ? "Inclus" : "Tout École, plus"}
+                  </Typography>
+                  <Stack spacing={1.2} sx={{ flexGrow: 1 }}>
+                    {plan.features.map((feature) => (
+                      <Stack
+                        key={feature}
+                        direction="row"
+                        spacing={1.2}
+                        alignItems="flex-start"
+                      >
+                        <CheckCircleIcon
+                          sx={{
+                            fontSize: 18,
+                            color: "success.main",
+                            mt: 0.2,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          {feature}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Paper>
+              </Grid>
+            ))
+          )}
         </Grid>
 
         <Paper variant="outlined" sx={{ mt: 5, p: 3.5 }}>
@@ -190,7 +308,14 @@ export default function PricingPage() {
             {INCLUDED_EVERYWHERE.map((item) => (
               <Grid key={item} size={{ xs: 12, sm: 6 }}>
                 <Stack direction="row" spacing={1.2} alignItems="flex-start">
-                  <CheckCircleIcon sx={{ fontSize: 18, color: "success.main", mt: 0.2, flexShrink: 0 }} />
+                  <CheckCircleIcon
+                    sx={{
+                      fontSize: 18,
+                      color: "success.main",
+                      mt: 0.2,
+                      flexShrink: 0,
+                    }}
+                  />
                   <Typography variant="body2" color="text.secondary">
                     {item}
                   </Typography>
@@ -201,7 +326,11 @@ export default function PricingPage() {
         </Paper>
 
         <Box sx={{ mt: 7 }}>
-          <Typography variant="h5" fontWeight={700} sx={{ textAlign: "center", mb: 3 }}>
+          <Typography
+            variant="h5"
+            fontWeight={700}
+            sx={{ textAlign: "center", mb: 3 }}
+          >
             Questions fréquentes
           </Typography>
           <Grid container spacing={2}>
@@ -236,9 +365,15 @@ export default function PricingPage() {
             Prêt à moderniser votre établissement ?
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Lancez votre espace en quelques minutes avec 30 jours d'essai gratuit.
+            Lancez votre espace en quelques minutes avec 30 jours d'essai
+            gratuit.
           </Typography>
-          <Button component={RouterLink} to="/create-school" variant="contained" size="large">
+          <Button
+            component={RouterLink}
+            to="/create-school"
+            variant="contained"
+            size="large"
+          >
             Créer mon école
           </Button>
         </Paper>
