@@ -21,10 +21,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useThemeMode } from "../context/ThemeModeContext.jsx";
 import intellinoMark from "../assets/intellino-mark.svg";
 
-const SECTION_LINKS = [
-  { label: "Fonctionnalités", id: "features" },
-  { label: "Établissements", id: "etablissements" },
-];
+const SECTION_LINKS = [{ label: "Fonctionnalités", id: "features" }];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -84,7 +81,12 @@ export default function Navbar() {
             component="img"
             src={intellinoMark}
             alt="Intellino"
-            sx={{ height: 32, width: 32, display: "block", borderRadius: "8px" }}
+            sx={{
+              height: 32,
+              width: 32,
+              display: "block",
+              borderRadius: "8px",
+            }}
           />
           <Typography
             sx={{
@@ -135,6 +137,16 @@ export default function Navbar() {
             sx={{ px: 2, fontSize: "0.875rem" }}
           >
             Devenir prestataire
+          </Button>
+          {/* contact */}
+          <Button
+            component={RouterLink}
+            to="/contact"
+            color="inherit"
+            size="small"
+            sx={{ px: 2, fontSize: "0.875rem" }}
+          >
+            Contact
           </Button>
           {user ? (
             <>
@@ -243,6 +255,13 @@ export default function Navbar() {
             onClick={() => setMobileOpen(false)}
           >
             <ListItemText primary="Devenir prestataire" />
+          </ListItemButton>
+          <ListItemButton
+            component={RouterLink}
+            to="/contact"
+            onClick={() => setMobileOpen(false)}
+          >
+            <ListItemText primary="Contact" />
           </ListItemButton>
         </List>
         <Divider />

@@ -42,7 +42,7 @@ class StudentAbsentNotification extends Notification
         $this->attendance->loadMissing(['student', 'classSubjectTeacher.subject', 'classSubjectTeacher.schoolClass']);
 
         return (new MailMessage)
-            ->subject('Absence de '.$this->attendance->student->fullname.' — EduAfrique')
+            ->subject('Absence de ' . $this->attendance->student->fullname . ' — edu.intellino')
             ->line(sprintf(
                 '%s a été marqué(e) absent(e) en %s (%s) le %s.',
                 $this->attendance->student->fullname,

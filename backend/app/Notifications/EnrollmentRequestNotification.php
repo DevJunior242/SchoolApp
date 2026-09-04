@@ -36,7 +36,7 @@ class EnrollmentRequestNotification extends Notification
     public function toMail($notifiable): MailMessage
     {
         $message = (new MailMessage)
-            ->subject('Nouvelle demande de pré-inscription — EduAfrique')
+            ->subject('Nouvelle demande de pré-inscription — edu.intellino')
             ->line(sprintf(
                 '%s souhaite inscrire %s%s.',
                 $this->enrollmentRequest->parent_fullname,
@@ -45,15 +45,15 @@ class EnrollmentRequestNotification extends Notification
             ));
 
         if ($this->enrollmentRequest->parent_phone) {
-            $message->line('Téléphone : '.$this->enrollmentRequest->parent_phone);
+            $message->line('Téléphone : ' . $this->enrollmentRequest->parent_phone);
         }
 
         if ($this->enrollmentRequest->parent_email) {
-            $message->line('Email : '.$this->enrollmentRequest->parent_email);
+            $message->line('Email : ' . $this->enrollmentRequest->parent_email);
         }
 
         if ($this->enrollmentRequest->message) {
-            $message->line('Message : '.$this->enrollmentRequest->message);
+            $message->line('Message : ' . $this->enrollmentRequest->message);
         }
 
         $message->line('Rendez-vous dans "Demandes d\'inscription" pour accepter ou refuser cette demande.');

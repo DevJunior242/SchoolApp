@@ -34,7 +34,7 @@ class TrialExpiredNotification extends Notification
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Essai gratuit terminé — EduAfrique')
+            ->subject('Essai gratuit terminé — edu.intellino')
             ->line("L'essai gratuit de {$this->school->name} est terminé.")
             ->line('Vos données restent consultables, mais toute création ou modification est bloquée jusqu\'à réactivation.')
             ->line('Contactez-nous pour réactiver l\'accès complet de votre école.');

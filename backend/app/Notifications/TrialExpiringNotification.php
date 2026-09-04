@@ -40,7 +40,7 @@ class TrialExpiringNotification extends Notification
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Votre essai gratuit EduAfrique se termine bientôt')
+            ->subject('Votre essai gratuit edu.intellino se termine bientôt')
             ->line(sprintf(
                 "L'essai gratuit de %s se termine dans %d jour(s).",
                 $this->school->name,

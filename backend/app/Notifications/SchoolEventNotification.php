@@ -40,16 +40,16 @@ class SchoolEventNotification extends Notification
         $this->event->loadMissing('schoolClass');
 
         $message = (new MailMessage)
-            ->subject($this->event->title.' — EduAfrique')
+            ->subject($this->event->title . ' — edu.intellino')
             ->line(sprintf(
                 '%s : %s',
                 $this->event->schoolClass ? "Un nouvel événement concerne la classe {$this->event->schoolClass->name}" : "Un nouvel événement concerne toute l'école",
                 $this->event->title,
             ))
-            ->line('Date : '.$this->event->start_at->format('d/m/Y à H:i'));
+            ->line('Date : ' . $this->event->start_at->format('d/m/Y à H:i'));
 
         if ($this->event->location) {
-            $message->line('Lieu : '.$this->event->location);
+            $message->line('Lieu : ' . $this->event->location);
         }
 
         if ($this->event->description) {

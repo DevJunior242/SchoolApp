@@ -328,7 +328,7 @@ export default function DashboardOverviewPage() {
             <Typography fontWeight={700}>Assistant IA Intellino</Typography>
             <Typography variant="body2" color="text.secondary">
               « Combien d'élèves ont un solde impayé ce mois ? » — posez vos
-              questions en langage naturel.
+              questions à IA.
             </Typography>
           </Box>
           <Button

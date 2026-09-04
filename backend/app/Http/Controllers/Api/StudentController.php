@@ -2,24 +2,24 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
-use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
-use App\Http\Controllers\Controller;
-use App\Models\BusStop;
-use App\Models\ClassStudent;
-use App\Models\ParentStudent;
 use App\Models\Role;
-use App\Models\School;
-use App\Models\SchoolClass;
-use App\Models\SchoolStudent;
-use App\Models\SchoolUser;
-use App\Models\Student;
 use App\Models\User;
-use App\Notifications\StudentEnrolledNotification;
+use App\Models\School;
+use App\Models\BusStop;
+use App\Models\Student;
+use App\Models\SchoolUser;
+use App\Models\SchoolClass;
+use App\Models\ClassStudent;
 use Illuminate\Http\Request;
+use App\Models\ParentStudent;
+use App\Models\SchoolStudent;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
+use App\Notifications\StudentEnrolledNotification;
+use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class StudentController extends Controller
 {
@@ -139,6 +139,11 @@ class StudentController extends Controller
             'students.*.parent_email' => ['nullable', 'required_without:students.*.parent_phone', 'email'],
             'students.*.parent_phone' => ['nullable', 'required_without:students.*.parent_email', 'string', 'max:30'],
             'students.*.parent_relationship' => ['required', 'string', 'max:30'],
+        ], [
+            'students.*.parent_email.required_without' => 'Renseignez l’email ou le téléphone du parent.',
+            'students.*.parent_email.email' => 'L’email du parent doit être valide.',
+            'students.*.parent_phone.required_without' => 'Renseignez le téléphone ou l’email du parent.',
+            'students.*.parent_relationship.required' => 'Indiquez le lien entre le parent et l’élève.',
         ]);
 
         $results = DB::transaction(fn () => array_map(

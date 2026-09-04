@@ -1,798 +1,992 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
-  Alert,
-  Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   Container,
   Grid,
   Paper,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
-import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
-import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import { motion } from "motion/react";
 import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
-import api from "../api/axios.jsx";
-import { useApiGet } from "../hooks/useApiGet.js";
-import EnrollmentRequestModal from "../components/EnrollmentRequestModal.jsx";
 import ChatbotWidget from "../components/ChatbotWidget.jsx";
-
-const features = [
+import directionImg from "../assets/characters/direction.png";
+import enseignantImg from "../assets/characters/enseignant.png";
+import parentsImg from "../assets/characters/parents.png";
+import eleveImg from "../assets/characters/eleve.png";
+import dashboardImg from "../assets/characters/mock.png";
+const featuresList = [
   {
-    icon: "🏫",
-    title: "Gestion des établissements",
-    description:
-      "Inscriptions, classes, emplois du temps et effectifs centralisés, du maternel au secondaire.",
+    icon: "👥",
+    title: "Gestion des élèves",
+    description: "Dossiers, inscriptions, suivi académique",
   },
   {
-    icon: "📊",
-    title: "Suivi pédagogique",
-    description:
-      "Notes, présences et bulletins mis à jour en temps réel, consultables par les parents.",
-  },
-  {
-    icon: "💬",
-    title: "Communication aux familles",
-    description:
-      "SMS et WhatsApp pour joindre les parents, sans dépendre d'une application lourde.",
+    icon: "📅",
+    title: "Gestion scolaire",
+    description: "Classes, emploi du temps, notes, examens",
   },
   {
     icon: "💳",
-    title: "Paiement de la scolarité",
-    description:
-      "Orange Money, Moov Money et espèces suivies, avec reçus automatiques.",
+    title: "Finance & Comptabilité",
+    description: "Frais scolaires, paiements, comptabilité",
   },
   {
-    icon: "📡",
-    title: "Mode faible connexion",
-    description:
-      "L'essentiel fonctionne hors-ligne et se synchronise dès que la connexion revient.",
+    icon: "💬",
+    title: "Communication",
+    description: "Messages, notifications, annonces",
+  },
+  {
+    icon: "👔",
+    title: "Ressources Humaines",
+    description: "Personnel, salaires, évaluations",
+  },
+  {
+    icon: "📚",
+    title: "Bibliothèque",
+    description: "Gestion des livres, emprunts, retours",
+  },
+  {
+    icon: "🍽️",
+    title: "Cantine & Stock",
+    description: "Gestion des menus, stocks et fournisseurs",
   },
   {
     icon: "📈",
-    title: "Rapports pour l'État",
-    description:
-      "Statistiques consolidées, exportables, conformes aux exigences du Ministère.",
+    title: "Rapports & Analyses",
+    description: "Statistiques, rapports personnalisés, tableaux de bord",
   },
 ];
 
-const adaptations = [
+const audiences = [
   {
-    icon: "📱",
-    title: "Mobile Money natif",
-    description:
-      "Paiements et frais de scolarité réglés en Orange Money ou Moov Money, sans compte bancaire requis.",
+    role: "Direction",
+    image: directionImg,
+    subtitle:
+      "Pilotez votre établissement avec des tableaux de bord et des rapports en temps réel.",
+    points: [
+      "Vue globale & statistiques",
+      "Prise de décision éclairée",
+      "Gestion simplifiée",
+    ],
   },
   {
-    icon: "🗣️",
-    title: "Langues nationales",
-    description:
-      "Interface et support en français, avec des ressources en mooré et en dioula pour les familles.",
+    role: "Enseignants",
+    image: enseignantImg,
+    subtitle: "Gérez vos classes, notes et activités pédagogiques facilement.",
+    points: [
+      "Saisie des notes",
+      "Suivi des présences",
+      "Planification des cours",
+    ],
   },
   {
-    icon: "📶",
-    title: "Données allégées",
+    role: "Parents",
+    image: parentsImg,
+    subtitle:
+      "Suivez la scolarité de vos enfants et restez informés en temps réel.",
+    points: [
+      "Notes et bulletins",
+      "Paiements en ligne",
+      "Communication facile",
+    ],
+  },
+  {
+    role: "Élèves",
+    image: eleveImg,
+    subtitle:
+      "Accédez à vos informations et ressources scolaires où que vous soyez.",
+    points: ["Emploi du temps", "Notes & résultats", "Ressources pédagogiques"],
+  },
+];
+
+const benefits = [
+  {
+    icon: "⚡",
+    title: "Gain de temps",
     description:
-      "Conçu pour les connexions instables des zones rurales comme urbaines, faible consommation de data.",
+      "Automatisez les tâches administratives et concentrez-vous sur l'essentiel.",
+  },
+  {
+    icon: "📊",
+    title: "Meilleure gestion",
+    description:
+      "Des données précises pour une gestion efficace et des décisions éclairées.",
+  },
+  {
+    icon: "💬",
+    title: "Communication simplifiée",
+    description:
+      "Facilitez les échanges entre l'école, les parents, les enseignants et les élèves.",
+  },
+  {
+    icon: "🛡️",
+    title: "Sécurité maximale",
+    description:
+      "Vos données sont protégées avec des sauvegardes régulières et un haut niveau de sécurité.",
   },
 ];
 
 export default function HomePage() {
   useEffect(() => {
     if (!window.location.hash) return;
+
     const id = window.location.hash.slice(1);
+
     const timeout = setTimeout(() => {
       document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     }, 100);
+
     return () => clearTimeout(timeout);
   }, []);
 
-  return <MarketingHome />;
-}
-
-function SectionEyebrow({ children }) {
-  return (
-    <Typography
-      sx={{
-        color: "primary.main",
-        fontWeight: 700,
-        fontSize: 14,
-        letterSpacing: 1.5,
-        textTransform: "uppercase",
-        mb: 1.5,
-      }}
-    >
-      {children}
-    </Typography>
-  );
-}
-
-function IconTile({ children, size = 48, radius = 12 }) {
   return (
     <Box
-      sx={(theme) => ({
-        width: size,
-        height: size,
-        borderRadius: `${radius}px`,
-        bgcolor: alpha(theme.palette.primary.main, 0.15),
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.45,
-        mb: 2.5,
-      })}
+      sx={{
+        bgcolor: "background.default",
+        color: "text.primary",
+        overflow: "hidden",
+      }}
     >
-      {children}
-    </Box>
-  );
-}
+      {/* =====================================================
+          1. HERO
+      ===================================================== */}
 
-function MarketingHome() {
-  const [dashTab, setDashTab] = useState("dashboard");
-  const [demoSubmitted, setDemoSubmitted] = useState(false);
-  const [demoForm, setDemoForm] = useState({
-    school_name: "",
-    email: "",
-    phone: "",
-    description: "",
-    company: "", // honeypot : laissé vide par un humain
-  });
-  const [demoError, setDemoError] = useState(null);
-  const [demoSubmitting, setDemoSubmitting] = useState(false);
-
-  function handleDemoChange(field) {
-    return (e) => setDemoForm((prev) => ({ ...prev, [field]: e.target.value }));
-  }
-
-  async function handleDemoSubmit(e) {
-    e.preventDefault();
-    setDemoError(null);
-
-    if (!demoForm.email.trim() && !demoForm.phone.trim()) {
-      setDemoError(
-        "Indiquez au moins un email ou un numéro de téléphone pour être recontacté.",
-      );
-      return;
-    }
-
-    setDemoSubmitting(true);
-    try {
-      await api.post("/demo-requests", demoForm);
-      setDemoSubmitted(true);
-    } catch (err) {
-      const messages = err.response?.data?.errors;
-      setDemoError(
-        messages
-          ? Object.values(messages).flat().join(" ")
-          : "Impossible d'envoyer la demande.",
-      );
-    } finally {
-      setDemoSubmitting(false);
-    }
-  }
-
-  return (
-    <Box sx={{ bgcolor: "background.default", color: "text.primary" }}>
-      {/* HERO */}
       <Box
         sx={(theme) => ({
           position: "relative",
           overflow: "hidden",
-          py: { xs: 8, md: 12 },
+          py: { xs: 5, md: 6 },
+
           background:
             theme.palette.mode === "dark"
-              ? `radial-gradient(circle at top left, ${alpha(theme.palette.primary.main, 0.28)}, transparent 35%), linear-gradient(135deg, #0F0D0C 0%, #171310 100%)`
-              : `radial-gradient(circle at top left, ${alpha(theme.palette.primary.main, 0.16)}, transparent 35%), linear-gradient(135deg, #F7F5F0 0%, #EFEAE0 100%)`,
+              ? `linear-gradient(
+                  135deg,
+                  ${theme.palette.background.default} 0%,
+                  ${alpha(theme.palette.primary.main, 0.06)} 100%
+                )`
+              : `linear-gradient(
+                  135deg,
+                  #ffffff 0%,
+                  #f5f8ff 100%
+                )`,
         })}
       >
         <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
-            <Grid size={{ xs: 12, md: 7 }}>
+          <Grid
+            container
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "minmax(0, 5.5fr) minmax(0, 6.5fr)",
+              },
+              gap: { xs: 5, sm: 0 },
+              alignItems: "start",
+            }}
+          >
+            {/* HERO TEXTE */}
+            <Box sx={{ minWidth: 0 }}>
               <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
               >
-                <Box
-                  sx={(theme) => ({
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 1,
-                    bgcolor: alpha(theme.palette.primary.main, 0.14),
-                    color: "primary.main",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    px: 2,
-                    py: 1,
-                    borderRadius: 999,
-                    mb: 3,
-                    letterSpacing: 0.4,
-                  })}
-                >
-                  <Box
-                    sx={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: "50%",
-                      bgcolor: "primary.main",
-                    }}
-                  />
-                  Intelligence · Innovation — pour les écoles du Burkina Faso
-                </Box>
-
                 <Typography
-                  variant="h2"
+                  variant="overline"
+                  color="primary.main"
+                  fontWeight={800}
                   sx={{
-                    fontSize: {
-                      xs: "2.1rem",
-                      md: "3.4rem",
-                    },
-                    lineHeight: 1.1,
-                    mb: 2,
+                    letterSpacing: 1.2,
+                    fontSize: "0.68rem",
                   }}
                 >
-                  La gestion scolaire,{" "}
-                  <Box component="span" sx={{ color: "primary.main" }}>
-                    intelligente
-                  </Box>{" "}
-                  et pensée pour le terrain
+                  PLATEFORME TOUT-EN-UN
                 </Typography>
+
                 <Typography
-                  variant="h6"
+                  variant="h1"
+                  sx={{
+                    mt: 1,
+                    mb: 2.5,
+                    fontSize: {
+                      xs: "2.35rem",
+                      sm: "2.8rem",
+                      md: "3rem",
+                    },
+                    fontWeight: 800,
+                    lineHeight: 1.08,
+                    letterSpacing: "-0.03em",
+                  }}
+                >
+                  Gérez votre école{" "}
+                  <Box component="span" sx={{ color: "primary.main" }}>
+                    simplement,
+                    <br />
+                    intelligemment
+                    <br />
+                    et efficacement.
+                  </Box>
+                </Typography>
+
+                <Typography
                   color="text.secondary"
                   sx={{
-                    mb: 4,
-                    maxWidth: 520,
-                    fontWeight: 400,
+                    maxWidth: 530,
+                    fontSize: "0.9rem",
+                    lineHeight: 1.7,
+                    mb: 3,
                   }}
                 >
-                  Écoles, enseignants, parents et élèves réunis dans un seul
-                  espace — conçu pour fonctionner avec une connexion limitée, en
-                  Mobile Money, et dans les langues nationales.
+                  Intellino Gestion Scolaire est la solution complète pour
+                  administrer votre établissement, de l'inscription des élèves à
+                  la gestion financière.
                 </Typography>
 
-                <Stack
-                  direction={{ xs: "column", sm: "row" }}
-                  spacing={2}
-                  sx={{ mb: 4 }}
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                    gap: 2.5,
+                  }}
                 >
-                  <Button
-                    component={RouterLink}
-                    to="/create-school"
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                  >
-                    Créer mon école
-                  </Button>
-                  <Button
-                    href="#features"
-                    variant="outlined"
-                    size="large"
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={1.5}
+                    alignItems="flex-start"
                     sx={{
-                      color: "text.primary",
-                      borderColor: "divider",
+                      width: "fit-content",
+                      maxWidth: "100%",
                     }}
                   >
-                    Voir les fonctionnalités
-                  </Button>
-                </Stack>
-              </motion.div>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 5 }}>
-              <motion.div
-                initial={{ opacity: 0, x: 24 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-              >
-                <Box sx={{ position: "relative" }}>
-                  <Paper
-                    elevation={0}
-                    sx={(theme) => ({
-                      p: { xs: 2.5, md: 3 },
-                      border: "1px solid",
-                      borderColor: "divider",
-                      bgcolor: alpha(theme.palette.text.primary, 0.03),
-                      boxShadow: "0 20px 60px rgba(0, 0, 0, 0.35)",
-                    })}
-                  >
-                    <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-                      <Chip
-                        label="Tableau de bord"
-                        color={dashTab === "dashboard" ? "primary" : "default"}
-                        variant={
-                          dashTab === "dashboard" ? "filled" : "outlined"
-                        }
-                        onClick={() => setDashTab("dashboard")}
-                      />
-                      <Chip
-                        label="Gestion scolaire"
-                        color={dashTab === "gestion" ? "primary" : "default"}
-                        variant={dashTab === "gestion" ? "filled" : "outlined"}
-                        onClick={() => setDashTab("gestion")}
-                      />
-                    </Stack>
-                    <Box
+                    <Button
+                      component={RouterLink}
+                      to="/contact"
+                      variant="contained"
+                      size="large"
                       sx={{
-                        border: "1px solid",
-                        borderColor: "divider",
-                        borderRadius: 3,
-                        p: 2,
-                        bgcolor: "background.paper",
+                        px: 3,
+                        py: 1.2,
+                        borderRadius: 2,
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        width: "fit-content",
                       }}
                     >
-                      {dashTab === "dashboard" ? (
-                        <>
-                          <Stack
-                            direction="row"
-                            sx={{
-                              justifyContent: "space-between",
-                              mb: 2,
-                            }}
-                          >
-                            <Box>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                Établissement
-                              </Typography>
-                              <Typography variant="subtitle1" fontWeight={700}>
-                                Lycée Notre-Dame de Bobo
-                              </Typography>
-                            </Box>
-                            <Chip label="Actif" color="primary" size="small" />
-                          </Stack>
-                          <Grid container spacing={1.5} sx={{ mb: 2 }}>
-                            {[
-                              { value: "31", label: "Cours" },
-                              { value: "742", label: "Élèves" },
-                              { value: "28", label: "Enseignants" },
-                            ].map((stat) => (
-                              <Grid key={stat.label} size={{ xs: 4 }}>
-                                <Paper
-                                  variant="outlined"
-                                  sx={(theme) => ({
-                                    p: 1.2,
-                                    textAlign: "center",
-                                    bgcolor: alpha(
-                                      theme.palette.primary.main,
-                                      0.08,
-                                    ),
-                                  })}
-                                >
-                                  <Typography variant="h6" color="primary.main">
-                                    {stat.value}
-                                  </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    {stat.label}
-                                  </Typography>
-                                </Paper>
-                              </Grid>
-                            ))}
-                          </Grid>
-                          <Box
-                            sx={{
-                              borderTop: "1px solid",
-                              borderColor: "divider",
-                              pt: 2,
-                            }}
-                          >
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{ mb: 1 }}
-                            >
-                              Progression du trimestre
-                            </Typography>
-                            <Box
-                              sx={(theme) => ({
-                                height: 8,
-                                borderRadius: 999,
-                                bgcolor: alpha(
-                                  theme.palette.text.primary,
-                                  0.08,
-                                ),
-                                overflow: "hidden",
-                              })}
-                            >
-                              <Box
-                                sx={{
-                                  width: "72%",
-                                  height: "100%",
-                                  bgcolor: "primary.main",
-                                }}
-                              />
-                            </Box>
-                          </Box>
-                        </>
-                      ) : (
-                        <Box>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mb: 1.5 }}
-                          >
-                            Paiements de scolarité — ce mois
-                          </Typography>
-                          <Stack spacing={1}>
-                            {[
-                              {
-                                label: "Orange Money",
-                                value: "1 240 000 FCFA",
-                              },
-                              { label: "Moov Money", value: "860 000 FCFA" },
-                              {
-                                label: "Espèces suivies",
-                                value: "410 000 FCFA",
-                              },
-                            ].map((row) => (
-                              <Stack
-                                key={row.label}
-                                direction="row"
-                                sx={(theme) => ({
-                                  justifyContent: "space-between",
-                                  bgcolor: alpha(
-                                    theme.palette.primary.main,
-                                    0.06,
-                                  ),
-                                  borderRadius: 2,
-                                  px: 1.5,
-                                  py: 1,
-                                })}
-                              >
-                                <Typography variant="body2">
-                                  {row.label}
-                                </Typography>
-                                <Typography variant="body2" fontWeight={700}>
-                                  {row.value}
-                                </Typography>
-                              </Stack>
-                            ))}
-                          </Stack>
-                        </Box>
-                      )}
-                    </Box>
-                  </Paper>
-                  <Chip
-                    label="📶 Fonctionne hors-ligne — synchronisation auto"
+                      Demander une démo
+                    </Button>
+
+                    <Button
+                      href="#features"
+                      variant="outlined"
+                      size="large"
+                      sx={{
+                        px: 3,
+                        py: 1.2,
+                        borderRadius: 2,
+                        color: "text.primary",
+                        borderColor: "divider",
+                        whiteSpace: "nowrap",
+                        width: "fit-content",
+                      }}
+                    >
+                      ▶ Découvrir la plateforme
+                    </Button>
+                  </Stack>
+
+                  {/* AVANTAGES HERO */}
+                  <Box
                     sx={{
-                      position: "absolute",
-                      bottom: -18,
-                      left: -12,
-                      bgcolor: "primary.main",
-                      color: "primary.contrastText",
-                      fontWeight: 700,
-                      boxShadow: "0 14px 30px -10px rgba(0,0,0,0.5)",
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "repeat(2, minmax(0, 1fr))",
+                        sm: "repeat(4, minmax(0, 1fr))",
+                      },
+                      gap: 2,
+                    }}
+                  >
+                    {[
+                      ["🧩", "Complet", "Tous les modules essentiels réunis"],
+                      ["🛡️", "Sécurisé", "Données protégées et sauvegardées"],
+                      ["📱", "Accessible", "Partout, tout le temps"],
+                      ["📈", "Évolutif", "S'adapte à la croissance"],
+                    ].map(([icon, title, text]) => (
+                      <Box key={title} sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontSize: "1.25rem", mb: 0.5 }}>
+                          {icon}
+                        </Typography>
+                        <Typography
+                          fontWeight={800}
+                          sx={{ fontSize: "0.72rem" }}
+                        >
+                          {title}
+                        </Typography>
+                        <Typography
+                          color="text.secondary"
+                          sx={{ fontSize: "0.58rem", lineHeight: 1.4 }}
+                        >
+                          {text}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              </motion.div>
+            </Box>
+
+            {/* HERO IMAGE / DASHBOARD */}
+            <Box
+              sx={{
+                display: "flex",
+                minWidth: 0,
+                justifyContent: "flex-end",
+              }}
+            >
+              <motion.div
+                initial={{ opacity: 0, x: 40, scale: 0.96 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                transition={{
+                  duration: 0.7,
+                  delay: 0.15,
+                }}
+              >
+                <Box
+                  sx={{
+                    position: "relative",
+                    width: "100%",
+                    minHeight: { xs: 220, sm: 340 },
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "flex-end",
+                    mt: { xs: 0, sm: -4 },
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={dashboardImg}
+                    alt="Aperçu du tableau de bord Intellino"
+                    sx={{
+                      position: "relative",
+                      zIndex: 1,
+                      display: "block",
+                      width: "100%",
+                      maxWidth: 600,
+                      height: "auto",
+                      objectFit: "contain",
+                      borderRadius: 3,
+                      filter: "drop-shadow(0 25px 35px rgba(0, 0, 0, .25))",
                     }}
                   />
                 </Box>
               </motion.div>
-            </Grid>
+            </Box>
           </Grid>
         </Container>
       </Box>
+      {/* =====================================================
+    2. MODULES
+===================================================== */}
 
-      <SchoolsSlider />
-
-      {/* FEATURES */}
       <Container
         id="features"
         maxWidth="lg"
-        sx={{ py: { xs: 8, md: 12 }, scrollMarginTop: 80 }}
+        sx={{
+          py: { xs: 8, md: 10 },
+          scrollMarginTop: 60,
+        }}
       >
-        <Box sx={{ textAlign: "center", maxWidth: 700, mx: "auto", mb: 6 }}>
-          <SectionEyebrow>Fonctionnalités</SectionEyebrow>
-          <Typography variant="h4" sx={{ mb: 2, fontWeight: 700 }}>
-            Tout ce qu'il faut pour piloter un établissement
-          </Typography>
-          <Typography color="text.secondary">
-            De l'inscription au bulletin, en passant par les paiements et la
-            communication avec les familles.
-          </Typography>
-        </Box>
-        <Grid container spacing={3}>
-          {features.map((feature, i) => (
-            <Grid key={feature.title} size={{ xs: 12, sm: 6, md: 4 }}>
+        {/* CONTENEUR PRINCIPAL */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: {
+              xs: "column",
+              md: "row",
+            },
+            gap: {
+              xs: 5,
+              md: 7,
+            },
+            alignItems: "center",
+          }}
+        >
+          {/* ================= TEXTE ================= */}
+          <Box
+            sx={{
+              width: {
+                xs: "100%",
+                md: "25%",
+              },
+              flexShrink: 0,
+            }}
+          >
+            <Typography
+              variant="overline"
+              color="primary.main"
+              fontWeight={800}
+              sx={{
+                fontSize: "0.62rem",
+                letterSpacing: 1,
+              }}
+            >
+              TOUT CE DONT VOUS AVEZ BESOIN
+            </Typography>
+
+            <Typography
+              fontWeight={800}
+              sx={{
+                mt: 1,
+                mb: 2,
+                fontSize: {
+                  xs: "2rem",
+                  md: "1.7rem",
+                  lg: "1.9rem",
+                },
+                lineHeight: 1.15,
+              }}
+            >
+              Une solution complète
+              <br />
+              pour tous vos besoins
+            </Typography>
+
+            <Box
+              sx={{
+                width: 30,
+                height: 2,
+                bgcolor: "primary.main",
+                borderRadius: 2,
+              }}
+            />
+          </Box>
+
+          {/* ================= CARTES ================= */}
+          <Box
+            sx={{
+              flex: 1,
+              width: "100%",
+
+              display: "grid",
+
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(4, 1fr)",
+              },
+
+              gap: 1.5,
+            }}
+          >
+            {featuresList.map((feat, index) => (
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.06 }}
+                key={index}
+                initial={{
+                  opacity: 0,
+                  y: 15,
+                }}
+                whileInView={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                viewport={{
+                  once: true,
+                  amount: 0.2,
+                }}
+                transition={{
+                  duration: 0.35,
+                  delay: index * 0.04,
+                }}
+                style={{
+                  height: "100%",
+                }}
               >
                 <Paper
                   elevation={0}
                   sx={(theme) => ({
-                    p: 4,
+                    p: 2,
+                    minHeight: 105,
                     height: "100%",
+                    borderRadius: 2,
+
+                    bgcolor: "background.paper",
+
                     border: "1px solid",
                     borderColor: "divider",
-                    bgcolor: alpha(theme.palette.text.primary, 0.02),
+
+                    transition: "all .25s ease",
+
+                    "&:hover": {
+                      transform: "translateY(-4px)",
+                      borderColor: theme.palette.primary.main,
+
+                      boxShadow:
+                        theme.palette.mode === "dark"
+                          ? "0 12px 30px rgba(0,0,0,.35)"
+                          : "0 12px 30px rgba(0,0,0,.08)",
+                    },
                   })}
                 >
-                  <IconTile>{feature.icon}</IconTile>
-                  <Typography variant="h6" sx={{ mb: 1 }}>
-                    {feature.title}
+                  {/* ICÔNE */}
+                  <Typography
+                    sx={{
+                      fontSize: "1.35rem",
+                      lineHeight: 1,
+                      mb: 1.1,
+                    }}
+                  >
+                    {feat.icon}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {feature.description}
+
+                  {/* TITRE */}
+                  <Typography
+                    fontWeight={800}
+                    sx={{
+                      fontSize: "0.78rem",
+                      mb: 0.5,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {feat.title}
+                  </Typography>
+
+                  {/* DESCRIPTION */}
+                  <Typography
+                    color="text.secondary"
+                    sx={{
+                      fontSize: "0.62rem",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {feat.description}
                   </Typography>
                 </Paper>
               </motion.div>
-            </Grid>
-          ))}
-        </Grid>
+            ))}
+          </Box>
+        </Box>
       </Container>
+      {/* =====================================================
+          3. COMMUNAUTÉ ÉDUCATIVE
+      ===================================================== */}
 
-      {/* NOTRE APPROCHE */}
-      <Container maxWidth="lg" sx={{ mb: 5 }}>
-        <Box
-          id="approche"
-          sx={(theme) => ({
-            py: { xs: 6, md: 10 },
-            px: { xs: 3, md: 8 },
-            borderRadius: 6,
-            bgcolor: alpha(theme.palette.text.primary, 0.02),
-            scrollMarginTop: 80,
-          })}
-        >
-          <Box sx={{ textAlign: "center", maxWidth: 700, mx: "auto", mb: 6 }}>
-            <SectionEyebrow>Notre approche</SectionEyebrow>
-            <Typography variant="h4" sx={{ mb: 2, fontWeight: 700 }}>
-              Pensé pour les réalités du terrain
+      <Box
+        sx={(theme) => ({
+          py: { xs: 8, md: 10 },
+          bgcolor:
+            theme.palette.mode === "dark"
+              ? alpha(theme.palette.primary.main, 0.035)
+              : alpha(theme.palette.primary.main, 0.025),
+        })}
+      >
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              textAlign: "center",
+              maxWidth: 700,
+              mx: "auto",
+              mb: 6,
+            }}
+          >
+            <Typography
+              variant="overline"
+              color="primary.main"
+              fontWeight={800}
+              sx={{
+                fontSize: "0.65rem",
+                letterSpacing: 1.2,
+              }}
+            >
+              PENSÉ POUR CHAQUE UTILISATEUR
             </Typography>
-            <Typography color="text.secondary">
-              Pas une adaptation d'un outil étranger — une plateforme conçue dès
-              le départ pour le Burkina Faso.
+
+            <Typography
+              fontWeight={800}
+              sx={{
+                mt: 1,
+                fontSize: {
+                  xs: "1.7rem",
+                  md: "2rem",
+                },
+              }}
+            >
+              Un outil adapté à toute la communauté éducative
             </Typography>
           </Box>
-          <Grid container spacing={4}>
-            {adaptations.map((item) => (
-              <Grid key={item.title} size={{ xs: 12, md: 4 }}>
-                <Box sx={{ textAlign: "center", px: 1.5 }}>
-                  <Box sx={{ display: "flex", justifyContent: "center" }}>
-                    <IconTile size={64} radius={16}>
-                      {item.icon}
-                    </IconTile>
+          <Grid
+            container
+            spacing={2}
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr", // mobile : 1
+                sm: "repeat(2, 1fr)", // tablette : 2
+                md: "repeat(4, 1fr)", // bureau : 4
+              },
+            }}
+          >
+            {audiences.map((aud, index) => (
+              <motion.div
+                key={index}
+                initial={{
+                  opacity: 0,
+                  y: 20,
+                }}
+                whileInView={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                viewport={{
+                  once: true,
+                  amount: 0.15,
+                }}
+                transition={{
+                  duration: 0.4,
+                  delay: index * 0.08,
+                }}
+                style={{
+                  height: "100%",
+                  minWidth: 0,
+                }}
+              >
+                <Paper
+                  elevation={0}
+                  sx={{
+                    height: "100%",
+                    overflow: "hidden",
+                    borderRadius: 2.5,
+                    bgcolor: "background.paper",
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: 180,
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "flex-end",
+                      overflow: "hidden",
+                      bgcolor: "background.default",
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={aud.image}
+                      alt={aud.role}
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                      }}
+                    />
                   </Box>
-                  <Typography variant="h6" sx={{ mb: 1 }}>
-                    {item.title}
+
+                  <Box sx={{ p: 2 }}>
+                    <Typography
+                      fontWeight={800}
+                      color="primary.main"
+                      sx={{
+                        fontSize: "0.95rem",
+                        mb: 1,
+                      }}
+                    >
+                      {aud.role}
+                    </Typography>
+
+                    <Typography
+                      color="text.secondary"
+                      sx={{
+                        fontSize: "0.68rem",
+                        lineHeight: 1.5,
+                        mb: 2,
+                        minHeight: 55,
+                      }}
+                    >
+                      {aud.subtitle}
+                    </Typography>
+
+                    <Stack spacing={0.7}>
+                      {aud.points.map((point) => (
+                        <Typography
+                          key={point}
+                          sx={{
+                            fontSize: "0.62rem",
+                            color: "text.primary",
+                          }}
+                        >
+                          <Box
+                            component="span"
+                            sx={{
+                              color: "primary.main",
+                              fontWeight: 800,
+                              mr: 0.5,
+                            }}
+                          >
+                            ✓
+                          </Box>
+
+                          {point}
+                        </Typography>
+                      ))}
+                    </Stack>
+                  </Box>
+                </Paper>
+              </motion.div>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* =====================================================
+          4. POURQUOI INTELLINO
+      ===================================================== */}
+
+      <Container maxWidth="lg" sx={{ py: { xs: 7, md: 9 } }}>
+        <Paper
+          elevation={0}
+          sx={(theme) => ({
+            borderRadius: 3,
+            overflow: "hidden",
+            bgcolor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
+            p: { xs: 3, md: 4 },
+          })}
+        >
+          <Typography
+            textAlign="center"
+            fontWeight={800}
+            sx={{
+              fontSize: "0.72rem",
+              letterSpacing: 1,
+              mb: 3,
+              textTransform: "uppercase",
+            }}
+          >
+            Pourquoi choisir Intellino ?
+          </Typography>
+
+          <Grid
+            container
+            spacing={3}
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(4, 1fr)",
+              },
+            }}
+          >
+            {benefits.map((benefit) => (
+              <Box
+                key={benefit.title}
+                sx={{
+                  display: "flex",
+                  gap: 1.5,
+                  minWidth: 0,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "1.7rem",
+                    lineHeight: 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  {benefit.icon}
+                </Typography>
+
+                <Box>
+                  <Typography
+                    fontWeight={800}
+                    sx={{
+                      fontSize: "0.78rem",
+                      mb: 0.7,
+                    }}
+                  >
+                    {benefit.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {item.description}
+
+                  <Typography
+                    sx={{
+                      fontSize: "0.62rem",
+                      lineHeight: 1.5,
+                      opacity: 0.9,
+                    }}
+                  >
+                    {benefit.description}
                   </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Grid>
+        </Paper>
+      </Container>
+
+      {/* =====================================================
+          5. CTA FINAL
+      ===================================================== */}
+
+      <Container maxWidth="lg" sx={{ py: { xs: 7, md: 9 } }}>
+        <Paper
+          elevation={0}
+          sx={(theme) => ({
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: 3,
+            p: { xs: 4, md: 5 },
+            bgcolor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
+          })}
+        >
+          {/* décoration */}
+          <Box
+            sx={{
+              position: "absolute",
+              width: 250,
+              height: 250,
+              borderRadius: "50%",
+              right: -100,
+              top: -100,
+              bgcolor: alpha("#fff", 0.08),
+            }}
+          />
+
+          <Grid container alignItems="center" spacing={3}>
+            <Grid item xs={12} md={8}>
+              <Typography
+                fontWeight={800}
+                sx={{
+                  fontSize: {
+                    xs: "1.5rem",
+                    md: "1.8rem",
+                  },
+                  mb: 1,
+                }}
+              >
+                Prêt à transformer la gestion de votre établissement ?
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "0.8rem",
+                  opacity: 0.9,
+                }}
+              >
+                Rejoignez des centaines d'établissements qui nous font déjà
+                confiance.
+              </Typography>
+            </Grid>
+
+            <Grid
+              item
+              xs={12}
+              md={4}
+              sx={{
+                display: "flex",
+                justifyContent: {
+                  xs: "flex-start",
+                  md: "flex-end",
+                },
+              }}
+            >
+              <Button
+                component={RouterLink}
+                to="/contact"
+                variant="contained"
+                sx={{
+                  bgcolor: "#fff",
+                  color: "primary.main",
+                  px: 3,
+                  py: 1.3,
+                  borderRadius: 2,
+                  fontWeight: 800,
+
+                  "&:hover": {
+                    bgcolor: "#f5f5f5",
+                  },
+                }}
+              >
+                📅 Demander une démo
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
+      </Container>
+
+      {/* =====================================================
+          7. GARANTIES
+      ===================================================== */}
+
+      <Box
+        sx={{
+          borderTop: "1px solid",
+          borderColor: "divider",
+          py: 3,
+        }}
+      >
+        <Container maxWidth="lg">
+          <Grid container spacing={2}>
+            {[
+              [
+                "🔒",
+                "Hébergé en toute sécurité",
+                "Vos données sont protégées et sauvegardées régulièrement.",
+              ],
+              [
+                "👥",
+                "Accessible partout",
+                "Utilisez Intellino sur tous vos appareils.",
+              ],
+              [
+                "🔄",
+                "Mises à jour continues",
+                "Des améliorations régulières pour toujours plus de performance.",
+              ],
+              [
+                "✓",
+                "Confort & fiable",
+                "Respect des normes et meilleures pratiques.",
+              ],
+            ].map(([icon, title, description]) => (
+              <Grid item xs={12} sm={6} md={3} key={title}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <Typography sx={{ fontSize: "1.2rem" }}>{icon}</Typography>
+
+                  <Box>
+                    <Typography
+                      fontWeight={800}
+                      sx={{
+                        fontSize: "0.68rem",
+                        mb: 0.3,
+                      }}
+                    >
+                      {title}
+                    </Typography>
+
+                    <Typography
+                      color="text.secondary"
+                      sx={{
+                        fontSize: "0.58rem",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {description}
+                    </Typography>
+                  </Box>
                 </Box>
               </Grid>
             ))}
           </Grid>
-        </Box>
-      </Container>
-
-      {/* À PROPOS + TÉMOIGNAGE */}
-      <Container
-        id="apropos"
-        maxWidth="lg"
-        sx={{ py: { xs: 6, md: 10 }, scrollMarginTop: 80 }}
-      >
-        <Grid container spacing={6} alignItems="center">
-          <Grid size={{ xs: 12 }}>
-            <SectionEyebrow>À propos</SectionEyebrow>
-            <Typography variant="h4" sx={{ mb: 2, fontWeight: 700 }}>
-              Une confiance qui se construit établissement par établissement
-            </Typography>
-            <Typography color="text.secondary">
-              INTELLINO est conçu pour accompagner les écoles maternelles,
-              primaires et secondaires du Burkina Faso, avec un support en
-              français et un accompagnement de proximité.
-            </Typography>
-          </Grid>
-        </Grid>
-      </Container>
-
-      {/* CONTACT */}
-      <Container maxWidth="lg" sx={{ mb: 6 }}>
-        <Box
-          id="contact"
-          sx={(theme) => ({
-            py: { xs: 6, md: 9 },
-            px: { xs: 3, md: 8 },
-            borderRadius: 6,
-            bgcolor: alpha(theme.palette.text.primary, 0.02),
-            scrollMarginTop: 80,
-          })}
-        >
-          <Grid container spacing={6}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <SectionEyebrow>Contact</SectionEyebrow>
-              <Typography variant="h4" sx={{ mb: 2, fontWeight: 700 }}>
-                Discutons de votre établissement
-              </Typography>
-              <Typography color="text.secondary" sx={{ mb: 4 }}>
-                Nos équipes vous accompagnent pour la mise en place, la
-                formation du personnel et le suivi.
-              </Typography>
-              <Stack spacing={2}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <LocationOnOutlinedIcon color="action" fontSize="small" />
-                  <Typography color="text.secondary">
-                    Ouagadougou, Burkina Faso
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <PhoneOutlinedIcon color="action" fontSize="small" />
-                  <Typography color="text.secondary">
-                    56 56 56 70 / 58 11 68 11
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <EmailOutlinedIcon color="action" fontSize="small" />
-                  <Box
-                    component="a"
-                    href="mailto:contact@intellino.tech"
-                    sx={{
-                      color: "text.secondary",
-                      textDecoration: "none",
-                      "&:hover": {
-                        color: "primary.main",
-                        textDecoration: "underline",
-                      },
-                    }}
-                  >
-                    contact@intellino.tech
-                  </Box>
-                </Box>
-              </Stack>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Paper
-                variant="outlined"
-                sx={(theme) => ({
-                  p: { xs: 3, md: 4 },
-                  bgcolor: alpha(theme.palette.text.primary, 0.03),
-                })}
-              >
-                {demoSubmitted ? (
-                  <Box sx={{ textAlign: "center", py: 5 }}>
-                    <Typography sx={{ fontSize: 40, mb: 2 }}>✅</Typography>
-                    <Typography variant="h6" sx={{ mb: 1 }}>
-                      Demande envoyée
-                    </Typography>
-                    <Typography color="text.secondary">
-                      Notre équipe vous contactera sous 24h.
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box component="form" onSubmit={handleDemoSubmit}>
-                    <Stack spacing={2.5}>
-                      {demoError && <Alert severity="error">{demoError}</Alert>}
-                      <TextField
-                        label="Nom de l'établissement (optionnel)"
-                        placeholder="Ex : Lycée Notre-Dame de Bobo"
-                        value={demoForm.school_name}
-                        onChange={handleDemoChange("school_name")}
-                        fullWidth
-                      />
-                      <Stack
-                        direction={{ xs: "column", sm: "row" }}
-                        spacing={2}
-                      >
-                        <TextField
-                          label="Téléphone"
-                          placeholder="+226 70 00 00 00"
-                          value={demoForm.phone}
-                          onChange={handleDemoChange("phone")}
-                          fullWidth
-                        />
-                        <TextField
-                          label="Email"
-                          type="email"
-                          placeholder="vous@ecole.bf"
-                          value={demoForm.email}
-                          onChange={handleDemoChange("email")}
-                          fullWidth
-                        />
-                      </Stack>
-                      <TextField
-                        label="Votre besoin"
-                        placeholder="Décrivez votre établissement et ce que vous cherchez..."
-                        value={demoForm.description}
-                        onChange={handleDemoChange("description")}
-                        multiline
-                        minRows={3}
-                        required
-                        fullWidth
-                      />
-                      {/* Honeypot anti-bot : invisible et non atteignable pour un humain */}
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          left: "-9999px",
-                          width: 1,
-                          height: 1,
-                          overflow: "hidden",
-                        }}
-                        aria-hidden="true"
-                      >
-                        <TextField
-                          label="Entreprise"
-                          name="company"
-                          tabIndex={-1}
-                          autoComplete="off"
-                          value={demoForm.company}
-                          onChange={handleDemoChange("company")}
-                        />
-                      </Box>
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        color="primary"
-                        size="large"
-                        disabled={demoSubmitting}
-                      >
-                        {demoSubmitting ? "Envoi..." : "contactez-nous"}
-                      </Button>
-                    </Stack>
-                  </Box>
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
-        </Box>
-      </Container>
-
-      {/* CTA FINAL */}
-      <Box sx={{ py: { xs: 6, md: 8 } }}>
-        <Container maxWidth="md">
-          <Paper
-            elevation={0}
-            sx={(theme) => ({
-              p: { xs: 3, md: 4 },
-              border: "1px solid",
-              borderColor: "divider",
-              bgcolor: alpha(theme.palette.primary.main, 0.08),
-            })}
-          >
-            <Typography variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
-              Prêt à moderniser votre établissement ?
-            </Typography>
-            <Typography color="text.secondary" sx={{ mb: 3 }}>
-              Lancez votre espace en quelques minutes et donnez à votre école
-              une vraie visibilité numérique.
-            </Typography>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <Button
-                component={RouterLink}
-                to="/create-school"
-                variant="contained"
-                color="primary"
-                size="large"
-              >
-                Commencer maintenant
-              </Button>
-              {/* <Button
-                component={RouterLink}
-                to="/login"
-                variant="outlined"
-                size="large"
-                sx={{ borderColor: "divider" }}
-              >
-                Voir mon compte
-              </Button> */}
-            </Stack>
-          </Paper>
         </Container>
       </Box>
 
@@ -800,7 +994,6 @@ function MarketingHome() {
     </Box>
   );
 }
-
 function SchoolsSlider() {
   const { data: schools } = useApiGet("/schools");
   const [selectedSchool, setSelectedSchool] = useState(null);

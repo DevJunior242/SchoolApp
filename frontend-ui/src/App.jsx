@@ -70,6 +70,7 @@ import TermsPage from "./pages/TermsPage.jsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import GuestRoute from "./components/GuestRoute.jsx";
+import ContactPage from "./pages/ContactPage.jsx";
 
 function App() {
   return (
@@ -78,7 +79,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/create-school" element={<CreateSchoolPage />} />
         <Route path="/pricing" element={<PricingPage />} />
-
+        <Route path="/contact" element={<ContactPage />} />
         <Route
           path="/login"
           element={
