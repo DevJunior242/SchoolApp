@@ -44,6 +44,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SchoolMemberController;
 use App\Http\Controllers\Api\SchoolPricingPlanController;
+use App\Http\Controllers\Api\SchoolSubscriptionController;
 use App\Http\Controllers\Api\SchoolYearController;
 use App\Http\Controllers\Api\SeasonController;
 use App\Http\Controllers\Api\ServiceProviderController;
@@ -155,6 +156,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/school-pricing-plans', [SchoolPricingPlanController::class, 'store']);
         Route::put('/admin/school-pricing-plans/{schoolPricingPlan}', [SchoolPricingPlanController::class, 'update']);
         Route::delete('/admin/school-pricing-plans/{schoolPricingPlan}', [SchoolPricingPlanController::class, 'destroy']);
+        Route::get('/admin/school-subscriptions/payments', [SchoolSubscriptionController::class, 'pendingPayments']);
+        Route::post('/admin/school-subscriptions/payments/{payment}/confirm', [SchoolSubscriptionController::class, 'confirm']);
+        Route::post('/admin/school-subscriptions/payments/{payment}/reject', [SchoolSubscriptionController::class, 'reject']);
 
         Route::get('/admin/demo-requests', [DemoRequestController::class, 'index']);
         Route::put('/admin/demo-requests/{demoRequest}/status', [DemoRequestController::class, 'updateStatus']);
@@ -193,6 +197,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/assignments/{assignment}/course-contents', [CourseContentController::class, 'store']);
         Route::post('/course-contents/{content}/correction', [CourseContentController::class, 'storeCorrection']);
         Route::delete('/course-contents/{content}', [CourseContentController::class, 'destroy']);
+        Route::post('/school-subscriptions/{subscription}/declare-payment', [SchoolSubscriptionController::class, 'declarePayment']);
     });
 
     // Toutes les routes ci-dessous portent sur une école précise ({school})
@@ -209,6 +214,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/schools/{school}/ai/ask-parent', [AiAssistantController::class, 'askAsParent'])->middleware('school.plan:ai');
 
         Route::get('/schools/{school}/settings', [SchoolController::class, 'show']);
+        Route::get('/schools/{school}/subscription', [SchoolSubscriptionController::class, 'current']);
         Route::get('/schools/{school}/seasons', [SeasonController::class, 'index']);
         Route::get('/schools/{school}/school-years', [SchoolYearController::class, 'index']);
         Route::get('/schools/{school}/dashboard-summary', [DashboardController::class, 'summary']);
@@ -397,6 +403,10 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/schools/{school}/messages/threads/{user}', [MessageController::class, 'reply']);
             });
             Route::delete('/schools/{school}/messages/{message}', [MessageController::class, 'destroy']);
+        });
+
+        Route::middleware('verified')->group(function () {
+            Route::post('/schools/{school}/subscriptions', [SchoolSubscriptionController::class, 'store']);
         });
     });
 });

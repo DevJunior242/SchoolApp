@@ -405,6 +405,11 @@ const SUPERADMIN_NAV_GROUPS = singleGroup([
     icon: <PriceChangeIcon />,
   },
   {
+    label: "Comptabilité SaaS",
+    to: "/dashboard/school-subscriptions",
+    icon: <AccountBalanceWalletIcon />,
+  },
+  {
     label: "Demandes de démo",
     to: "/dashboard/demo-requests",
     icon: <ContactMailIcon />,

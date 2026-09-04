@@ -20,6 +20,13 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('website')->nullable();
             $table->tinyInteger('status')->default(1);
+            $table->string('plan', 20)->default('etablissement');
+            $table->timestamp('trial_ends_at')->nullable();
+            $table->timestamp('trial_reminder_sent_at')->nullable();
+            $table->timestamp('staff_quota_deadline_at')->nullable();
+            $table->timestamp('staff_quota_reminder_sent_at')->nullable();
+            // Nullable for compatibility with schools created before a plan is assigned.
+            $table->uuid('pricing_plan_id')->nullable();
             $table->string('language', 5)->default('fr');
             $table->string('currency', 10)->nullable();
             $table->string('academic_period_type', 10)->default('trimestre');

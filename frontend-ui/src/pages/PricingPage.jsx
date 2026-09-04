@@ -106,7 +106,9 @@ export default function PricingPage() {
         annualEnabled: plan.annual_enabled,
         monthlyPrice: Number(plan.monthly_amount),
         annualPrice: Number(plan.annual_amount),
-        annualDiscount: Number(plan.annual_discount_percentage),
+        annualDiscount: plan.annual_discount_enabled
+          ? Number(plan.annual_discount_percentage)
+          : 0,
         featured: false,
         features: plan.modules ?? [],
       }))

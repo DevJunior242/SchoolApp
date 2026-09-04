@@ -5,6 +5,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import SuperAdminActivationKeysPage from "./pages/SuperAdminActivationKeysPage.jsx";
 import SuperAdminSchoolsPage from "./pages/SuperAdminSchoolsPage.jsx";
 import SuperAdminSchoolPricingPlansPage from "./pages/SuperAdminSchoolPricingPlansPage.jsx";
+import SuperAdminSchoolSubscriptionsPage from "./pages/SuperAdminSchoolSubscriptionsPage.jsx";
 import SuperAdminDemoRequestsPage from "./pages/SuperAdminDemoRequestsPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import CreateSchoolPage from "./pages/CreateSchoolPage.jsx";
@@ -211,6 +212,10 @@ function App() {
         <Route
           path="school-pricing-plans"
           element={<SuperAdminSchoolPricingPlansPage />}
+        />
+        <Route
+          path="school-subscriptions"
+          element={<SuperAdminSchoolSubscriptionsPage />}
         />
         <Route path="demo-requests" element={<SuperAdminDemoRequestsPage />} />
       </Route>

@@ -28,6 +28,7 @@ class SchoolPricingPlanController extends Controller
     {
         $validated = $this->validated($request);
         $this->ensureBillingOption($validated);
+        $validated['annual_base_amount'] = $validated['annual_base_amount'] ?? null;
         $validated['slug'] = Str::slug($validated['name']);
 
         return response()->json(SchoolPricingPlan::query()->create($validated), 201);
@@ -37,6 +38,8 @@ class SchoolPricingPlanController extends Controller
     {
         $validated = $this->validated($request);
         $this->ensureBillingOption($validated);
+        $validated['annual_base_amount'] = $validated['annual_base_amount']
+            ?? ($schoolPricingPlan->annual_base_amount ?? ((float) $schoolPricingPlan->monthly_amount * 12));
         $validated['slug'] = Str::slug($validated['name']);
         $schoolPricingPlan->update($validated);
 
@@ -61,8 +64,10 @@ class SchoolPricingPlanController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'monthly_amount' => ['required', 'numeric', 'min:0', 'max:999999999.99'],
+            'annual_base_amount' => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
             'monthly_enabled' => ['required', 'boolean'],
             'annual_enabled' => ['required', 'boolean'],
+            'annual_discount_enabled' => ['required', 'boolean'],
             'annual_discount_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'currency' => ['required', 'string', 'max:10'],
             'max_staff_accounts' => ['nullable', 'integer', 'min:1', 'max:100000'],
@@ -74,9 +79,21 @@ class SchoolPricingPlanController extends Controller
 
     private function ensureBillingOption(array $validated): void
     {
-        if (! $validated['monthly_enabled'] && ! $validated['annual_enabled']) {
+        if ($validated['monthly_enabled'] === $validated['annual_enabled']) {
             throw ValidationException::withMessages([
-                'billing' => ['Activez au moins une périodicité : mensuelle ou annuelle.'],
+                'billing' => ['Activez une seule périodicité : mensuelle ou annuelle.'],
+            ]);
+        }
+
+        if (! $validated['annual_enabled'] && $validated['annual_discount_enabled']) {
+            throw ValidationException::withMessages([
+                'annual_discount_enabled' => ['La réduction annuelle nécessite le paiement annuel.'],
+            ]);
+        }
+
+        if ($validated['annual_enabled'] && empty($validated['annual_base_amount'])) {
+            throw ValidationException::withMessages([
+                'annual_base_amount' => ['Indiquez le prix annuel de base.'],
             ]);
         }
     }

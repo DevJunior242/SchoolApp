@@ -22,12 +22,19 @@ const EMPTY = {
   monthly_amount: "",
   monthly_enabled: true,
   annual_enabled: false,
+  annual_discount_enabled: false,
   annual_discount_percentage: 0,
   currency: "FCFA",
   max_staff_accounts: "",
   modules: "basic",
   active: true,
 };
+
+function formatAmount(amount) {
+  return Number(amount ?? 0).toLocaleString("fr-FR", {
+    maximumFractionDigits: 2,
+  });
+}
 
 export default function SuperAdminSchoolPricingPlansPage() {
   const { user } = useAuth();
@@ -52,11 +59,15 @@ export default function SuperAdminSchoolPricingPlansPage() {
 
   function edit(plan) {
     setEditingId(plan.id);
+    const annualOnly = plan.annual_enabled && !plan.monthly_enabled;
     setForm({
       name: plan.name,
-      monthly_amount: plan.monthly_amount,
+      monthly_amount: annualOnly
+        ? (plan.annual_base_amount ?? Number(plan.monthly_amount) * 12)
+        : plan.monthly_amount,
       monthly_enabled: plan.monthly_enabled,
       annual_enabled: plan.annual_enabled,
+      annual_discount_enabled: plan.annual_discount_enabled,
       annual_discount_percentage: plan.annual_discount_percentage,
       currency: plan.currency,
       max_staff_accounts: plan.max_staff_accounts ?? "",
@@ -74,11 +85,18 @@ export default function SuperAdminSchoolPricingPlansPage() {
     event.preventDefault();
     setSaving(true);
     setActionError(null);
+    const annualOnly = form.annual_enabled && !form.monthly_enabled;
+    const enteredPrice = Number(form.monthly_amount);
+    const monthlyAmount = annualOnly ? enteredPrice / 12 : enteredPrice;
+
     const payload = {
       name: form.name.trim(),
-      monthly_amount: Number(form.monthly_amount),
+      monthly_amount: monthlyAmount,
+      annual_base_amount: annualOnly ? enteredPrice : null,
       monthly_enabled: form.monthly_enabled,
       annual_enabled: form.annual_enabled,
+      annual_discount_enabled:
+        form.annual_enabled && Number(form.annual_discount_percentage) > 0,
       annual_discount_percentage: Number(form.annual_discount_percentage),
       currency: form.currency.trim(),
       max_staff_accounts:
@@ -104,6 +122,34 @@ export default function SuperAdminSchoolPricingPlansPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function toggleAnnualDiscount(plan) {
+    setActionError(null);
+    try {
+      await api.put(`/admin/school-pricing-plans/${plan.id}`, {
+        name: plan.name,
+        monthly_amount: plan.monthly_amount,
+        annual_base_amount: plan.annual_base_amount,
+        monthly_enabled: plan.monthly_enabled,
+        annual_enabled: plan.annual_enabled,
+        annual_discount_enabled: !plan.annual_discount_enabled,
+        annual_discount_percentage: plan.annual_discount_percentage,
+        currency: plan.currency,
+        max_staff_accounts: plan.max_staff_accounts,
+        modules: plan.modules ?? [],
+        active: plan.active,
+      });
+      await reload();
+    } catch (err) {
+      const messages = err.response?.data?.errors;
+      setActionError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : err.response?.data?.message ||
+              "Impossible de modifier la réduction.",
+      );
     }
   }
 
@@ -148,8 +194,17 @@ export default function SuperAdminSchoolPricingPlansPage() {
                 fullWidth
               />
               <TextField
-                label="Prix mensuel"
+                label={
+                  form.annual_enabled && !form.monthly_enabled
+                    ? "Prix annuel de base"
+                    : "Prix mensuel"
+                }
                 type="number"
+                placeholder={
+                  form.annual_enabled && !form.monthly_enabled
+                    ? "Ex : 250000"
+                    : "Ex : 25000"
+                }
                 value={form.monthly_amount}
                 onChange={change("monthly_amount")}
                 required
@@ -168,10 +223,13 @@ export default function SuperAdminSchoolPricingPlansPage() {
                 control={
                   <Switch
                     checked={form.monthly_enabled}
-                    onChange={(event) =>
+                    onChange={() =>
                       setForm((current) => ({
                         ...current,
-                        monthly_enabled: event.target.checked,
+                        monthly_enabled: true,
+                        annual_enabled: false,
+                        annual_discount_enabled: false,
+                        annual_discount_percentage: 0,
                       }))
                     }
                   />
@@ -182,26 +240,28 @@ export default function SuperAdminSchoolPricingPlansPage() {
                 control={
                   <Switch
                     checked={form.annual_enabled}
-                    onChange={(event) =>
+                    onChange={() =>
                       setForm((current) => ({
                         ...current,
-                        annual_enabled: event.target.checked,
+                        monthly_enabled: false,
+                        annual_enabled: true,
                       }))
                     }
                   />
                 }
                 label="Autoriser le paiement annuel"
               />
-              <TextField
-                label="Réduction annuelle (%)"
-                type="number"
-                inputProps={{ min: 0, max: 100, step: 0.01 }}
-                value={form.annual_discount_percentage}
-                onChange={change("annual_discount_percentage")}
-                helperText="Ex : 15 = 15 %"
-                disabled={!form.annual_enabled}
-                sx={{ minWidth: 220 }}
-              />
+              {form.annual_enabled && (
+                <TextField
+                  label="Réduction annuelle (%)"
+                  type="number"
+                  inputProps={{ min: 0, max: 99.99, step: 0.01 }}
+                  value={form.annual_discount_percentage}
+                  onChange={change("annual_discount_percentage")}
+                  helperText="Ex : 15 = 15 %"
+                  sx={{ minWidth: 220 }}
+                />
+              )}
             </Stack>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
@@ -264,11 +324,29 @@ export default function SuperAdminSchoolPricingPlansPage() {
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography fontWeight={700}>{plan.name}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {plan.monthly_amount} {plan.currency} / mois ·{" "}
+                    {plan.monthly_enabled &&
+                      `${formatAmount(plan.monthly_amount)} ${plan.currency} / mois`}
+                    {plan.monthly_enabled && plan.annual_enabled && " · "}
+                    {plan.annual_enabled &&
+                      `${formatAmount(plan.annual_amount)} ${plan.currency} / an`}
+                    {plan.annual_enabled &&
+                      plan.annual_discount_percentage > 0 &&
+                      ` (-${plan.annual_discount_percentage}%)`}
+                    {" · "}
                     {plan.max_staff_accounts ?? "illimité"} comptes personnel ·{" "}
                     {plan.schools_count} école(s)
                   </Typography>
                 </Box>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={plan.annual_discount_enabled}
+                      onChange={() => toggleAnnualDiscount(plan)}
+                      disabled={!plan.annual_enabled}
+                    />
+                  }
+                  label="Réduction annuelle active"
+                />
                 <Button size="small" onClick={() => edit(plan)}>
                   Modifier
                 </Button>
