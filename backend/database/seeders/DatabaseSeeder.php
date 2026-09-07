@@ -28,21 +28,18 @@ class DatabaseSeeder extends Seeder
         $this->call(LevelSeeder::class);
         $this->call(SubjectSeeder::class);
 
-        // User::factory(10)->create();
+        
 
-        // User::factory()->create([
-        //     'fullname' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
-        User::factory()->create([
-            'fullname' => 'Super Admin',
-            'email' => env('SUPERADMIN_EMAIL', 'superadmin@example.com'),
-            'phone' => env('SUPERADMIN_PHONE'),
-            'password' => Hash::make(env('SUPERADMIN_PASSWORD')),
-            'role_id' => Role::query()->where('slug', 'superadmin')->firstOrFail()->id,
-            'terms_accepted_version' => config('legal.terms_version'),
-            'terms_accepted_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => env('SUPERADMIN_EMAIL')],
+            [
+                'fullname' => 'Super Admin',
+                'phone' => env('SUPERADMIN_PHONE'),
+                'password' => Hash::make(env('SUPERADMIN_PASSWORD', 'password')),
+                'role_id' => Role::query()->where('slug', 'superadmin')->firstOrFail()->id,
+                'terms_accepted_version' => config('legal.terms_version'),
+                'terms_accepted_at' => now(),
+            ]
+        );
     }
 }
