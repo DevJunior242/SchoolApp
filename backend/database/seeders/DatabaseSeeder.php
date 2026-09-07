@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
                 'phone' => env('SUPERADMIN_PHONE'),
                 'password' => Hash::make(env('SUPERADMIN_PASSWORD', 'password')),
                 'role_id' => Role::query()->where('slug', 'superadmin')->firstOrFail()->id,
+                'email_verified_at' => now(),
                 'terms_accepted_version' => config('legal.terms_version'),
                 'terms_accepted_at' => now(),
             ]
