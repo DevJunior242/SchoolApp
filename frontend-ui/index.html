@@ -8,9 +8,80 @@
     <meta name="theme-color" content="#0F0D0C" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Intellino</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100%;
+        background: #050505;
+      }
+
+      #root {
+        min-height: 100vh;
+      }
+
+      .app-loader {
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        background: #050505;
+        color: #f5f1e8;
+      }
+
+      .app-loader__content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .app-loader__logo {
+        width: 58px;
+        height: 58px;
+        border-radius: 16px;
+        animation: app-loader-pulse 1.6s ease-in-out infinite;
+      }
+
+      .app-loader__spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid rgba(245, 241, 232, 0.2);
+        border-top-color: #f3680f;
+        border-radius: 50%;
+        animation: app-loader-spin 0.8s linear infinite;
+      }
+
+      @keyframes app-loader-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes app-loader-pulse {
+        50% {
+          opacity: 0.68;
+          transform: scale(0.96);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .app-loader__logo,
+        .app-loader__spinner {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="app-loader" role="status" aria-label="Chargement">
+        <div class="app-loader__content">
+          <img class="app-loader__logo" src="/icons/icon-192.png" alt="Intellino" />
+          <div class="app-loader__spinner" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

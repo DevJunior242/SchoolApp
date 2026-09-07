@@ -16,7 +16,7 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'fullname' => ['required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'phone:INTERNATIONAL'],
             'language' => ['required', 'in:fr,en'],
             'avatar' => ['nullable', 'image', 'max:2048'],
         ]);

@@ -16,11 +16,16 @@ import { useAuth } from "../context/AuthContext.jsx";
 import InputAdornment from "@mui/material/InputAdornment";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { PhoneInput } from "react-international-phone";
+import "react-international-phone/style.css";
+import "../components/InternationalPhoneInput.css";
 import intellinoMark from "../assets/intellino-mark.svg";
 import TurnstileWidget from "../components/TurnstileWidget.jsx";
+import { useThemeMode } from "../context/ThemeModeContext.jsx";
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const { mode } = useThemeMode();
   const [form, setForm] = useState({
     fullname: "",
     email: "",
@@ -170,13 +175,19 @@ export default function RegisterPage() {
                 required
                 fullWidth
               />
-              <TextField
-                id="phone"
-                label="Téléphone"
-                value={form.phone}
-                onChange={handleChange("phone")}
-                fullWidth
-              />
+              <Box className={`international-phone-input international-phone-input--${mode}`}>
+                <Box component="label" className="international-phone-input__label" htmlFor="phone">
+                  Téléphone
+                </Box>
+                <PhoneInput
+                  defaultCountry="bf"
+                  value={form.phone}
+                  onChange={(phone) =>
+                    setForm((previous) => ({ ...previous, phone }))
+                  }
+                  inputProps={{ id: "phone", name: "phone" }}
+                />
+              </Box>
               <TextField
                 id="password"
                 label="Mot de passe"

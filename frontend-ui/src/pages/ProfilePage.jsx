@@ -11,8 +11,12 @@ import {
   Typography,
 } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import { PhoneInput } from 'react-international-phone';
+import 'react-international-phone/style.css';
+import '../components/InternationalPhoneInput.css';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useThemeMode } from '../context/ThemeModeContext.jsx';
 
 const LANGUAGE_OPTIONS = [
   { value: 'fr', label: 'Français' },
@@ -21,6 +25,7 @@ const LANGUAGE_OPTIONS = [
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
+  const { mode } = useThemeMode();
 
   const [form, setForm] = useState({
     fullname: user.fullname ?? '',
@@ -150,12 +155,17 @@ export default function ProfilePage() {
             fullWidth
           />
           <TextField label="Email" value={user.email} disabled fullWidth helperText="L'email ne peut pas être modifié ici." />
-          <TextField
-            label="Téléphone"
-            value={form.phone}
-            onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-            fullWidth
-          />
+          <Box className={`international-phone-input international-phone-input--${mode}`}>
+            <Box component="label" className="international-phone-input__label" htmlFor="phone">
+              Téléphone
+            </Box>
+            <PhoneInput
+              defaultCountry="bf"
+              value={form.phone}
+              onChange={(phone) => setForm((prev) => ({ ...prev, phone }))}
+              inputProps={{ id: 'phone', name: 'phone' }}
+            />
+          </Box>
           <TextField
             select
             label="Langue"

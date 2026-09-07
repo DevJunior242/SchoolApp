@@ -4,13 +4,14 @@ namespace Database\Seeders;
 
 use App\Models\Role;
 use App\Models\User;
-use Database\Seeders\CountrySeeder;
-use Database\Seeders\DemoSchoolSeeder;
-use Database\Seeders\LevelSeeder;
-use Database\Seeders\RoleSeeder;
-use Database\Seeders\SubjectSeeder;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Database\Seeders\RoleSeeder;
+use Database\Seeders\LevelSeeder;
+use Database\Seeders\CountrySeeder;
+use Database\Seeders\SubjectSeeder;
+// use Database\Seeders\DemoSchoolSeeder;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class DatabaseSeeder extends Seeder
 {
@@ -23,21 +24,25 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RoleSeeder::class);
         $this->call(CountrySeeder::class);
-        $this->call(DemoSchoolSeeder::class);
+       // $this->call(DemoSchoolSeeder::class);
         $this->call(LevelSeeder::class);
         $this->call(SubjectSeeder::class);
 
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'fullname' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // User::factory()->create([
+        //     'fullname' => 'Test User',
+        //     'email' => 'test@example.com',
+        // ]);
 
         User::factory()->create([
             'fullname' => 'Super Admin',
-            'email' => 'superadmin@eduafrique.com',
+            'email' => env('SUPERADMIN_EMAIL', 'superadmin@example.com'),
+            'phone' => env('SUPERADMIN_PHONE'),
+            'password' => Hash::make(env('SUPERADMIN_PASSWORD')),
             'role_id' => Role::query()->where('slug', 'superadmin')->firstOrFail()->id,
+            'terms_accepted_version' => config('legal.terms_version'),
+            'terms_accepted_at' => now(),
         ]);
     }
 }
