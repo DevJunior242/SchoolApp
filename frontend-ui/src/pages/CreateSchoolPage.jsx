@@ -38,18 +38,20 @@ export default function CreateSchoolPage() {
   const planOptions = (pricingPlans ?? [])
     .filter((plan) => plan.monthly_enabled || plan.annual_enabled)
     .map((plan) => ({
-      value: plan.slug,
+      value: plan.id,
+      slug: plan.slug,
       label: `${plan.name} — ${Number(plan.monthly_amount).toLocaleString("fr-FR")} ${plan.currency}/mois`,
     }));
-  const initialPlan = planOptions.some((plan) => plan.value === requestedPlan)
-    ? requestedPlan
-    : planOptions[0]?.value || "";
+  const requestedPlanOption = planOptions.find(
+    (plan) => plan.slug === requestedPlan || plan.value === requestedPlan,
+  );
+  const defaultPlanId = requestedPlanOption?.value || planOptions[0]?.value || "";
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "",
     country_id: "",
-    plan: initialPlan,
+    pricing_plan_id: "",
   });
   const [activationKey, setActivationKey] = useState("");
   const [error, setError] = useState(null);
@@ -67,6 +69,7 @@ export default function CreateSchoolPage() {
     try {
       await api.post("/schools", {
         ...form,
+        pricing_plan_id: form.pricing_plan_id || defaultPlanId,
         activation_key: activationKey.trim(),
       });
       await refreshUser();
@@ -149,6 +152,13 @@ export default function CreateSchoolPage() {
             </Alert>
           )}
 
+          {!planOptions.length && (
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              Aucun tarif n'est actuellement disponible. Le superadmin doit
+              d'abord créer un tarif actif.
+            </Alert>
+          )}
+
           {step === 1 ? (
             <Box component="form" onSubmit={handleNext}>
               <Stack spacing={2.5}>
@@ -181,9 +191,12 @@ export default function CreateSchoolPage() {
                 <TextField
                   select
                   label="Palier"
-                  value={form.plan}
+                  value={form.pricing_plan_id || defaultPlanId}
                   onChange={(e) =>
-                    setForm((prev) => ({ ...prev, plan: e.target.value }))
+                    setForm((prev) => ({
+                      ...prev,
+                      pricing_plan_id: e.target.value,
+                    }))
                   }
                   helperText={
                     <>
@@ -214,7 +227,11 @@ export default function CreateSchoolPage() {
                   <Button
                     type="submit"
                     variant="contained"
-                    disabled={!form.name.trim() || !form.country_id}
+                    disabled={
+                      !form.name.trim() ||
+                      !form.country_id ||
+                      !(form.pricing_plan_id || defaultPlanId)
+                    }
                   >
                     Continuer
                   </Button>

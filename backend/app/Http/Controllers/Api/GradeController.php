@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Grade;
-use App\Models\Season;
-use App\Models\SchoolUser;
-use App\Models\ClassStudent;
-use Illuminate\Http\Request;
-use App\Models\ClassSubjectTeacher;
 use App\Http\Controllers\Controller;
+use App\Models\ClassStudent;
+use App\Models\ClassSubjectTeacher;
+use App\Models\Grade;
+use App\Models\SchoolUser;
+use App\Models\Season;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class GradeController extends Controller
@@ -31,7 +31,7 @@ class GradeController extends Controller
 
         return response()->json(
             $assignment->grades()
-                ->when($request->query('season_id'), fn($query, $seasonId) => $query->where('season_id', $seasonId))
+                ->when($request->query('season_id'), fn ($query, $seasonId) => $query->where('season_id', $seasonId))
                 ->with(['student', 'season'])
                 ->orderByDesc('graded_at')
                 ->get()
@@ -45,7 +45,7 @@ class GradeController extends Controller
         $validated = $request->validate([
             'student_id' => ['required', 'uuid'],
             'season_id' => ['required', 'uuid', 'exists:seasons,id'],
-            'evaluation_type' => ['required', 'in:' . implode(',', [
+            'evaluation_type' => ['required', 'in:'.implode(',', [
                 Grade::TYPE_DEVOIR,
                 Grade::TYPE_INTERROGATION,
                 Grade::TYPE_COMPOSITION,
@@ -69,7 +69,13 @@ class GradeController extends Controller
             ]);
         }
 
-        $season = Season::query()->findOrFail($validated['season_id']);
+        $season = Season::query()->find($validated['season_id']);
+
+        if (! $season) {
+            throw ValidationException::withMessages([
+                'season_id' => ["La période scolaire sélectionnée n'existe plus. Rechargez les périodes et réessayez."],
+            ]);
+        }
 
         if ($season->school_year_id !== $assignment->schoolClass->school_year_id) {
             throw ValidationException::withMessages([
@@ -121,7 +127,7 @@ class GradeController extends Controller
         $isDirecteur = SchoolUser::query()
             ->where('school_id', $assignment->schoolClass->school_id)
             ->where('user_id', $userId)
-            ->whereHas('role', fn($query) => $query->where('slug', 'directeur'))
+            ->whereHas('role', fn ($query) => $query->where('slug', 'directeur'))
             ->exists();
 
         abort_unless($isDirecteur, 403, "Vous n'êtes pas autorisé à gérer les notes de cette classe.");

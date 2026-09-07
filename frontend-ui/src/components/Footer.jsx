@@ -42,8 +42,13 @@ export default function Footer() {
                   i
                 </Box>
                 no
+                  <Box component="span" sx={{ml:1 }}>
+                  Edu
+                </Box>
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+
+
+                            <Typography variant="caption" color="text.secondary">
                 © {new Date().getFullYear()} — Tous droits réservés.
               </Typography>
             </Box>

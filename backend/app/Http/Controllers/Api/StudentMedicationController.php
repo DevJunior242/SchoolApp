@@ -20,7 +20,9 @@ class StudentMedicationController extends Controller
         $this->abortUnlessEnrolled($school, $student);
         $this->authorizeHealthViewer($request, $school, $student);
 
-        return response()->json($student->medications()->orderByDesc('starts_on')->get());
+        return response()->json(
+            $student->medications()->where('school_id', $school->id)->orderByDesc('starts_on')->get()
+        );
     }
 
     public function store(Request $request, School $school, Student $student)
@@ -37,7 +39,11 @@ class StudentMedicationController extends Controller
             'parent_authorized' => ['nullable', 'boolean'],
         ]);
 
-        $medication = $student->medications()->create([...$validated, 'created_by' => $request->user()->id]);
+        $medication = $student->medications()->create([
+            ...$validated,
+            'school_id' => $school->id,
+            'created_by' => $request->user()->id,
+        ]);
 
         return response()->json($medication, 201);
     }
@@ -46,7 +52,7 @@ class StudentMedicationController extends Controller
     {
         $this->abortUnlessEnrolled($school, $student);
         $this->authorizeHealthManager($request, $school);
-        abort_if($medication->student_id !== $student->id, 404);
+        abort_if($medication->student_id !== $student->id || $medication->school_id !== $school->id, 404);
 
         $medication->delete();
 

@@ -61,13 +61,12 @@ class SchoolController extends Controller
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'activation_key' => ['nullable', 'string', 'max:80'],
-            'plan' => ['nullable', 'string', 'max:120'],
-            'pricing_plan_id' => ['nullable', 'uuid', 'exists:school_pricing_plans,id'],
+            'pricing_plan_id' => ['required', 'uuid', 'exists:school_pricing_plans,id'],
         ]);
 
-        $pricingPlan = ! empty($validated['pricing_plan_id'])
-            ? SchoolPricingPlan::query()->where('active', true)->find($validated['pricing_plan_id'])
-            : SchoolPricingPlan::query()->where('active', true)->where('slug', $validated['plan'] ?? School::PLAN_ECOLE)->first();
+        $pricingPlan = SchoolPricingPlan::query()
+            ->where('active', true)
+            ->find($validated['pricing_plan_id']);
 
         if (! $pricingPlan) {
             throw ValidationException::withMessages([
@@ -76,7 +75,6 @@ class SchoolController extends Controller
         }
 
         $validated['pricing_plan_id'] = $pricingPlan->id;
-        $validated['plan'] = $pricingPlan->slug;
 
         $rawKey = trim((string) ($validated['activation_key'] ?? ''));
 

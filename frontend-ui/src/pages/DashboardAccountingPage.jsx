@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   Box,
   Card,
   CardContent,
@@ -11,6 +12,7 @@ import {
   DialogTitle,
   Grid,
   LinearProgress,
+  MenuItem,
   Paper,
   Stack,
   Tab,
@@ -664,7 +666,7 @@ function SaaSSubscriptionTab({ schoolId }) {
 export default function DashboardAccountingPage() {
   const { user } = useAuth();
   const schoolId = user?.current_school_id;
-  const [tab, setTab] = useState("recettes");
+  const [tab, setTab] = useState("tableau-de-bord");
 
   if (!schoolId) {
     return (

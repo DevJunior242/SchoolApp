@@ -9,6 +9,7 @@ use App\Models\School;
 use App\Models\SchoolUser;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class FeeStructureController extends Controller
 {
@@ -55,7 +56,12 @@ class FeeStructureController extends Controller
                 Rule::exists('fee_categories', 'id')->where('school_id', $school->id),
             ],
             'level_id' => ['required_if:category,'.FeeStructure::CATEGORY_TUITION, 'nullable', 'uuid', 'exists:levels,id'],
-            'season_id' => ['required_if:category,'.FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION, 'nullable', 'uuid', 'exists:seasons,id'],
+            'season_id' => [
+                'required_if:category,'.FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION,
+                'nullable',
+                'uuid',
+                Rule::exists('seasons', 'id')->where('school_id', $school->id),
+            ],
             'label' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
             'due_date' => ['nullable', 'date'],
@@ -63,7 +69,13 @@ class FeeStructureController extends Controller
         ]);
 
         $category = $validated['category'] ?? FeeStructure::CATEGORY_TUITION;
-        $currentYear = $school->schoolYears()->where('is_current', true)->firstOrFail();
+        $currentYear = $school->schoolYears()->where('is_current', true)->first();
+
+        if (! $currentYear) {
+            throw ValidationException::withMessages([
+                'school_year' => ["Aucune année scolaire active n'est configurée pour cette école."],
+            ]);
+        }
 
         $feeStructure = FeeStructure::query()->create([
             ...$validated,

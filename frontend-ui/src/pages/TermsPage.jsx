@@ -1,4 +1,4 @@
-import { Alert, Box, Container, Typography } from '@mui/material';
+import { Box, Container, Typography } from '@mui/material';
 
 export default function TermsPage() {
   return (
@@ -7,44 +7,68 @@ export default function TermsPage() {
         Conditions générales d'utilisation
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Dernière mise à jour : 16 juillet 2026 — version 1.0
+        Dernière mise à jour : 7 septembre 2026 — version 2.0
       </Typography>
-
-      <Alert severity="warning" sx={{ mb: 4 }}>
-        Texte provisoire à titre indicatif. Il n'a pas été validé par un juriste et ne constitue pas
-        un document contractuel définitif tant qu'il n'a pas été révisé par un professionnel du droit
-        compétent pour les pays où EduAfrique est utilisé.
-      </Alert>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <Section title="1. Objet">
-          Les présentes conditions régissent l'accès et l'utilisation de la plateforme EduAfrique,
-          éditée par Intellino, par les établissements scolaires, leurs directions, enseignants,
-          parents et élèves.
+          Intellino Edu est une plateforme de gestion scolaire éditée par Intellino. Elle permet aux
+          établissements de gérer leurs élèves, classes, inscriptions, personnels, notes, présences,
+          paiements, communications et documents selon les modules activés pour leur établissement.
         </Section>
-        <Section title="2. Compte utilisateur">
-          Chaque utilisateur est responsable de la confidentialité de ses identifiants et des actions
-          effectuées depuis son compte. Un directeur d'établissement est responsable des rôles qu'il
-          attribue au sein de son école.
+        <Section title="2. Création de l'établissement et choix du tarif">
+          Lors de la création d'une école, l'utilisateur choisit l'un des tarifs actifs proposés par
+          l'administrateur de la plateforme. Le tarif sélectionné est rattaché à l'établissement et
+          détermine les modules, limites et conditions de facturation applicables. Les tarifs peuvent
+          évoluer ; une modification ne prend effet pour l'établissement qu'après validation selon le
+          processus prévu par la plateforme.
         </Section>
-        <Section title="3. Données traitées">
-          EduAfrique traite des données d'identification, de scolarité, de paiement et de présence
-          nécessaires au fonctionnement du service. Le détail est précisé dans la politique de
-          confidentialité.
+        <Section title="3. Comptes et rôles">
+          Chaque utilisateur doit conserver ses identifiants confidentiels et signaler toute utilisation
+          non autorisée de son compte. Le directeur de l'établissement administre les membres et les
+          rôles de son école. Les accès sont séparés selon les fonctions : direction, secrétariat,
+          comptabilité, ressources humaines, enseignants, parents et élèves. Un utilisateur ne doit pas
+          utiliser un rôle ou les données d'une autre personne.
         </Section>
-        <Section title="4. Responsabilité">
-          Intellino s'efforce d'assurer la disponibilité et la fiabilité du service, sans garantie
-          absolue d'absence d'interruption ou d'erreur. La responsabilité d'Intellino ne saurait être
-          engagée au-delà de ce que la loi applicable autorise à limiter.
+        <Section title="4. Données scolaires et responsabilités de l'établissement">
+          L'établissement reste responsable des informations qu'il saisit, de leur exactitude et des
+          autorisations accordées à ses utilisateurs. Intellino Edu traite les données nécessaires au
+          fonctionnement du service, notamment les données d'identification, de scolarité, de présence,
+          de santé lorsque le module correspondant est activé, et de paiement scolaire. Les règles
+          détaillées sont présentées dans la politique de confidentialité.
         </Section>
-        <Section title="5. Résiliation">
-          Un établissement ou un utilisateur peut demander la suppression de son compte à tout moment.
-          Certaines données peuvent être conservées pour des durées légales (comptabilité, obligations
-          scolaires) avant suppression définitive.
+        <Section title="5. Paiements et abonnements">
+          Les montants, périodicités et moyens de paiement disponibles sont ceux affichés pour le tarif
+          choisi. Un paiement déclaré peut rester en attente jusqu'à sa vérification par l'établissement
+          ou l'équipe habilitée. L'accès à certains modules ou fonctionnalités peut être limité lorsque
+          le tarif ne les comprend pas ou lorsqu'un abonnement arrive à échéance.
         </Section>
-        <Section title="6. Modification des conditions">
-          Ces conditions peuvent évoluer ; toute modification substantielle donnera lieu à une nouvelle
-          demande d'acceptation lors de la prochaine connexion.
+        <Section title="6. Modules et disponibilité">
+          Les modules disponibles peuvent inclure la gestion académique, la comptabilité, les ressources
+          humaines, la bibliothèque, la cantine, la santé scolaire, le transport et l'assistance. Leur
+          disponibilité dépend du tarif de l'établissement et de l'état du service. Intellino met en œuvre
+          des mesures raisonnables pour maintenir la plateforme, sans garantir une disponibilité absolue
+          ni l'absence de maintenance ou d'incident.
+        </Section>
+        <Section title="7. Utilisation acceptable">
+          Il est interdit de contourner les contrôles d'accès, d'utiliser les données à des fins
+          frauduleuses, de transmettre des contenus illicites ou de perturber le fonctionnement de la
+          plateforme. L'établissement doit respecter les règles applicables à la protection des mineurs,
+          à la confidentialité et à la conservation des dossiers scolaires.
+        </Section>
+        <Section title="8. Résiliation et conservation">
+          Un établissement ou un utilisateur peut demander la fermeture de son compte selon la procédure
+          disponible. Certaines données peuvent être conservées pendant la durée nécessaire aux obligations
+          légales, comptables ou scolaires, puis supprimées ou anonymisées selon les règles applicables.
+        </Section>
+        <Section title="9. Modification des conditions">
+          Intellino Edu peut faire évoluer ces conditions pour tenir compte des fonctionnalités, tarifs ou
+          obligations applicables. Les changements importants seront signalés dans la plateforme et, lorsque
+          nécessaire, soumis à une nouvelle acceptation.
+        </Section>
+        <Section title="10. Contact">
+          Pour toute question concernant ces conditions, contactez l'équipe Intellino à l'adresse
+          contact@intellino.tech.
         </Section>
       </Box>
     </Container>

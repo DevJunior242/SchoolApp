@@ -37,6 +37,7 @@ class HealthDashboardController extends Controller
                 ->count(),
             'students_under_treatment' => StudentMedication::query()
                 ->whereIn('student_id', $enrolledStudentIds)
+                ->where('school_id', $school->id)
                 ->where('starts_on', '<=', $today)
                 ->where(fn ($query) => $query->whereNull('ends_on')->orWhere('ends_on', '>=', $today))
                 ->distinct('student_id')

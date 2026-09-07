@@ -9,6 +9,7 @@ use App\Models\School;
 use App\Models\SchoolUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ExpenseController extends Controller
 {
@@ -33,9 +34,21 @@ class ExpenseController extends Controller
         $this->authorizeFinanceStaff($request, $school);
 
         $validated = $request->validate([
-            'expense_category_id' => ['required', 'uuid', 'exists:expense_categories,id'],
-            'treasury_account_id' => ['nullable', 'uuid', 'exists:treasury_accounts,id'],
-            'payment_method_id' => ['nullable', 'uuid', 'exists:payment_methods,id'],
+            'expense_category_id' => [
+                'required',
+                'uuid',
+                Rule::exists('expense_categories', 'id')->where('school_id', $school->id),
+            ],
+            'treasury_account_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('treasury_accounts', 'id')->where('school_id', $school->id),
+            ],
+            'payment_method_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('payment_methods', 'id')->where('school_id', $school->id),
+            ],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'supplier_name' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],

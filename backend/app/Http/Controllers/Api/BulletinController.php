@@ -53,6 +53,13 @@ class BulletinController extends Controller
         $schoolYear = $classStudent->schoolClass->schoolYear;
         $selectedSeason = $seasonId ? Season::query()->find($seasonId) : null;
 
+        if ($seasonId && (! $selectedSeason || $selectedSeason->school_id !== $school->id || $selectedSeason->school_year_id !== $schoolYear->id)) {
+            return response()->json([
+                'message' => "La période sélectionnée n'appartient pas à l'année scolaire active de cette école.",
+                'code' => 'season_not_available',
+            ], 422);
+        }
+
         $assignments = ClassSubjectTeacher::query()
             ->where('class_id', $classStudent->class_id)
             ->with([
@@ -71,6 +78,12 @@ class BulletinController extends Controller
             $periodLabel = $selectedSeason->label;
         } else {
             $seasons = $schoolYear->seasons()->orderBy('order')->get();
+            if ($seasons->isEmpty()) {
+                return response()->json([
+                    'message' => "Aucune période scolaire n'est configurée pour l'année {$schoolYear->label}.",
+                    'code' => 'seasons_not_configured',
+                ], 422);
+            }
             $subjects = $assignments->map(fn (ClassSubjectTeacher $assignment) => $this->subjectForYear($assignment, $seasons));
             $bulletinType = 'annuel';
             $periodLabel = "Bulletin annuel — {$schoolYear->label}";

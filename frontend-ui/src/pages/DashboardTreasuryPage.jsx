@@ -21,6 +21,7 @@ import {
 import { alpha } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -49,7 +50,7 @@ function emptyDepositForm() {
   return { account_id: "", amount: "", note: "" };
 }
 
-function BankSummaryCard({ account, canManage, onDeleted }) {
+function BankSummaryCard({ account, canManage, onDeleted, onEdit }) {
   return (
     <Card variant="outlined">
       <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -80,9 +81,14 @@ function BankSummaryCard({ account, canManage, onDeleted }) {
             )}
           </Box>
           {canManage && (
-            <IconButton size="small" onClick={() => onDeleted(account.id)}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+            <Stack direction="row" spacing={0.25}>
+              <IconButton size="small" onClick={() => onEdit(account)} aria-label="Modifier le compte">
+                <EditIcon fontSize="small" />
+              </IconButton>
+              <IconButton size="small" onClick={() => onDeleted(account.id)} aria-label="Supprimer le compte">
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Stack>
           )}
         </Stack>
         <Typography variant="h5" fontWeight={800}>
@@ -188,7 +194,7 @@ function DepositWithdrawForm({ schoolId, accounts, onChanged }) {
   );
 }
 
-function AccountCard({ schoolId, account, canManage, onDeleted, onChanged }) {
+function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChanged }) {
   const AccountIcon = account.type === "CASH" ? PaymentsIcon : AccountBalanceIcon;
 
   const { data: movementsData, reload: reloadMovements } = useApiGet(
@@ -248,9 +254,14 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onChanged }) {
             {account.name}
           </Typography>
           {canManage && (
-            <IconButton size="small" onClick={() => onDeleted(account.id)}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+            <Stack direction="row" spacing={0.25}>
+              <IconButton size="small" onClick={() => onEdit(account)} aria-label="Modifier le compte">
+                <EditIcon fontSize="small" />
+              </IconButton>
+              <IconButton size="small" onClick={() => onDeleted(account.id)} aria-label="Supprimer le compte">
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Stack>
           )}
         </Stack>
         <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
@@ -449,6 +460,7 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
 
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [accountForm, setAccountForm] = useState(emptyAccountForm(typeFilter ?? "CASH"));
+  const [editingAccount, setEditingAccount] = useState(null);
   const [accountError, setAccountError] = useState(null);
 
   const [transferForm, setTransferForm] = useState(emptyTransferForm);
@@ -463,15 +475,36 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
 
   function closeAccountModal() {
     setAccountModalOpen(false);
+    setEditingAccount(null);
     setAccountForm(emptyAccountForm(typeFilter ?? "CASH"));
     setAccountError(null);
   }
 
-  async function handleCreateAccount(e) {
+  function editAccount(account) {
+    setEditingAccount(account);
+    setAccountForm({
+      name: account.name ?? "",
+      type: account.type,
+      bank_name: account.bank_name ?? "",
+      opening_balance: account.opening_balance ?? "",
+    });
+    setAccountError(null);
+    setAccountModalOpen(true);
+  }
+
+  async function handleSaveAccount(e) {
     e.preventDefault();
     setAccountError(null);
     try {
-      await api.post(`/schools/${schoolId}/treasury-accounts`, accountForm);
+      if (editingAccount) {
+        await api.put(`/schools/${schoolId}/treasury-accounts/${editingAccount.id}`, {
+          name: accountForm.name,
+          bank_name: accountForm.bank_name || null,
+          opening_balance: accountForm.opening_balance || 0,
+        });
+      } else {
+        await api.post(`/schools/${schoolId}/treasury-accounts`, accountForm);
+      }
       reloadAccounts();
       closeAccountModal();
     } catch {
@@ -561,13 +594,14 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
           {accounts.map((account) => (
             <Grid key={account.id} size={{ xs: 12, sm: 6, md: typeFilter === "BANK" ? 4 : 6 }}>
               {typeFilter === "BANK" ? (
-                <BankSummaryCard account={account} canManage={canManage} onDeleted={deleteAccount} />
+                <BankSummaryCard account={account} canManage={canManage} onDeleted={deleteAccount} onEdit={editAccount} />
               ) : (
                 <AccountCard
                   schoolId={schoolId}
                   account={account}
                   canManage={canManage}
                   onDeleted={deleteAccount}
+                  onEdit={editAccount}
                   onChanged={reloadAccounts}
                 />
               )}
@@ -649,11 +683,15 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
 
       <Dialog open={accountModalOpen} onClose={closeAccountModal} fullWidth maxWidth="xs">
         <DialogTitle>
-          {typeFilter === "CASH" && "Ajouter une caisse"}
-          {typeFilter === "BANK" && "Ajouter un compte bancaire"}
-          {!typeFilter && "Ajouter un compte de trésorerie"}
+          {editingAccount
+            ? "Modifier le compte"
+            : typeFilter === "CASH"
+              ? "Ajouter une caisse"
+              : typeFilter === "BANK"
+                ? "Ajouter un compte bancaire"
+                : "Ajouter un compte de trésorerie"}
         </DialogTitle>
-        <Box component="form" onSubmit={handleCreateAccount}>
+        <Box component="form" onSubmit={handleSaveAccount}>
           <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {accountError && <Alert severity="error">{accountError}</Alert>}
             <TextField
@@ -665,7 +703,7 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
               fullWidth
               autoFocus
             />
-            {!typeFilter && (
+            {!typeFilter && !editingAccount && (
               <TextField
                 select
                 label="Type"
@@ -690,6 +728,11 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
             <TextField
               label="Solde initial (FCFA)"
               type="number"
+              helperText={
+                editingAccount
+                  ? "Ce champ modifie uniquement le solde initial. Le solde actuel inclut les dépôts, retraits, paiements et dépenses."
+                  : "Le solde actuel sera calculé après les mouvements enregistrés."
+              }
               value={accountForm.opening_balance}
               onChange={(e) => setAccountForm((prev) => ({ ...prev, opening_balance: e.target.value }))}
               fullWidth
@@ -698,7 +741,7 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeAccountModal}>Annuler</Button>
             <Button type="submit" variant="contained">
-              Ajouter
+              {editingAccount ? "Enregistrer" : "Ajouter"}
             </Button>
           </DialogActions>
         </Box>

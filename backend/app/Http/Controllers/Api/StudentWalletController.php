@@ -11,6 +11,7 @@ use App\Models\Student;
 use App\Models\StudentWallet;
 use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class StudentWalletController extends Controller
 {
@@ -60,7 +61,13 @@ class StudentWalletController extends Controller
         $this->authorizeStaffParentOrSelf($request, $school, $student);
 
         $validated = $request->validate([
-            'payment_method_id' => ['required', 'uuid', 'exists:payment_methods,id'],
+            'payment_method_id' => [
+                'required',
+                'uuid',
+                Rule::exists('payment_methods', 'id')
+                    ->where('school_id', $school->id)
+                    ->where('is_active', true),
+            ],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'sender_number' => ['required', 'string', 'max:30'],
             'transaction_id' => ['nullable', 'string', 'max:100'],

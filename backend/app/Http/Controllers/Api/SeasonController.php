@@ -22,10 +22,22 @@ class SeasonController extends Controller
         $currentYear = $school->schoolYears()->where('is_current', true)->first();
 
         if (! $currentYear) {
-            return response()->json([]);
+            return response()->json([
+                'message' => "Aucune année scolaire active n'est configurée pour cette école.",
+                'code' => 'school_year_not_configured',
+            ], 422);
         }
 
-        return response()->json($currentYear->seasons()->orderBy('order')->get());
+        $seasons = $currentYear->seasons()->orderBy('order')->get();
+
+        if ($seasons->isEmpty()) {
+            return response()->json([
+                'message' => "Aucune période scolaire n'est configurée pour l'année {$currentYear->label}.",
+                'code' => 'seasons_not_configured',
+            ], 422);
+        }
+
+        return response()->json($seasons);
     }
 
     /**

@@ -21,7 +21,9 @@ class StudentHealthDocumentController extends Controller
         $this->abortUnlessEnrolled($school, $student);
         $this->authorizeHealthViewer($request, $school, $student);
 
-        return response()->json($student->healthDocuments()->orderByDesc('created_at')->get());
+        return response()->json(
+            $student->healthDocuments()->where('school_id', $school->id)->orderByDesc('created_at')->get()
+        );
     }
 
     public function store(Request $request, School $school, Student $student)
@@ -41,6 +43,7 @@ class StudentHealthDocumentController extends Controller
         ]);
 
         $document = $student->healthDocuments()->create([
+            'school_id' => $school->id,
             'type' => $validated['type'],
             'label' => $validated['label'] ?? null,
             'path' => $request->file('file')->store("students/{$student->id}/documents", 'health'),
@@ -54,7 +57,7 @@ class StudentHealthDocumentController extends Controller
     {
         $this->abortUnlessEnrolled($school, $student);
         $this->authorizeHealthManager($request, $school);
-        abort_if($document->student_id !== $student->id, 404);
+        abort_if($document->student_id !== $student->id || $document->school_id !== $school->id, 404);
 
         Storage::disk('health')->delete($document->path);
         $document->delete();
@@ -66,7 +69,7 @@ class StudentHealthDocumentController extends Controller
     {
         $this->abortUnlessEnrolled($school, $student);
         $this->authorizeHealthViewer($request, $school, $student);
-        abort_if($document->student_id !== $student->id, 404);
+        abort_if($document->student_id !== $student->id || $document->school_id !== $school->id, 404);
 
         return Storage::disk('health')->response($document->path);
     }

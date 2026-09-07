@@ -131,12 +131,19 @@ class PaymentDemoSeeder extends Seeder
         }
 
         foreach ([
+            ["Frais d'inscription - 2026-2027", 50000, '2026-09-30', 0, FeeStructure::CATEGORY_TUITION],
             ['Scolarité - 1er trimestre', 75000, '2026-10-15', 1],
             ['Scolarité - 2e trimestre', 75000, '2027-01-15', 2],
-        ] as [$label, $amount, $dueDate, $order]) {
+        ] as $fee) {
+            [$label, $amount, $dueDate, $order] = $fee;
             FeeStructure::query()->updateOrCreate(
                 ['school_id' => $school->id, 'level_id' => $level->id, 'school_year_id' => $schoolYear->id, 'label' => $label],
-                ['amount' => $amount, 'due_date' => $dueDate, 'order' => $order, 'category' => FeeStructure::CATEGORY_TUITION],
+                [
+                    'amount' => $amount,
+                    'due_date' => $dueDate,
+                    'order' => $order,
+                    'category' => $fee[4] ?? FeeStructure::CATEGORY_TUITION,
+                ],
             );
         }
 
