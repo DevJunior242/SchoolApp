@@ -11,7 +11,17 @@ const SOCIAL_LINKS = [
 
 export default function Footer() {
   return (
-    <Box component="footer" sx={{ borderTop: '1px solid', borderColor: 'divider', mt: 8, py: 4 }}>
+    <Box
+      component="footer"
+      sx={{
+        flex: '0 0 auto',
+        height: 'auto',
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        mt: 4,
+        py: 3,
+      }}
+    >
       <Container maxWidth="lg">
         <Stack
           direction={{ xs: 'column', sm: 'row' }}

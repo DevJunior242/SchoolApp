@@ -70,7 +70,7 @@ export default function CreateSchoolPage() {
         activation_key: activationKey.trim(),
       });
       await refreshUser();
-      navigate("/dashboard");
+      navigate("/dashboard/settings");
     } catch (err) {
       if (err.response?.status === 403) {
         setError(

@@ -60,12 +60,17 @@ export default function ContactPage() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: { xs: 6, md: 10 } }}>
+    <Container
+      maxWidth="xl"
+      sx={{
+        minHeight: { md: "calc(100vh - 150px)" },
+        py: { xs: 6, md: 8 },
+      }}
+    >
       <Box
         sx={(theme) => ({
           position: "relative",
           backgroundColor: theme.palette.background.default,
-          minHeight: { xs: "auto", md: 720 },
         })}
       >
         <Box

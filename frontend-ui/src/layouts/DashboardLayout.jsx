@@ -184,6 +184,11 @@ const DIRECTEUR_NAV_GROUPS = [
   {
     title: "Système",
     items: [
+      {
+        label: "Ressources humaines",
+        to: "/dashboard/hr",
+        icon: <BadgeIcon />,
+      },
       { label: "Membres", to: "/dashboard/members", icon: <GroupsIcon /> },
       {
         label: "Paramètres",
@@ -464,6 +469,16 @@ const COMPTABLE_NAV_GROUPS = singleGroup([
   },
 ]);
 
+// Le responsable RH suit le personnel, les contrats et les profils RH.
+const RH_NAV_GROUPS = singleGroup([
+  OVERVIEW_ITEM,
+  {
+    label: "Ressources humaines",
+    to: "/dashboard/hr",
+    icon: <BadgeIcon />,
+  },
+]);
+
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { mode, toggleMode } = useThemeMode();
@@ -509,6 +524,7 @@ export default function DashboardLayout() {
     professeur: PROFESSEUR_NAV_GROUPS,
     parent: PARENT_NAV_GROUPS,
     secretaire: SECRETAIRE_NAV_GROUPS,
+    rh: RH_NAV_GROUPS,
     comptable: COMPTABLE_NAV_GROUPS,
     censeur: CENSEUR_NAV_GROUPS,
     surveillant: SURVEILLANT_NAV_GROUPS,

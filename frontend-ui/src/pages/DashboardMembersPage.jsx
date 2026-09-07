@@ -14,10 +14,14 @@ import {
   Paper,
   Stack,
   TextField,
+  Tooltip,
   Typography,
+  IconButton
 } from "@mui/material";
 import { motion } from "motion/react";
 import SearchIcon from "@mui/icons-material/Search";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
@@ -55,7 +59,9 @@ export default function DashboardMembersPage() {
     role_id: "",
   });
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
 
   useEffect(() => {
     api
@@ -70,11 +76,19 @@ export default function DashboardMembersPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setSubmitting(true);
     try {
-      await api.post(`/schools/${schoolId}/members`, form);
+      if (editingMember) {
+        await api.put(`/schools/${schoolId}/members/${editingMember.id}`, form);
+        setSuccess("Membre modifié avec succès.");
+      } else {
+        await api.post(`/schools/${schoolId}/members`, form);
+        setSuccess("Membre ajouté avec succès.");
+      }
       reload();
       setForm({ fullname: "", email: "", phone: "", role_id: "" });
+      setEditingMember(null);
     } catch (err) {
       const messages = err.response?.data?.errors;
       setError(
@@ -84,6 +98,40 @@ export default function DashboardMembersPage() {
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function handleEdit(member) {
+    setError(null);
+    setSuccess(null);
+    setEditingMember(member);
+    setForm({
+      fullname: member.user?.fullname || "",
+      email: member.user?.email || "",
+      phone: member.user?.phone || "",
+      role_id: member.role_id || member.role?.id || "",
+    });
+  }
+
+  async function handleDelete(member) {
+    if (!window.confirm(`Retirer ${member.user?.fullname || "ce membre"} de l'école ?`)) {
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    try {
+      await api.delete(`/schools/${schoolId}/members/${member.id}`);
+      if (editingMember?.id === member.id) {
+        setEditingMember(null);
+        setForm({ fullname: "", email: "", phone: "", role_id: "" });
+      }
+      reload();
+      setSuccess("Membre retiré de l'école.");
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Impossible de retirer ce membre.",
+      );
     }
   }
 
@@ -162,6 +210,27 @@ export default function DashboardMembersPage() {
                         </Typography>
                       </Box>
                       <Chip label={m.role?.name} size="small" />
+                      <Stack direction="row" spacing={0.5}>
+                        <Tooltip title="Modifier le membre">
+                          <IconButton
+                            aria-label="Modifier le membre"
+                            onClick={() => handleEdit(m)}
+                            size="small"
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Retirer le membre">
+                          <IconButton
+                            aria-label="Retirer le membre"
+                            onClick={() => handleDelete(m)}
+                            size="small"
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -189,8 +258,13 @@ export default function DashboardMembersPage() {
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper variant="outlined" sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Ajouter un membre
+              {editingMember ? "Modifier un membre" : "Ajouter un membre"}
             </Typography>
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
+              </Alert>
+            )}
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
@@ -243,9 +317,28 @@ export default function DashboardMembersPage() {
                   </MenuItem>
                 ))}
               </TextField>
-              <Button type="submit" variant="contained" disabled={submitting}>
-                {submitting ? "Ajout..." : "Ajouter"}
-              </Button>
+              <Stack direction="row" spacing={1}>
+                <Button type="submit" variant="contained" disabled={submitting}>
+                  {submitting
+                    ? "Enregistrement..."
+                    : editingMember
+                      ? "Enregistrer"
+                      : "Ajouter"}
+                </Button>
+                {editingMember && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setEditingMember(null);
+                      setForm({ fullname: "", email: "", phone: "", role_id: "" });
+                      setError(null);
+                      setSuccess(null);
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                )}
+              </Stack>
             </Box>
           </Paper>
         </Grid>

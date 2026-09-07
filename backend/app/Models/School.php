@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class School extends Model
 {
@@ -74,6 +75,12 @@ class School extends Model
 
     protected $appends = ['logo_url'];
 
+    protected static function booted(): void
+    {
+        static::saved(fn () => Cache::forget('public.active-schools'));
+        static::deleted(fn () => Cache::forget('public.active-schools'));
+    }
+
     public function isReadOnly(): bool
     {
         return $this->status === self::STATUS_READ_ONLY;
@@ -114,7 +121,7 @@ class School extends Model
         return SchoolUser::query()
             ->where('school_id', $this->id)
             ->where('status', SchoolUser::STATUS_ACTIVE)
-            ->whereHas('role', fn($query) => $query->whereNotIn('slug', ['parent', 'eleve']))
+            ->whereHas('role', fn ($query) => $query->whereNotIn('slug', ['parent', 'eleve']))
             ->count();
     }
 
@@ -127,7 +134,7 @@ class School extends Model
 
     protected function logoUrl(): Attribute
     {
-        return Attribute::make(get: fn() => $this->logo ? asset('storage/' . $this->logo) : null);
+        return Attribute::make(get: fn () => $this->logo ? asset('storage/'.$this->logo) : null);
     }
 
     public function country(): BelongsTo

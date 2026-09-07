@@ -1,7 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
+  Avatar,
   Box,
   Button,
+  Card,
+  CardContent,
   Container,
   Grid,
   Paper,
@@ -17,6 +20,8 @@ import enseignantImg from "../assets/characters/enseignant.png";
 import parentsImg from "../assets/characters/parents.png";
 import eleveImg from "../assets/characters/eleve.png";
 import dashboardImg from "../assets/characters/mock.png";
+import { useApiGet } from "../hooks/useApiGet.js";
+import EnrollmentRequestModal from "../components/EnrollmentRequestModal.jsx";
 const featuresList = [
   {
     icon: "👥",
@@ -240,7 +245,7 @@ export default function HomePage() {
                     mb: 3,
                   }}
                 >
-                  Intellino Gestion Scolaire est la solution complète pour
+                  Intellino Edu est la solution complète pour
                   administrer votre établissement, de l'inscription des élèves à
                   la gestion financière.
                 </Typography>
@@ -340,7 +345,7 @@ export default function HomePage() {
             {/* HERO IMAGE / DASHBOARD */}
             <Box
               sx={{
-                display: "flex",
+                display: { xs: "none", sm: "flex" },
                 minWidth: 0,
                 justifyContent: "flex-end",
               }}
@@ -744,178 +749,7 @@ export default function HomePage() {
           4. POURQUOI INTELLINO
       ===================================================== */}
 
-      <Container maxWidth="lg" sx={{ py: { xs: 7, md: 9 } }}>
-        <Paper
-          elevation={0}
-          sx={(theme) => ({
-            borderRadius: 3,
-            overflow: "hidden",
-            bgcolor: theme.palette.primary.main,
-            color: theme.palette.primary.contrastText,
-            p: { xs: 3, md: 4 },
-          })}
-        >
-          <Typography
-            textAlign="center"
-            fontWeight={800}
-            sx={{
-              fontSize: "0.72rem",
-              letterSpacing: 1,
-              mb: 3,
-              textTransform: "uppercase",
-            }}
-          >
-            Pourquoi choisir Intellino ?
-          </Typography>
-
-          <Grid
-            container
-            spacing={3}
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, 1fr)",
-                md: "repeat(4, 1fr)",
-              },
-            }}
-          >
-            {benefits.map((benefit) => (
-              <Box
-                key={benefit.title}
-                sx={{
-                  display: "flex",
-                  gap: 1.5,
-                  minWidth: 0,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: "1.7rem",
-                    lineHeight: 1,
-                    flexShrink: 0,
-                  }}
-                >
-                  {benefit.icon}
-                </Typography>
-
-                <Box>
-                  <Typography
-                    fontWeight={800}
-                    sx={{
-                      fontSize: "0.78rem",
-                      mb: 0.7,
-                    }}
-                  >
-                    {benefit.title}
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      fontSize: "0.62rem",
-                      lineHeight: 1.5,
-                      opacity: 0.9,
-                    }}
-                  >
-                    {benefit.description}
-                  </Typography>
-                </Box>
-              </Box>
-            ))}
-          </Grid>
-        </Paper>
-      </Container>
-
-      {/* =====================================================
-          5. CTA FINAL
-      ===================================================== */}
-
-      <Container maxWidth="lg" sx={{ py: { xs: 7, md: 9 } }}>
-        <Paper
-          elevation={0}
-          sx={(theme) => ({
-            position: "relative",
-            overflow: "hidden",
-            borderRadius: 3,
-            p: { xs: 4, md: 5 },
-            bgcolor: theme.palette.primary.main,
-            color: theme.palette.primary.contrastText,
-          })}
-        >
-          {/* décoration */}
-          <Box
-            sx={{
-              position: "absolute",
-              width: 250,
-              height: 250,
-              borderRadius: "50%",
-              right: -100,
-              top: -100,
-              bgcolor: alpha("#fff", 0.08),
-            }}
-          />
-
-          <Grid container alignItems="center" spacing={3}>
-            <Grid item xs={12} md={8}>
-              <Typography
-                fontWeight={800}
-                sx={{
-                  fontSize: {
-                    xs: "1.5rem",
-                    md: "1.8rem",
-                  },
-                  mb: 1,
-                }}
-              >
-                Prêt à transformer la gestion de votre établissement ?
-              </Typography>
-
-              <Typography
-                sx={{
-                  fontSize: "0.8rem",
-                  opacity: 0.9,
-                }}
-              >
-                Rejoignez des centaines d'établissements qui nous font déjà
-                confiance.
-              </Typography>
-            </Grid>
-
-            <Grid
-              item
-              xs={12}
-              md={4}
-              sx={{
-                display: "flex",
-                justifyContent: {
-                  xs: "flex-start",
-                  md: "flex-end",
-                },
-              }}
-            >
-              <Button
-                component={RouterLink}
-                to="/contact"
-                variant="contained"
-                sx={{
-                  bgcolor: "#fff",
-                  color: "primary.main",
-                  px: 3,
-                  py: 1.3,
-                  borderRadius: 2,
-                  fontWeight: 800,
-
-                  "&:hover": {
-                    bgcolor: "#f5f5f5",
-                  },
-                }}
-              >
-                📅 Demander une démo
-              </Button>
-            </Grid>
-          </Grid>
-        </Paper>
-      </Container>
+     
 
       {/* =====================================================
           7. GARANTIES
@@ -990,6 +824,8 @@ export default function HomePage() {
         </Container>
       </Box>
 
+      <SchoolsSlider />
+
       <ChatbotWidget />
     </Box>
   );
@@ -997,8 +833,13 @@ export default function HomePage() {
 function SchoolsSlider() {
   const { data: schools } = useApiGet("/schools");
   const [selectedSchool, setSelectedSchool] = useState(null);
+  const schoolList = Array.isArray(schools)
+    ? schools
+    : Array.isArray(schools?.data)
+      ? schools.data
+      : [];
 
-  if (!schools || schools.length === 0) return null;
+  if (schoolList.length === 0) return null;
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
@@ -1020,7 +861,7 @@ function SchoolsSlider() {
           "& > *": { scrollSnapAlign: "start", flexShrink: 0 },
         }}
       >
-        {schools.map((school, i) => (
+        {schoolList.map((school, i) => (
           <motion.div
             key={school.id}
             initial={{ opacity: 0, y: 12 }}

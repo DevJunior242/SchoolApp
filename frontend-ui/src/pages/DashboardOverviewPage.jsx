@@ -15,6 +15,7 @@ import {
 import { motion } from "motion/react";
 import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
+import { BarChart } from "@mui/x-charts/BarChart";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import School2Icon from "@mui/icons-material/School";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
@@ -221,6 +222,15 @@ export default function DashboardOverviewPage() {
     isProfesseur ? `/schools/${current.school?.id}/my-teaching-summary` : null,
     { enabled: isProfesseur },
   );
+  const isRh = current?.role?.slug === "rh";
+  const { data: hrStaff } = useApiGet(
+    isRh ? `/schools/${current.school?.id}/hr/staff` : null,
+    { enabled: isRh },
+  );
+  const { data: hrLeaves } = useApiGet(
+    isRh ? `/schools/${current.school?.id}/hr/leaves` : null,
+    { enabled: isRh },
+  );
 
   // Le superadmin n'a pas d'école : son tableau de bord est une vue
   // d'ensemble de la plateforme, pas ce résumé pensé pour le personnel
@@ -287,6 +297,77 @@ export default function DashboardOverviewPage() {
           </Button>
         </Paper>
       </Container>
+    );
+  }
+
+  if (isRh) {
+    const staff = hrStaff ?? [];
+    const leaves = hrLeaves ?? [];
+    const departmentCounts = staff.reduce((counts, member) => {
+      const department = member.department || "Non renseigné";
+      counts[department] = (counts[department] ?? 0) + 1;
+
+      return counts;
+    }, {});
+    const leaveCounts = leaves.reduce((counts, leave) => {
+      const status = leave.status_label || "En attente";
+      counts[status] = (counts[status] ?? 0) + 1;
+
+      return counts;
+    }, {});
+
+    return (
+      <Box>
+        <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
+          Vue d'ensemble RH
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          Effectifs, contrats et demandes de congé de l'école.
+        </Typography>
+        <Grid container spacing={3}>
+          {[
+            { label: "Personnel", value: staff.length },
+            { label: "Départements", value: Object.keys(departmentCounts).filter((name) => name !== "Non renseigné").length },
+            { label: "Contrats CDI", value: staff.filter((member) => Number(member.contract_type) === 1).length },
+            { label: "Congés en attente", value: leaves.filter((leave) => Number(leave.status) === 1).length },
+          ].map((stat) => (
+            <Grid key={stat.label} size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card variant="outlined" sx={{ height: "100%" }}>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary">
+                    {stat.label}
+                  </Typography>
+                  <Typography variant="h5" fontWeight={700}>
+                    {stat.value}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+        <Grid container spacing={3} sx={{ mt: 0 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Paper variant="outlined" sx={{ p: 2, minHeight: 300 }}>
+              <Typography variant="h6">Personnel par département</Typography>
+              <BarChart
+                height={240}
+                xAxis={[{ scaleType: "band", data: Object.keys(departmentCounts) }]}
+                series={[{ data: Object.values(departmentCounts), label: "Personnel" }]}
+              />
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Paper variant="outlined" sx={{ p: 2, minHeight: 300 }}>
+              <Typography variant="h6">Demandes de congé</Typography>
+              <BarChart
+                height={240}
+                xAxis={[{ scaleType: "band", data: Object.keys(leaveCounts) }]}
+                series={[{ data: Object.values(leaveCounts), label: "Demandes" }]}
+              />
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
     );
   }
 

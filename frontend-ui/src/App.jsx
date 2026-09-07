@@ -19,6 +19,7 @@ import DashboardOverviewPage from "./pages/DashboardOverviewPage.jsx";
 import DashboardSchoolsPage from "./pages/DashboardSchoolsPage.jsx";
 import DashboardMembersPage from "./pages/DashboardMembersPage.jsx";
 import DashboardTeachersPage from "./pages/DashboardTeachersPage.jsx";
+import DashboardHrPage from "./pages/DashboardHrPage.jsx";
 import DashboardClassesPage from "./pages/DashboardClassesPage.jsx";
 import DashboardStudentsPage from "./pages/DashboardStudentsPage.jsx";
 import DashboardTimetablePage from "./pages/DashboardTimetablePage.jsx";
@@ -120,6 +121,7 @@ function App() {
         <Route path="schools" element={<DashboardSchoolsPage />} />
         <Route path="members" element={<DashboardMembersPage />} />
         <Route path="teachers" element={<DashboardTeachersPage />} />
+        <Route path="hr" element={<DashboardHrPage />} />
         <Route path="classes" element={<DashboardClassesPage />} />
         <Route path="students" element={<DashboardStudentsPage />} />
         <Route

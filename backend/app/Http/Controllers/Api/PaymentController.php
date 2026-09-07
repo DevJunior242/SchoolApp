@@ -12,6 +12,7 @@ use App\Models\School;
 use App\Models\SchoolUser;
 use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PaymentController extends Controller
 {
@@ -95,8 +96,18 @@ class PaymentController extends Controller
         $this->authorizeStaffOrParent($request, $school, $student);
 
         $validated = $request->validate([
-            'fee_structure_id' => ['required', 'uuid', 'exists:fee_structures,id'],
-            'payment_method_id' => ['required', 'uuid', 'exists:payment_methods,id'],
+            'fee_structure_id' => [
+                'required',
+                'uuid',
+                Rule::exists('fee_structures', 'id')->where('school_id', $school->id),
+            ],
+            'payment_method_id' => [
+                'required',
+                'uuid',
+                Rule::exists('payment_methods', 'id')
+                    ->where('school_id', $school->id)
+                    ->where('is_active', true),
+            ],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'sender_number' => ['required', 'string', 'max:30'],
             'transaction_id' => ['nullable', 'string', 'max:100'],
@@ -176,6 +187,14 @@ class PaymentController extends Controller
     private function authorizeStaffOrParent(Request $request, School $school, Student $student): void
     {
         $userId = $request->user()->id;
+
+        $studentBelongsToSchool = ClassStudent::query()
+            ->where('student_id', $student->id)
+            ->where('status', ClassStudent::STATUS_ACTIVE)
+            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->exists();
+
+        abort_unless($studentBelongsToSchool, 404, "Cet élève n'est pas inscrit dans cette école.");
 
         $isStaff = SchoolUser::query()
             ->where('school_id', $school->id)

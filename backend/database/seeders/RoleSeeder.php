@@ -18,6 +18,7 @@ class RoleSeeder extends Seeder
             ['name' => 'Élève', 'slug' => 'eleve'],
             ['name' => 'Parent', 'slug' => 'parent'],
             ['name' => 'Secrétaire', 'slug' => 'secretaire'],
+            ['name' => 'Responsable RH', 'slug' => 'rh'],
             ['name' => 'Comptable', 'slug' => 'comptable'],
             ['name' => 'Infirmier', 'slug' => 'infirmier'],
             ['name' => 'Chauffeur', 'slug' => 'chauffeur'],

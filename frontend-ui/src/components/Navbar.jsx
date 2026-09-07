@@ -62,7 +62,9 @@ export default function Navbar() {
           width: "100%",
           mx: "auto",
           px: { xs: 1.5, sm: 2 },
-          gap: 1,
+          pr: { xs: 1.5, sm: 0 },
+          gap: { xs: 1, md: 2 },
+          justifyContent: "flex-end",
         }}
       >
         <Box
@@ -71,41 +73,59 @@ export default function Navbar() {
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 1,
-            flexGrow: 1,
+            gap: 1.1,
             textDecoration: "none",
             minWidth: 0,
+            flexShrink: 0,
+            mr: "auto",
           }}
         >
           <Box
             component="img"
             src={intellinoMark}
             alt="Intellino"
-            sx={{
-              height: 32,
-              width: 32,
-              display: "block",
-              borderRadius: "8px",
-            }}
+            sx={{ width: 32, height: 32, borderRadius: "8px", flexShrink: 0 }}
           />
-          <Typography
+          <Box
             sx={{
-              fontWeight: 800,
-              color: "text.primary",
-              fontSize: { xs: "1.05rem", sm: "1.2rem" },
-              whiteSpace: "nowrap",
-              letterSpacing: "0.01em",
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            Intell
-            <Box component="span" sx={{ color: "primary.main" }}>
-              i
-            </Box>
-            no
-          </Typography>
+            <Typography
+              sx={{
+                fontWeight: 800,
+                color: "text.primary",
+                fontSize: "1rem",
+                lineHeight: 1.15,
+                letterSpacing: "0.01em",
+              }}
+              noWrap
+            >
+              Intell
+              <Box component="span" sx={{ color: "primary.main" }}>
+                i
+              </Box>
+              no
+            </Typography>
+            <Typography
+              sx={{
+                display: "block",
+                fontSize: "0.6rem",
+                fontWeight: 600,
+                color: "text.secondary",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+              }}
+              noWrap
+            >
+              Gestion scolaire
+            </Typography>
+          </Box>
         </Box>
 
-        <Box sx={{ display: { xs: "none", md: "flex" }, gap: 0.5 }}>
+        <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2 }}>
           {SECTION_LINKS.map((link) => (
             <Button
               key={link.id}
@@ -128,7 +148,7 @@ export default function Navbar() {
           </Button>
         </Box>
 
-        <Box sx={{ display: { xs: "none", md: "flex" }, gap: 1 }}>
+        <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2 }}>
           <Button
             component={RouterLink}
             to="/devenir-prestataire"

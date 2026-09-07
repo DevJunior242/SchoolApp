@@ -25,10 +25,10 @@ class SchoolMemberController extends Controller
     private const RESTRICTED_ROLE_SLUGS = ['directeur', 'parent', 'eleve', 'professeur', 'infirmier'];
 
     /**
-     * Parent et élève ne sont pas des "membres" de l'école au sens
-     * classique : ils apparaissent via l'inscription des élèves, pas ici.
+     * Parent, élève et professeur disposent de leurs propres écrans métier et
+     * ne doivent pas être dupliqués dans la liste générique des membres.
      */
-    private const HIDDEN_FROM_LIST_ROLE_SLUGS = ['parent', 'eleve'];
+    private const HIDDEN_FROM_LIST_ROLE_SLUGS = ['parent', 'eleve', 'professeur'];
 
     public function index(Request $request, School $school)
     {
@@ -87,5 +87,57 @@ class SchoolMemberController extends Controller
         }
 
         return response()->json($schoolUser->load('user', 'role'), 201);
+    }
+
+    public function update(Request $request, School $school, SchoolUser $member)
+    {
+        $this->authorizeDirecteur($request, $school);
+        $this->ensureMemberBelongsToSchool($school, $member);
+
+        if ($member->role?->slug === 'directeur') {
+            abort(422, 'Le directeur ne peut pas être modifié depuis cette page.');
+        }
+
+        $validated = $request->validate([
+            'fullname' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$member->user_id],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'role_id' => ['required', 'uuid', 'exists:roles,id'],
+        ]);
+
+        $role = Role::findOrFail($validated['role_id']);
+
+        if (in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
+            throw ValidationException::withMessages([
+                'role_id' => ['Ce rôle ne peut pas être attribué via la gestion des membres.'],
+            ]);
+        }
+
+        $this->guardAgainstRoleConflict($school, $member->user, $validated['role_id']);
+        $member->user->update(collect($validated)->except('role_id')->all());
+        $member->update(['role_id' => $validated['role_id']]);
+        $this->syncStaffQuota($school->fresh());
+
+        return response()->json($member->fresh()->load('user', 'role'));
+    }
+
+    public function destroy(Request $request, School $school, SchoolUser $member)
+    {
+        $this->authorizeDirecteur($request, $school);
+        $this->ensureMemberBelongsToSchool($school, $member);
+
+        if ($member->role?->slug === 'directeur' || $member->user_id === $request->user()->id) {
+            abort(422, "Le directeur et votre propre compte ne peuvent pas être retirés de l'école.");
+        }
+
+        $member->delete();
+        $this->syncStaffQuota($school->fresh());
+
+        return response()->json(['message' => 'Membre retiré de l’école.']);
+    }
+
+    private function ensureMemberBelongsToSchool(School $school, SchoolUser $member): void
+    {
+        abort_unless($member->school_id === $school->id, 404);
     }
 }

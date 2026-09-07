@@ -2,11 +2,11 @@
 
 namespace App\Providers;
 
-use App\Notifications\Channels\BrevoChannel;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
+use App\Notifications\Channels\BrevoChannel;
+use Illuminate\Support\Facades\Notification;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,5 +41,21 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('enrollment-requests', fn ($request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('demo-requests', fn ($request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('message-send', fn ($request) => Limit::perMinute(20)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('school-writes', fn ($request) => Limit::perMinute(120)->by(
+            ($request->user()?->id ?: $request->ip()).':'.$this->schoolRateLimitKey($request)
+        ));
+        RateLimiter::for('ai-requests', fn ($request) => Limit::perMinute(20)->by(
+            ($request->user()?->id ?: $request->ip()).':'.$this->schoolRateLimitKey($request)
+        ));
+        RateLimiter::for('financial-actions', fn ($request) => Limit::perMinute(30)->by(
+            ($request->user()?->id ?: $request->ip()).':'.$this->schoolRateLimitKey($request)
+        ));
+    }
+
+    private function schoolRateLimitKey($request): string
+    {
+        $school = $request->route('school');
+
+        return is_object($school) ? (string) $school->getKey() : (string) ($school ?: 'global');
     }
 }

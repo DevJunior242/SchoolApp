@@ -135,9 +135,7 @@ export default function ChatbotWidget() {
 
   function allerAuContact() {
     fermer();
-    // On est déjà sur la home : un simple scroll suffit, pas besoin de
-    // navigation (même mécanisme que les liens d'ancre du header).
-    setTimeout(() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }), 100);
+    navigate("/contact");
   }
 
   return (

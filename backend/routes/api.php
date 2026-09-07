@@ -44,6 +44,8 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\SchoolMemberController;
 use App\Http\Controllers\Api\SchoolPricingPlanController;
+use App\Http\Controllers\Api\SchoolStaffLeaveController;
+use App\Http\Controllers\Api\SchoolStaffProfileController;
 use App\Http\Controllers\Api\SchoolSubscriptionController;
 use App\Http\Controllers\Api\SchoolYearController;
 use App\Http\Controllers\Api\SeasonController;
@@ -223,6 +225,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/enrollment-requests', [EnrollmentRequestController::class, 'index']);
         Route::get('/schools/{school}/members', [SchoolMemberController::class, 'index']);
         Route::get('/schools/{school}/teachers', [TeacherController::class, 'index']);
+        Route::get('/schools/{school}/hr/staff', [SchoolStaffProfileController::class, 'index']);
+        Route::get('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'show']);
+        Route::get('/schools/{school}/hr/leaves', [SchoolStaffLeaveController::class, 'index']);
         Route::get('/schools/{school}/classes', [ClassController::class, 'index']);
         Route::get('/schools/{school}/students', [StudentController::class, 'index']);
         Route::get('/schools/{school}/parents', [ParentController::class, 'index']);
@@ -289,8 +294,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Toute création/modification/suppression de données d'école exige
         // un email vérifié, et est bloquée si l'école est en lecture seule
         // (essai gratuit expiré, cf. EnsureSchoolIsWritable).
-        Route::middleware(['verified', 'school.writable'])->group(function () {
-            Route::put('/schools/{school}/settings', [SchoolController::class, 'update']);
+        Route::middleware(['verified', 'school.writable', 'throttle:school-writes'])->group(function () {
+            Route::put('/schools/{school}/settings', [SchoolController::class, 'update'])->middleware('can:update,school');
             Route::post('/schools/{school}/school-years', [SchoolYearController::class, 'store']);
             Route::put('/schools/{school}/seasons/{season}', [SeasonController::class, 'update']);
 
@@ -303,7 +308,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/enrollment-requests/{enrollmentRequest}/reject', [EnrollmentRequestController::class, 'reject']);
 
             Route::post('/schools/{school}/members', [SchoolMemberController::class, 'store']);
+            Route::put('/schools/{school}/members/{member}', [SchoolMemberController::class, 'update']);
+            Route::delete('/schools/{school}/members/{member}', [SchoolMemberController::class, 'destroy']);
             Route::post('/schools/{school}/teachers', [TeacherController::class, 'store']);
+            Route::post('/schools/{school}/hr/staff', [SchoolStaffProfileController::class, 'store']);
+            Route::put('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'update']);
+            Route::delete('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'destroy']);
+            Route::post('/schools/{school}/hr/leaves', [SchoolStaffLeaveController::class, 'store']);
+            Route::put('/schools/{school}/hr/leaves/{leave}/status', [SchoolStaffLeaveController::class, 'updateStatus']);
 
             Route::post('/schools/{school}/classes', [ClassController::class, 'store']);
             Route::post('/schools/{school}/classes/{schoolClass}/teachers', [ClassTeacherController::class, 'store']);
@@ -325,9 +337,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/schools/{school}/fee-categories/{feeCategory}', [FeeCategoryController::class, 'update']);
             Route::delete('/schools/{school}/fee-categories/{feeCategory}', [FeeCategoryController::class, 'destroy']);
 
-            Route::post('/schools/{school}/students/{student}/payments', [PaymentController::class, 'store']);
-            Route::post('/schools/{school}/payments/{payment}/confirm', [PaymentController::class, 'confirm']);
-            Route::post('/schools/{school}/payments/{payment}/reject', [PaymentController::class, 'reject']);
+            Route::middleware('throttle:financial-actions')->group(function () {
+                Route::post('/schools/{school}/students/{student}/payments', [PaymentController::class, 'store']);
+                Route::post('/schools/{school}/payments/{payment}/confirm', [PaymentController::class, 'confirm']);
+                Route::post('/schools/{school}/payments/{payment}/reject', [PaymentController::class, 'reject']);
+            });
 
             Route::post('/schools/{school}/expense-categories', [ExpenseCategoryController::class, 'store']);
             Route::put('/schools/{school}/expense-categories/{expenseCategory}', [ExpenseCategoryController::class, 'update']);
@@ -342,7 +356,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/schools/{school}/treasury-accounts/{treasuryAccount}', [TreasuryAccountController::class, 'destroy']);
             Route::post('/schools/{school}/treasury-accounts/{treasuryAccount}/movements', [TreasuryMovementController::class, 'store']);
 
-            Route::post('/schools/{school}/ai/ask', [AiAssistantController::class, 'ask'])->middleware('school.plan:ai');
+            Route::post('/schools/{school}/ai/ask', [AiAssistantController::class, 'ask'])
+                ->middleware(['school.plan:ai', 'throttle:ai-requests']);
 
             Route::post('/schools/{school}/attendances/{attendance}/justify', [AttendanceController::class, 'justify']);
             Route::post('/schools/{school}/attendances/{attendance}/approve-justification', [AttendanceController::class, 'approveJustification']);

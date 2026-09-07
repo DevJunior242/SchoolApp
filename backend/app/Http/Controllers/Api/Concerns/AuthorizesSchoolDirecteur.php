@@ -129,12 +129,22 @@ trait AuthorizesSchoolDirecteur
         );
     }
 
+    private function authorizeHrStaff(Request $request, School $school): void
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['directeur', 'rh'],
+            'Vous n\'avez pas accès à la gestion RH de cette école.'
+        );
+    }
+
     private function authorizeRoles(Request $request, School $school, array $slugs, string $message): void
     {
         $authorized = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $request->user()->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', $slugs))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', $slugs))
             ->exists();
 
         if (! $authorized) {

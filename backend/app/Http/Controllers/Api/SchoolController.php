@@ -16,6 +16,7 @@ use App\Models\SchoolYear;
 use App\Models\Season;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -26,12 +27,15 @@ class SchoolController extends Controller
 
     public function index()
     {
-        return response()->json(
-            School::query()
+        return response()->json(Cache::remember(
+            'public.active-schools',
+            now()->addMinutes(10),
+            fn () => School::query()
                 ->where('status', School::STATUS_ACTIVE)
                 ->with('country')
                 ->get()
-        );
+                ->toArray(),
+        ));
     }
 
     public function mine(Request $request)

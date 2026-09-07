@@ -7,7 +7,7 @@ export default function PublicLayout() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
-      <Box sx={{ flexGrow: 1 }}>
+      <Box sx={{ flexGrow: 1, minHeight: 0 }}>
         <Outlet />
       </Box>
       <Footer />

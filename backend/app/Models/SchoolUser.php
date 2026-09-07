@@ -37,4 +37,9 @@ class SchoolUser extends Pivot
     {
         return $this->belongsTo(Role::class);
     }
+
+    public function staffProfile()
+    {
+        return $this->hasOne(SchoolStaffProfile::class, 'user_id', 'user_id');
+    }
 }
