@@ -41,6 +41,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirmation, setShowPasswordConfirmation] =
     useState(false);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   function handleChange(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -55,6 +56,7 @@ export default function RegisterPage() {
       // On n'appelle plus navigate("/dashboard"), on active le message de succès
       setSuccessMessage(true);
     } catch (err) {
+      setTurnstileResetKey((key) => key + 1);
       const messages = err.response?.data?.errors;
       setError(
         messages
@@ -99,7 +101,7 @@ export default function RegisterPage() {
             <Box
               component="img"
               src={intellinoMark}
-              alt="Intellino"
+              alt="Intellino Edu"
               sx={{ height: 44, width: 44, borderRadius: "12px" }}
             />
             <Typography
@@ -114,8 +116,9 @@ export default function RegisterPage() {
               <Box component="span" sx={{ color: "primary.main" }}>
                 i
               </Box>
-              no
+              no Edu
             </Typography>
+ 
           </Box>
           <Typography variant="h5" component="h1" align="center" gutterBottom>
             Créer un compte
@@ -276,6 +279,7 @@ export default function RegisterPage() {
                 }
               />
               <TurnstileWidget
+                resetKey={turnstileResetKey}
                 onVerify={(token) =>
                   setForm((prev) => ({ ...prev, turnstile_token: token }))
                 }

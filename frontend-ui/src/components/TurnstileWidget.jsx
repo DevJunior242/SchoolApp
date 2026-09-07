@@ -22,7 +22,7 @@ function loadTurnstileScript() {
 
 // N'affiche rien si VITE_TURNSTILE_SITE_KEY n'est pas configurée (miroir du
 // fail-open côté backend quand TURNSTILE_SECRET_KEY est vide).
-export default function TurnstileWidget({ onVerify }) {
+export default function TurnstileWidget({ onVerify, resetKey = 0 }) {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
 
@@ -48,6 +48,17 @@ export default function TurnstileWidget({ onVerify }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (resetKey === 0 || widgetIdRef.current == null || !window.turnstile) {
+      return;
+    }
+
+    window.turnstile.reset(widgetIdRef.current);
+    onVerify("");
+    // Le reset ne doit se produire qu'au changement explicite de resetKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
 
   if (!SITE_KEY) return null;
 
