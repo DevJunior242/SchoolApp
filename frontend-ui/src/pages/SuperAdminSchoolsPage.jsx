@@ -16,6 +16,7 @@ import { Navigate } from "react-router-dom";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
+import { useApiGet } from "../hooks/useApiGet.js";
 
 export default function SuperAdminSchoolsPage() {
   const { user } = useAuth();

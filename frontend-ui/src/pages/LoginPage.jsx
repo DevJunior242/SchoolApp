@@ -107,7 +107,7 @@ export default function LoginPage() {
             <Box
               component="img"
               src={intellinoMark}
-              alt="Intellino"
+              alt="Intellino Edu"
               sx={{ height: 44, width: 44, borderRadius: "12px" }}
             />
             <Typography
@@ -122,7 +122,7 @@ export default function LoginPage() {
               <Box component="span" sx={{ color: "primary.main" }}>
                 i
               </Box>
-              no
+              no Edu
             </Typography>
           </Box>
           <Typography variant="h5" component="h1" align="center" gutterBottom>
