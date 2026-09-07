@@ -15,11 +15,11 @@ import { motion } from "motion/react";
 import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
 import ChatbotWidget from "../components/ChatbotWidget.jsx";
-import directionImg from "../assets/characters/direction.png";
-import enseignantImg from "../assets/characters/enseignant.png";
-import parentsImg from "../assets/characters/parents.png";
-import eleveImg from "../assets/characters/eleve.png";
-import dashboardImg from "../assets/characters/mock.png";
+import directionImg from "../assets/characters/direction.webp";
+import enseignantImg from "../assets/characters/enseignant.webp";
+import parentsImg from "../assets/characters/parents.webp";
+import eleveImg from "../assets/characters/eleve.webp";
+import dashboardImg from "../assets/characters/mock.webp";
 import { useApiGet } from "../hooks/useApiGet.js";
 import EnrollmentRequestModal from "../components/EnrollmentRequestModal.jsx";
 const featuresList = [
@@ -104,33 +104,6 @@ const audiences = [
     subtitle:
       "Accédez à vos informations et ressources scolaires où que vous soyez.",
     points: ["Emploi du temps", "Notes & résultats", "Ressources pédagogiques"],
-  },
-];
-
-const benefits = [
-  {
-    icon: "⚡",
-    title: "Gain de temps",
-    description:
-      "Automatisez les tâches administratives et concentrez-vous sur l'essentiel.",
-  },
-  {
-    icon: "📊",
-    title: "Meilleure gestion",
-    description:
-      "Des données précises pour une gestion efficace et des décisions éclairées.",
-  },
-  {
-    icon: "💬",
-    title: "Communication simplifiée",
-    description:
-      "Facilitez les échanges entre l'école, les parents, les enseignants et les élèves.",
-  },
-  {
-    icon: "🛡️",
-    title: "Sécurité maximale",
-    description:
-      "Vos données sont protégées avec des sauvegardes régulières et un haut niveau de sécurité.",
   },
 ];
 
@@ -242,13 +215,62 @@ export default function HomePage() {
                     maxWidth: 530,
                     fontSize: "0.9rem",
                     lineHeight: 1.7,
-                    mb: 3,
+                    mb: 2,
                   }}
                 >
                   Intellino Edu est la solution complète pour
                   administrer votre établissement, de l'inscription des élèves à
                   la gestion financière.
                 </Typography>
+
+                <Box
+                  sx={(theme) => ({
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 1,
+                    px: 1.5,
+                    py: 0.8,
+                    mb: 2.5,
+                    borderRadius: 999,
+                    background:
+                      theme.palette.mode === "dark"
+                        ? "rgba(255, 165, 0, 0.12)"
+                        : "rgba(255, 165, 0, 0.12)",
+                    border: "1px solid",
+                    borderColor: alpha(theme.palette.warning.main, 0.5),
+                    boxShadow:
+                      theme.palette.mode === "dark"
+                        ? "0 10px 26px rgba(255, 165, 0, 0.12)"
+                        : "0 10px 26px rgba(255, 165, 0, 0.08)",
+                  })}
+                >
+                  <Box
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      bgcolor: "warning.main",
+                      color: "warning.contrastText",
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    ✦
+                  </Box>
+                  <Typography
+                    sx={{
+                      fontSize: "0.72rem",
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: "text.primary",
+                    }}
+                  >
+                    LANCEMENT RAPIDE • 2 minutes
+                  </Typography>
+                </Box>
 
                 <Box
                   sx={{
@@ -269,6 +291,28 @@ export default function HomePage() {
                   >
                     <Button
                       component={RouterLink}
+                      to="/create-school"
+                      variant="contained"
+                      size="large"
+                      sx={{
+                        px: 3,
+                        py: 1.2,
+                        borderRadius: 2,
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        width: "fit-content",
+                        background: "linear-gradient(135deg, #ff8a18 0%, #ff5e3a 100%)",
+                        boxShadow: "0 18px 30px rgba(255, 94, 58, 0.28)",
+                        '&:hover': {
+                          background: "linear-gradient(135deg, #ff9a2f 0%, #ff6b4d 100%)",
+                        },
+                      }}
+                    >
+                      Créer une école
+                    </Button>
+
+                    <Button
+                      component={RouterLink}
                       to="/contact"
                       variant="contained"
                       size="large"
@@ -279,6 +323,13 @@ export default function HomePage() {
                         fontWeight: 700,
                         whiteSpace: "nowrap",
                         width: "fit-content",
+                        background: "rgba(0,0,0,0.04)",
+                        color: "text.primary",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        '&:hover': {
+                          background: "rgba(0,0,0,0.08)",
+                        },
                       }}
                     >
                       Demander une démo
@@ -373,6 +424,9 @@ export default function HomePage() {
                     component="img"
                     src={dashboardImg}
                     alt="Aperçu du tableau de bord Intellino"
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="async"
                     sx={{
                       position: "relative",
                       zIndex: 1,
@@ -681,6 +735,8 @@ export default function HomePage() {
                       component="img"
                       src={aud.image}
                       alt={aud.role}
+                      loading="lazy"
+                      decoding="async"
                       sx={{
                         width: "100%",
                         height: "100%",
