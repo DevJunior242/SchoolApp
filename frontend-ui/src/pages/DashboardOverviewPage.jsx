@@ -231,12 +231,10 @@ export default function DashboardOverviewPage() {
     isRh ? `/schools/${current.school?.id}/hr/leaves` : null,
     { enabled: isRh },
   );
-console.log("isRh =", isRh);
-console.log("hrStaff =", hrStaff);
-console.log("hrStaff is array =", Array.isArray(hrStaff));
 
-console.log("hrLeaves =", hrLeaves);
-console.log("hrLeaves is array =", Array.isArray(hrLeaves));
+ 
+
+
   // Le superadmin n'a pas d'école : son tableau de bord est une vue
   // d'ensemble de la plateforme, pas ce résumé pensé pour le personnel
   // d'école.
@@ -305,23 +303,29 @@ console.log("hrLeaves is array =", Array.isArray(hrLeaves));
     );
   }
 
-  if (isRh) {
-    const staff = hrStaff ?? [];
-    const leaves = hrLeaves ?? [];
-    const departmentCounts = staff.reduce((counts, member) => {
-      const department = member.department || "Non renseigné";
-      counts[department] = (counts[department] ?? 0) + 1;
+ if (isRh) {
+  const staff = Array.isArray(hrStaff)
+    ? hrStaff
+    : hrStaff?.data ?? [];
 
-      return counts;
-    }, {});
-    const leaveCounts = leaves.reduce((counts, leave) => {
-      const status = leave.status_label || "En attente";
-      counts[status] = (counts[status] ?? 0) + 1;
+  const leaves = Array.isArray(hrLeaves)
+    ? hrLeaves
+    : hrLeaves?.data ?? [];
 
-      return counts;
-      console.log("hrStaff =", hrStaff);
-console.log("hrLeaves =", hrLeaves);
-    }, {});
+  const departmentCounts = staff.reduce((counts, member) => {
+    const department = member.department || "Non renseigné";
+    counts[department] = (counts[department] ?? 0) + 1;
+
+    return counts;
+  }, {});
+
+  const leaveCounts = leaves.reduce((counts, leave) => {
+    const status = leave.status_label || "En attente";
+    counts[status] = (counts[status] ?? 0) + 1;
+
+    return counts;
+  }, {});
+}
 
     return (
       <Box>
