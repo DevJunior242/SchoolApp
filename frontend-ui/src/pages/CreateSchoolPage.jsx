@@ -25,13 +25,37 @@ import { useApiGet } from "../hooks/useApiGet.js";
 
 const STEPS = ["Informations de l'école", "Activation"];
 
+const ISO3_TO_ISO2 = {
+  AGO: "AO", BEN: "BJ", BDI: "BI", BFA: "BF", BWA: "BW", CAF: "CF",
+  CIV: "CI", CMR: "CM", COD: "CD", COG: "CG", COM: "KM", CPV: "CV",
+  DJI: "DJ", DZA: "DZ", EGY: "EG", ERI: "ER", ETH: "ET", GAB: "GA",
+  GHA: "GH", GIN: "GN", GMB: "GM", GNB: "GW", GNQ: "GQ", KEN: "KE",
+  LBR: "LR", LBY: "LY", LSO: "LS", MAR: "MA", MDG: "MG", MLI: "ML",
+  MOZ: "MZ", MRT: "MR", MUS: "MU", MWI: "MW", NAM: "NA", NER: "NE",
+  NGA: "NG", RWA: "RW", SDN: "SD", SEN: "SN", SLE: "SL", SOM: "SO",
+  SSD: "SS", STP: "ST", SWZ: "SZ", SYC: "SC", TCD: "TD", TGO: "TG",
+  TUN: "TN", TZA: "TZ", UGA: "UG", ZAF: "ZA", ZMB: "ZM", ZWE: "ZW",
+};
+
+function countryFlag(isoCode) {
+  const iso2 = ISO3_TO_ISO2[isoCode];
+
+  return iso2
+    ? String.fromCodePoint(...[...iso2].map((letter) => 127397 + letter.charCodeAt(0)))
+    : "";
+}
+
 export default function CreateSchoolPage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isSuperAdmin = user?.role?.slug === "superadmin";
   const { data: countries } = useApiGet("/countries", {
     enabled: Boolean(user),
   });
+  const selectedCountry = (countries ?? []).find(
+    (country) => country.id === form.country_id,
+  );
   const { data: pricingPlans } = useApiGet("/school-pricing-plans");
 
   const requestedPlan = searchParams.get("plan");
@@ -98,6 +122,28 @@ export default function CreateSchoolPage() {
         Créer une école
       </Typography>
 
+      {user && isSuperAdmin && (
+        <Paper
+          variant="outlined"
+          sx={(theme) => ({
+            p: 4,
+            mt: 3,
+            borderColor: theme.palette.error.main,
+            bgcolor: alpha(theme.palette.error.main, 0.04),
+          })}
+        >
+          <Alert severity="error" sx={{ mb: 2 }}>
+            Le superadmin de la plateforme ne peut pas créer une école.
+          </Alert>
+          <Typography color="text.secondary" sx={{ mb: 3 }}>
+            Vous êtes administrateur plateforme et avez déjà accès au back-office.
+          </Typography>
+          <Button component={RouterLink} to="/dashboard" variant="contained" fullWidth>
+            Retour au tableau de bord
+          </Button>
+        </Paper>
+      )}
+
       {!user ? (
         <Paper
           variant="outlined"
@@ -129,7 +175,7 @@ export default function CreateSchoolPage() {
             </Button>
           </Stack>
         </Paper>
-      ) : (
+      ) : !isSuperAdmin ? (
         <Paper
           variant="outlined"
           sx={(theme) => ({
@@ -179,12 +225,17 @@ export default function CreateSchoolPage() {
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, country_id: e.target.value }))
                   }
+                  renderValue={() =>
+                    selectedCountry
+                      ? `${countryFlag(selectedCountry.iso_code)} ${selectedCountry.name}`
+                      : ""
+                  }
                   required
                   fullWidth
                 >
                   {(countries ?? []).map((country) => (
                     <MenuItem key={country.id} value={country.id}>
-                      {country.name}
+                      {countryFlag(country.iso_code)} {country.name}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -277,7 +328,7 @@ export default function CreateSchoolPage() {
             </Box>
           )}
         </Paper>
-      )}
+      ) : null}
     </Container>
   );
 }
