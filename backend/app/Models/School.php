@@ -26,11 +26,11 @@ class School extends Model
 
     const LANGUAGE_EN = 'en';
 
-    const PLAN_ECOLE = 'ecole';
+    const PLAN_ECOLE = 'Starter';
 
-    const PLAN_ETABLISSEMENT = 'etablissement';
+    const PLAN_ETABLISSEMENT = 'Standard';
 
-    const PLAN_RESEAU = 'reseau';
+    const PLAN_RESEAU = 'Premium';
 
     // Ordre croissant : sert à comparer deux paliers (ex. palier assez élevé
     // pour un module donné) sans dupliquer cette logique partout.
@@ -53,8 +53,7 @@ class School extends Model
         'email',
         'website',
         'status',
-        'plan',
-        'pricing_plan_id',
+         'pricing_plan_id',
         'language',
         'currency',
         'academic_period_type',
