@@ -231,7 +231,12 @@ export default function DashboardOverviewPage() {
     isRh ? `/schools/${current.school?.id}/hr/leaves` : null,
     { enabled: isRh },
   );
+console.log("isRh =", isRh);
+console.log("hrStaff =", hrStaff);
+console.log("hrStaff is array =", Array.isArray(hrStaff));
 
+console.log("hrLeaves =", hrLeaves);
+console.log("hrLeaves is array =", Array.isArray(hrLeaves));
   // Le superadmin n'a pas d'école : son tableau de bord est une vue
   // d'ensemble de la plateforme, pas ce résumé pensé pour le personnel
   // d'école.
@@ -314,6 +319,8 @@ export default function DashboardOverviewPage() {
       counts[status] = (counts[status] ?? 0) + 1;
 
       return counts;
+      console.log("hrStaff =", hrStaff);
+console.log("hrLeaves =", hrLeaves);
     }, {});
 
     return (

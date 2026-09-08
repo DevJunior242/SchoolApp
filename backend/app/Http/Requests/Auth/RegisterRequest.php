@@ -31,7 +31,7 @@ class RegisterRequest extends FormRequest
             'password' => ['required', 'string', 'max:255', new StrongPassword, 'confirmed'],
             'language' => ['nullable', 'string', 'size:2'],
             'terms_accepted' => ['required', 'accepted'],
-            'turnstile_token' => [new ValidTurnstileToken],
+            // 'turnstile_token' => [new ValidTurnstileToken],
         ];
     }
 }
