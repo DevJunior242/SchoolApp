@@ -53,9 +53,6 @@ export default function CreateSchoolPage() {
   const { data: countries } = useApiGet("/countries", {
     enabled: Boolean(user),
   });
-  const selectedCountry = (countries ?? []).find(
-    (country) => country.id === form.country_id,
-  );
   const { data: pricingPlans } = useApiGet("/school-pricing-plans");
 
   const requestedPlan = searchParams.get("plan");
@@ -77,6 +74,9 @@ export default function CreateSchoolPage() {
     country_id: "",
     pricing_plan_id: "",
   });
+  const selectedCountry = (countries ?? []).find(
+    (country) => country.id === form.country_id,
+  );
   const [activationKey, setActivationKey] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
