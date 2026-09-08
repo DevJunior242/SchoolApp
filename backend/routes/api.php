@@ -357,7 +357,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/treasury-accounts/{treasuryAccount}/movements', [TreasuryMovementController::class, 'store']);
 
             Route::post('/schools/{school}/ai/ask', [AiAssistantController::class, 'ask'])
-                ->middleware(['school.plan:ai', 'throttle:ai-requests']);
+                ->middleware(['throttle:ai-requests']);
 
             Route::post('/schools/{school}/attendances/{attendance}/justify', [AttendanceController::class, 'justify']);
             Route::post('/schools/{school}/attendances/{attendance}/approve-justification', [AttendanceController::class, 'approveJustification']);
@@ -425,3 +425,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 });
+
+
+
+ 

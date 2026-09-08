@@ -1,14 +1,13 @@
 <?php
 
-use App\Http\Middleware\EnsureSchoolIsWritable;
-use App\Http\Middleware\EnsureSchoolMembership;
-use App\Http\Middleware\EnsureSchoolPlanIncludesModule;
+use Illuminate\Http\Request;
+use Illuminate\Foundation\Application;
 use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Foundation\Application;
+use App\Http\Middleware\EnsureSchoolIsWritable;
+use App\Http\Middleware\EnsureSchoolMembership;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
