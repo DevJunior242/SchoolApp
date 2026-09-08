@@ -54,6 +54,10 @@ class SchoolController extends Controller
 
     public function store(Request $request)
     {
+        if ($request->user()?->role?->slug === 'superadmin') {
+            abort(403, 'Le superadmin de la plateforme ne peut pas créer une école.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'country_id' => ['required', 'uuid', 'exists:countries,id'],
