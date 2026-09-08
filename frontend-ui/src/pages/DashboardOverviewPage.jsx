@@ -232,9 +232,6 @@ export default function DashboardOverviewPage() {
     { enabled: isRh },
   );
 
- 
-
-
   // Le superadmin n'a pas d'école : son tableau de bord est une vue
   // d'ensemble de la plateforme, pas ce résumé pensé pour le personnel
   // d'école.
@@ -303,8 +300,8 @@ export default function DashboardOverviewPage() {
     );
   }
 
- if (isRh) {
-  const staff = Array.isArray(hrStaff)
+  if (isRh) {
+    const staff = Array.isArray(hrStaff)
     ? hrStaff
     : hrStaff?.data ?? [];
 
@@ -325,7 +322,6 @@ export default function DashboardOverviewPage() {
 
     return counts;
   }, {});
-}
 
     return (
       <Box>
