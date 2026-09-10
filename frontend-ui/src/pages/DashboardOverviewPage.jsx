@@ -40,6 +40,7 @@ import SuperAdminOverviewPage from "./SuperAdminOverviewPage.jsx";
 import ProviderProfilePage from "./ProviderProfilePage.jsx";
 
 const STAFF_ROLE_SLUGS = [
+  "fondateur",
   "directeur",
   "censeur",
   "surveillant",
@@ -64,6 +65,28 @@ function timeAgo(dateString) {
 }
 
 const QUICK_ACTIONS_BY_ROLE = {
+    fondateur: [
+    {
+      label: "Ajouter un membre",
+      to: "/dashboard/members",
+      icon: <GroupsIcon />,
+    },
+    {
+      label: "Ajouter une classe",
+      to: "/dashboard/classes",
+      icon: <MenuBookIcon />,
+    },
+    {
+      label: "Inscrire des élèves",
+      to: "/dashboard/students",
+      icon: <School2Icon />,
+    },
+    {
+      label: "Créer un événement",
+      to: "/dashboard/events",
+      icon: <EventIcon />,
+    },
+  ],
   directeur: [
     {
       label: "Ajouter un membre",

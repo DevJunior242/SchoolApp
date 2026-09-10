@@ -53,7 +53,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'censeur', 'surveillant'],
+            ['directeur', 'censeur', 'surveillant','fondateur'],
             "Vous n'avez pas accès à la validation des absences."
         );
     }
@@ -67,7 +67,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'censeur', 'secretaire'],
+            ['directeur', 'censeur', 'secretaire','fondateur'],
             "Vous n'êtes pas autorisé à gérer les événements de cette école."
         );
     }
@@ -81,7 +81,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'secretaire'],
+            ['directeur', 'secretaire','fondateur'],
             "Vous n'avez pas accès à la messagerie de l'école."
         );
     }
@@ -95,7 +95,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'bibliothecaire'],
+            ['directeur', 'bibliothecaire','fondateur'],
             "Vous n'avez pas accès à la gestion de la bibliothèque."
         );
     }
@@ -109,7 +109,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'comptable', 'secretaire'],
+            ['directeur', 'comptable', 'secretaire','fondateur'],
             "Vous n'avez pas accès aux finances de cette école."
         );
     }
@@ -124,7 +124,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'comptable'],
+            ['directeur', 'comptable','fondateur'],
             'Seuls le directeur et le comptable peuvent gérer la trésorerie.'
         );
     }
@@ -134,7 +134,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'rh'],
+            ['directeur', 'rh','fondateur'],
             'Vous n\'avez pas accès à la gestion RH de cette école.'
         );
     }

@@ -2,26 +2,26 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
-use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
-use App\Http\Controllers\Controller;
-use App\Models\Attendance;
-use App\Models\ClassStudent;
-use App\Models\ClassSubjectTeacher;
-use App\Models\ParentStudent;
 use App\Models\School;
-use App\Models\SchoolUser;
 use App\Models\Student;
-use App\Notifications\StudentAbsentNotification;
+use App\Models\Attendance;
+use App\Models\SchoolUser;
+use App\Models\ClassStudent;
 use Illuminate\Http\Request;
+use App\Models\ParentStudent;
 use Illuminate\Support\Facades\DB;
+use App\Models\ClassSubjectTeacher;
+use App\Http\Controllers\Controller;
 use Illuminate\Validation\ValidationException;
+use App\Notifications\StudentAbsentNotification;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class AttendanceController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire'];
+    private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire','fondateur'];
 
     /**
      * Liste des absences déjà saisies par le professeur pour un cours et

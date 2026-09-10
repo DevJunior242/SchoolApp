@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
-use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
-use App\Http\Controllers\Controller;
-use App\Models\ClassStudent;
-use App\Models\ClassSubjectTeacher;
 use App\Models\Grade;
-use App\Models\ParentStudent;
 use App\Models\School;
-use App\Models\SchoolUser;
 use App\Models\Season;
 use App\Models\Student;
+use App\Models\SchoolUser;
+use App\Models\ClassStudent;
 use Illuminate\Http\Request;
+use App\Models\ParentStudent;
 use Illuminate\Support\Collection;
+use App\Models\ClassSubjectTeacher;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class BulletinController extends Controller
 {
@@ -188,7 +188,16 @@ class BulletinController extends Controller
         if ($student->user_id === $userId) {
             return;
         }
+//fondateur
+        $isFondateur = SchoolUser::query()
+            ->where('school_id', $school->id)
+            ->where('user_id', $userId)
+            ->whereHas('role', fn ($query) => $query->where('slug', 'fondateur'))
+            ->exists();
 
+        if ($isFondateur) {
+            return;
+        }
         $isDirecteur = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $userId)

@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Role;
+use App\Models\User;
+use App\Models\School;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\Pivot;
-use App\Models\School;
-use App\Models\User;
-use App\Models\Role;
 
 class SchoolUser extends Pivot
 {

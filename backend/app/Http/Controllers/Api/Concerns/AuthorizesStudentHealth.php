@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers\Api\Concerns;
 
-use App\Models\ClassStudent;
-use App\Models\ClassSubjectTeacher;
-use App\Models\ParentStudent;
 use App\Models\School;
-use App\Models\SchoolUser;
 use App\Models\Student;
+use App\Models\SchoolUser;
+use App\Models\ClassStudent;
 use Illuminate\Http\Request;
+use App\Models\ParentStudent;
+use App\Models\ClassSubjectTeacher;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 
 trait AuthorizesStudentHealth
 {
     use ValidatesSchoolSection;
 
-    private const HEALTH_MANAGER_ROLE_SLUGS = ['directeur', 'infirmier'];
+    private const HEALTH_MANAGER_ROLE_SLUGS = ['directeur', 'infirmier','fondateur'];
 
     /**
      * L'élève doit être actuellement inscrit (activement) dans cette école :
