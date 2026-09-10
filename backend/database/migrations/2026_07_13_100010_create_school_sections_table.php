@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('school_sections', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('school_id')->constrained('schools')->cascadeOnDelete();
+             $table->foreignUuid('school_id')->constrained('schools')->cascadeOnDelete();
             $table->foreignUuid('section_id')->constrained('sections')->cascadeOnDelete();
             $table->boolean('active')->default(true);
             $table->timestamps();

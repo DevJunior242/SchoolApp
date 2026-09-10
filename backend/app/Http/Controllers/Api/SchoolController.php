@@ -52,6 +52,8 @@ class SchoolController extends Controller
     // Durée de l'essai gratuit pour une école créée sans clé d'activation
     // (une clé valide saute directement le trial, cf. store()).
     private const TRIAL_DAYS = 30;
+
+    
 public function store(Request $request)
 {
     if ($request->user()?->role?->slug === 'superadmin') {
