@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\ClassStudent;
@@ -18,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 class AttendanceController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire'];
 
@@ -218,6 +219,9 @@ class AttendanceController extends Controller
     private function authorizeAssignment(Request $request, ClassSubjectTeacher $assignment): void
     {
         $userId = $request->user()->id;
+        $schoolClass = $assignment->schoolClass;
+        $level = $this->activeSchoolClass($schoolClass->school, $schoolClass);
+        $this->authorizeLevelSection($request, $schoolClass->school, $level);
 
         if ($assignment->user_id === $userId) {
             return;

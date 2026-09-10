@@ -1,4 +1,4 @@
-import { useState } from "react";
+ import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -52,6 +52,7 @@ function emptyExpenseForm() {
     expense_category_id: "",
     treasury_account_id: "",
     payment_method_id: "",
+    section_id: "",
     amount: "",
     supplier_name: "",
     description: "",
@@ -59,11 +60,18 @@ function emptyExpenseForm() {
   };
 }
 
+function formatFCFA(amount) {
+  return new Intl.NumberFormat("fr-FR").format(amount || 0) + " FCFA";
+}
+
 export default function DashboardExpensesPage({ embedded = false } = {}) {
   const { user } = useAuth();
   const schoolId = user?.current_school_id;
   const { schoolUsers } = useSchools();
-  const currentRole = schoolUsers.find((su) => su?.school?.id === schoolId)?.role?.slug;
+  const currentMembership = schoolUsers.find((su) => su?.school?.id === schoolId);
+  const currentRole = currentMembership?.role?.slug;
+  const allowedSections = currentMembership?.sections ?? [];
+  const isSectionRestricted = allowedSections.length > 0;
   const canManage = ["directeur", "comptable"].includes(currentRole ?? "");
 
   const { data: categoriesData, reload: reloadCategories } = useApiGet(
@@ -108,6 +116,13 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
     status: statusFilter === "" ? undefined : statusFilter,
   });
 
+  // Auto-sélection de la section si l'utilisateur n'a accès qu'à une seule section
+  useEffect(() => {
+    if (allowedSections.length === 1 && !expenseForm.section_id) {
+      setExpenseForm((prev) => ({ ...prev, section_id: allowedSections[0].id }));
+    }
+  }, [allowedSections, expenseForm.section_id]);
+
   function reloadDepenses() {
     reloadExpenses();
     reloadRecent();
@@ -133,14 +148,24 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
   }
 
   async function deleteCategory(id) {
-    await api.delete(`/schools/${schoolId}/expense-categories/${id}`);
-    reloadCategories();
+    setCategoryError(null);
+    try {
+      await api.delete(`/schools/${schoolId}/expense-categories/${id}`);
+      if (selectedCategory === id) {
+        setSelectedCategory(null);
+      }
+      reloadCategories();
+    } catch {
+      setCategoryError("Impossible de supprimer cette catégorie car elle contient des dépenses.");
+    }
   }
 
   function resetExpenseForm() {
-    setExpenseForm((prev) => ({ ...emptyExpenseForm(), expense_category_id: prev.expense_category_id }));
+    setExpenseForm((prev) => ({
+      ...emptyExpenseForm(),
+      section_id: allowedSections.length === 1 ? allowedSections[0].id : "",
+    }));
     setReceiptFile(null);
-    setExpenseError(null);
   }
 
   async function handleCreateExpense(e) {
@@ -161,7 +186,7 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
         headers: { "Content-Type": "multipart/form-data" },
       });
       reloadDepenses();
-      setExpenseSuccess("Dépense enregistrée.");
+      setExpenseSuccess("Dépense enregistrée avec succès.");
       resetExpenseForm();
     } catch (err) {
       const messages = err.response?.data?.errors;
@@ -174,13 +199,21 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
   }
 
   async function confirmExpense(id) {
-    await api.post(`/schools/${schoolId}/expenses/${id}/confirm`);
-    reloadDepenses();
+    try {
+      await api.post(`/schools/${schoolId}/expenses/${id}/confirm`);
+      reloadDepenses();
+    } catch {
+      // Optionnel : notification d'erreur
+    }
   }
 
   async function rejectExpense(id) {
-    await api.post(`/schools/${schoolId}/expenses/${id}/reject`);
-    reloadDepenses();
+    try {
+      await api.post(`/schools/${schoolId}/expenses/${id}/reject`);
+      reloadDepenses();
+    } catch {
+      // Optionnel : notification d'erreur
+    }
   }
 
   if (!schoolId) {
@@ -242,11 +275,18 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
                         textAlign: "center",
                         borderColor: selectedCategory === c.id ? "primary.main" : undefined,
                         color: selectedCategory === c.id ? "primary.main" : undefined,
+                        bgcolor: selectedCategory === c.id ? "primary.50" : undefined,
                       }}
-                      onClick={() => setSelectedCategory(c.id)}
+                      onClick={() => {
+                        setSelectedCategory(c.id);
+                        setExpenseError(null);
+                        setExpenseSuccess(null);
+                      }}
                     >
                       <DescriptionIcon />
-                      <Typography variant="body2">{c.name}</Typography>
+                      <Typography variant="body2" fontWeight={selectedCategory === c.id ? 600 : 400}>
+                        {c.name}
+                      </Typography>
                     </Box>
                   </Card>
                 </Grid>
@@ -308,6 +348,26 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
                 onChange={(e) => setExpenseForm((prev) => ({ ...prev, supplier_name: e.target.value }))}
                 fullWidth
               />
+              <TextField
+                select
+                label="Section concernée"
+                value={expenseForm.section_id}
+                onChange={(e) => setExpenseForm((prev) => ({ ...prev, section_id: e.target.value }))}
+                helperText={
+                  isSectionRestricted
+                    ? "Obligatoire pour une dépense de section."
+                    : "Laissez vide pour une dépense commune à l'établissement."
+                }
+                required={isSectionRestricted}
+                fullWidth
+              >
+                {!isSectionRestricted && <MenuItem value="">Dépense commune à l'établissement</MenuItem>}
+                {allowedSections.map((section) => (
+                  <MenuItem key={section.id} value={section.id}>
+                    {section.name}
+                  </MenuItem>
+                ))}
+              </TextField>
               <TextField
                 select
                 label="Mode de paiement (optionnel)"
@@ -385,10 +445,11 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {new Date(expense.expense_date).toLocaleDateString("fr-FR")}
+                      {expense.section?.name ? ` · ${expense.section.name}` : " · Dépense commune"}
                     </Typography>
                   </Box>
                   <Typography variant="body2" fontWeight={700} color="error.main" sx={{ whiteSpace: "nowrap" }}>
-                    -{Number(expense.amount).toLocaleString()} FCFA
+                    -{formatFCFA(expense.amount)}
                   </Typography>
                 </Box>
               ))}
@@ -428,12 +489,12 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
               <CardContent sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
                 <Box sx={{ flexGrow: 1, minWidth: 200 }}>
                   <Typography variant="subtitle2">
-                    {expense.expense_category?.name ?? "Sans catégorie"} —{" "}
-                    {Number(expense.amount).toLocaleString()} FCFA
+                    {expense.expense_category?.name ?? "Sans catégorie"} — {formatFCFA(expense.amount)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {new Date(expense.expense_date).toLocaleDateString("fr-FR")} ·{" "}
                     {expense.supplier_name || "Sans fournisseur"}
+                    {expense.section?.name ? ` · ${expense.section.name}` : " · Dépense commune"}
                     {expense.treasury_account?.name ? ` · ${expense.treasury_account.name}` : ""}
                   </Typography>
                 </Box>
@@ -481,6 +542,11 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
       <Dialog open={configDialogOpen} onClose={() => setConfigDialogOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>Catégories de dépense</DialogTitle>
         <DialogContent>
+          {categoryError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {categoryError}
+            </Alert>
+          )}
           <Stack direction="row" sx={{ justifyContent: "flex-end", mb: 2 }}>
             <Button size="small" startIcon={<AddIcon />} onClick={() => setCategoryModalOpen(true)}>
               Ajouter

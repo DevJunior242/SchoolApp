@@ -21,7 +21,7 @@ class StudentAllergyController extends Controller
      */
     public function index(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeAllergyViewer($request, $school, $student);
 
         return response()->json($student->allergies()->orderByDesc('severity')->get());
@@ -29,7 +29,7 @@ class StudentAllergyController extends Controller
 
     public function store(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthManager($request, $school);
 
         $validated = $request->validate([
@@ -45,7 +45,7 @@ class StudentAllergyController extends Controller
 
     public function destroy(Request $request, School $school, Student $student, StudentAllergy $allergy)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthManager($request, $school);
         abort_if($allergy->student_id !== $student->id, 404);
 

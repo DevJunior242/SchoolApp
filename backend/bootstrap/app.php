@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\EnsureSchoolIsWritable;
 use App\Http\Middleware\EnsureSchoolMembership;
+use App\Http\Middleware\EnsureUserHasSectionAccess;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'school.member' => EnsureSchoolMembership::class,
             'school.writable' => EnsureSchoolIsWritable::class,
+            'section.access' => EnsureUserHasSectionAccess::class,
             // 'school.plan' => EnsureSchoolPlanIncludesModule::class,
             'super.admin' => EnsureSuperAdmin::class,
         ]);

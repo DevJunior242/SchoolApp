@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\CafeteriaMealService;
 use App\Models\CafeteriaMenu;
@@ -22,7 +23,7 @@ use Illuminate\Http\Request;
 
 class CafeteriaMealServiceController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire', 'cantine'];
 
@@ -34,7 +35,7 @@ class CafeteriaMealServiceController extends Controller
     public function lookup(Request $request, School $school, Student $student)
     {
         $this->authorizeRoles($request, $school, self::STAFF_ROLE_SLUGS, "Vous n'avez pas accès au service de cantine.");
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
 
         $menu = CafeteriaMenu::query()
             ->where('school_id', $school->id)
@@ -68,7 +69,7 @@ class CafeteriaMealServiceController extends Controller
     public function store(Request $request, School $school, Student $student)
     {
         $this->authorizeRoles($request, $school, self::STAFF_ROLE_SLUGS, "Vous n'avez pas accès au service de cantine.");
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
 
         $validated = $request->validate([
             'cafeteria_menu_item_id' => ['required', 'uuid', 'exists:cafeteria_menu_items,id'],
@@ -148,15 +149,17 @@ class CafeteriaMealServiceController extends Controller
      * scanné/servi ici, sinon on lui crée un portefeuille et un historique
      * dans une école où il n'est pas inscrit.
      */
-    private function abortUnlessEnrolled(School $school, Student $student): void
+    private function abortUnlessEnrolled(Request $request, School $school, Student $student): void
     {
-        $enrolled = ClassStudent::query()
+        $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
             ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
-            ->exists();
+            ->with('schoolClass')
+            ->first();
 
-        abort_unless($enrolled, 404);
+        abort_unless($classStudent, 404);
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $classStudent->schoolClass));
     }
 
     private function activeSubscriptionFeeStructure(School $school, Student $student): ?FeeStructure

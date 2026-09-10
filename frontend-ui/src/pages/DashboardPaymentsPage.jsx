@@ -189,11 +189,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     if (!schoolId) return;
     loadMethods();
     api
-      .get("/levels", {
-        params: user.current_school?.country_id
-          ? { country_id: user.current_school.country_id }
-          : {},
-      })
+      .get(`/schools/${schoolId}/levels`)
       .then((r) => setLevels(r.data))
       .catch((err) =>
         setConfigError(
@@ -959,7 +955,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
               >
                 {levels.map((level) => (
                   <MenuItem key={level.id} value={level.id}>
-                    {level.name}
+                    {level.section?.name ? `${level.section.name} · ` : ''}{level.name}
                   </MenuItem>
                 ))}
               </TextField>

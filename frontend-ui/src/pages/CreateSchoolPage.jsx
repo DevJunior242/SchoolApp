@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Container,
+  FormControl,
+  FormControlLabel,
+  FormGroup,
+  FormLabel,
   MenuItem,
   Paper,
   Stack,
@@ -50,10 +55,14 @@ export default function CreateSchoolPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isSuperAdmin = user?.role?.slug === "superadmin";
+
   const { data: countries } = useApiGet("/countries", {
     enabled: Boolean(user),
   });
   const { data: pricingPlans } = useApiGet("/school-pricing-plans");
+  const { data: sections, error: sectionsError, loading: sectionsLoading } = useApiGet("/sections", {
+    enabled: Boolean(user),
+  });
 
   const requestedPlan = searchParams.get("plan");
   const planOptions = (pricingPlans ?? [])
@@ -73,7 +82,19 @@ export default function CreateSchoolPage() {
     name: "",
     country_id: "",
     pricing_plan_id: "",
+    section_ids: [],
   });
+
+  // Sélectionne toutes les sections par défaut une fois les données chargées
+  useEffect(() => {
+    if (sections?.length && form.section_ids.length === 0) {
+      setForm((prev) => ({
+        ...prev,
+        section_ids: sections.map((s) => s.id),
+      }));
+    }
+  }, [sections]);
+
   const selectedCountry = (countries ?? []).find(
     (country) => country.id === form.country_id,
   );
@@ -205,6 +226,12 @@ export default function CreateSchoolPage() {
             </Alert>
           )}
 
+          {sectionsError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              Impossible de charger les sections enseignées : {sectionsError}
+            </Alert>
+          )}
+
           {step === 1 ? (
             <Box component="form" onSubmit={handleNext}>
               <Stack spacing={2.5}>
@@ -218,6 +245,7 @@ export default function CreateSchoolPage() {
                   fullWidth
                   autoFocus
                 />
+
                 <TextField
                   select
                   label="Pays"
@@ -239,6 +267,39 @@ export default function CreateSchoolPage() {
                     </MenuItem>
                   ))}
                 </TextField>
+
+                <FormControl
+                  component="fieldset"
+                  required
+                  disabled={sectionsLoading || Boolean(sectionsError)}
+                >
+                  <FormLabel component="legend">Sections enseignées</FormLabel>
+                  <FormGroup row sx={{ mt: 0.5 }}>
+                    {(sections ?? []).map((section) => (
+                      <FormControlLabel
+                        key={section.id}
+                        label={section.name}
+                        control={(
+                          <Checkbox
+                            checked={form.section_ids.includes(section.id)}
+                            onChange={(event) => {
+                              setForm((previous) => ({
+                                ...previous,
+                                section_ids: event.target.checked
+                                  ? [...previous.section_ids, section.id]
+                                  : previous.section_ids.filter((id) => id !== section.id),
+                              }));
+                            }}
+                          />
+                        )}
+                      />
+                    ))}
+                  </FormGroup>
+                  <Typography variant="caption" color="text.secondary">
+                    {sectionsLoading ? "Chargement des sections..." : "Sélectionnez les sections ouvertes dans votre établissement"}
+                  </Typography>
+                </FormControl>
+
                 <TextField
                   select
                   label="Palier"
@@ -267,6 +328,7 @@ export default function CreateSchoolPage() {
                     </MenuItem>
                   ))}
                 </TextField>
+
                 <Stack
                   direction="row"
                   spacing={2}
@@ -281,6 +343,7 @@ export default function CreateSchoolPage() {
                     disabled={
                       !form.name.trim() ||
                       !form.country_id ||
+                      form.section_ids.length === 0 ||
                       !(form.pricing_plan_id || defaultPlanId)
                     }
                   >
@@ -295,7 +358,7 @@ export default function CreateSchoolPage() {
                 <Typography color="text.secondary">
                   Vous avez une clé d'activation fournie par l'équipe INTELLINO
                   ? Entrez-la ici. Sinon, laissez ce champ vide :{" "}
-                  <strong>{form.name}</strong> démarrera avec un essai gratuit
+                  <strong>{form.name}</strong> démarrer avec un essai gratuit
                   de 30 jours, sans engagement.
                 </Typography>
                 <TextField

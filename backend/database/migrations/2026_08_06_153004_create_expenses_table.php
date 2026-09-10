@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('expenses', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('school_id')->constrained()->cascadeOnDelete();
+             $table->foreignUuid('section_id')->nullable()
+                ->constrained('sections')->nullOnDelete();
             $table->foreignUuid('expense_category_id')->constrained()->cascadeOnDelete();
             // Nullable : une dépense peut être déclarée avant qu'on sache
             // sur quel compte elle a été payée (ex: en attente de
@@ -28,7 +30,7 @@ return new class extends Migration
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamps();
 
-            $table->index(['school_id', 'status']);
+            $table->index(['school_id','section_id', 'status']);
             $table->index(['school_id', 'expense_date']);
         });
     }

@@ -2,44 +2,44 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
-use App\Http\Controllers\Controller;
-use App\Models\ClassStudent;
 use App\Models\Grade;
 use App\Models\School;
-use App\Models\TimetableSlot;
-use App\Services\SchoolSummaryService;
-use App\Services\StudentRiskService;
+use App\Models\ClassStudent;
 use Illuminate\Http\Request;
+use App\Models\TimetableSlot;
 use Illuminate\Support\Collection;
+use App\Http\Controllers\Controller;
+use App\Services\StudentRiskService;
+use App\Services\SchoolSummaryService;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class DashboardController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire', 'comptable'];
 
     /**
      * Chiffres clés + actions en attente pour le tableau de bord du
      * personnel (directeur, censeur, surveillant, secrétariat, comptable).
+     * Désormais filtrés selon les sections affectées à l'utilisateur.
      */
     public function summary(Request $request, School $school, SchoolSummaryService $summaryService)
     {
         $this->authorizeRoles($request, $school, self::STAFF_ROLE_SLUGS, "Vous n'avez pas accès à ce résumé.");
+        $sectionIds = $this->restrictedSectionIds($request, $school);
 
         return response()->json([
-            ...$summaryService->summary($school),
-            'recent_activity' => $summaryService->recentActivity($school),
-            'monthly_trend' => $summaryService->monthlyTrend($school),
+            ...$summaryService->summary($school, $sectionIds),
+            'recent_activity' => $summaryService->recentActivity($school, 6, $sectionIds),
+            'monthly_trend' => $summaryService->monthlyTrend($school, 6, $sectionIds),
         ]);
     }
 
     /**
      * Résumé pour un élève avec son propre compte : uniquement des chiffres
-     * généraux sur l'école (effectifs, jamais de montant/paiement d'un
-     * autre élève) et ses propres statistiques scolaires — pas le résumé
-     * du personnel, qui contient des données financières et l'activité de
-     * toute l'école.
+     * généraux sur l'école et ses propres statistiques scolaires.
      */
     public function studentSummary(Request $request, School $school, SchoolSummaryService $summaryService, StudentRiskService $riskService)
     {
@@ -65,19 +65,18 @@ class DashboardController extends Controller
 
     /**
      * Résumé pour un professeur : ses classes/matières/élèves, son emploi du
-     * temps du jour et la moyenne de ses classes — jamais les finances ni
-     * les autres enseignants. Toutes les requêtes sont groupées (une passe
-     * sur les affectations, une sur les notes, une sur les élèves) au lieu
-     * de boucler par classe, pour éviter le N+1.
+     * temps du jour et la moyenne de ses classes.
      */
     public function teacherSummary(Request $request, School $school)
     {
         $userId = $request->user()->id;
+        $sectionIds = $this->restrictedSectionIds($request, $school);
 
         $assignments = $request->user()->teachingAssignments()
             ->whereHas('schoolClass', fn ($query) => $query
                 ->where('school_id', $school->id)
-                ->whereHas('schoolYear', fn ($q) => $q->where('is_current', true)))
+                ->whereHas('schoolYear', fn ($q) => $q->where('is_current', true))
+                ->when($sectionIds, fn ($classQuery, $ids) => $classQuery->whereIn('section_id', $ids)))
             ->with(['subject', 'schoolClass'])
             ->get();
 
@@ -89,9 +88,6 @@ class DashboardController extends Controller
             ->distinct('student_id')
             ->count('student_id');
 
-        // Une seule requête pour toutes les notes de toutes les classes,
-        // regroupées ensuite en mémoire par classe — pas une requête par
-        // affectation.
         $assignmentIds = $assignments->pluck('id');
         $grades = $assignmentIds->isEmpty() ? collect() : Grade::query()
             ->whereIn('class_subject_teacher_id', $assignmentIds)

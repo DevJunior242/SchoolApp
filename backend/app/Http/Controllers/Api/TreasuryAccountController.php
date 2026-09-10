@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
-use App\Http\Controllers\Controller;
 use App\Models\School;
-use App\Models\TreasuryAccount;
-use App\Services\TreasuryService;
 use Illuminate\Http\Request;
+use App\Models\TreasuryAccount;
+use Illuminate\Validation\Rule;
+use App\Services\TreasuryService;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class TreasuryAccountController extends Controller
 {
@@ -20,6 +21,8 @@ class TreasuryAccountController extends Controller
         $accounts = TreasuryAccount::query()
             ->where('school_id', $school->id)
             ->where('is_active', true)
+            ->when($request->filled('section_id'), fn ($query) => $query->where('section_id', $request->query('section_id')))
+            ->with('section')
             ->orderBy('name')
             ->get();
 
@@ -39,11 +42,12 @@ class TreasuryAccountController extends Controller
             'type' => ['required', 'in:'.implode(',', [TreasuryAccount::TYPE_CASH, TreasuryAccount::TYPE_BANK])],
             'bank_name' => ['nullable', 'string', 'max:255'],
             'opening_balance' => ['nullable', 'numeric'],
+            'section_id' => ['nullable', Rule::exists('sections', 'id')->where('school_id', $school->id)],
         ]);
 
         $account = TreasuryAccount::query()->create([...$validated, 'school_id' => $school->id]);
 
-        return response()->json($account, 201);
+        return response()->json($account->load('section'), 201);
     }
 
     public function update(Request $request, School $school, TreasuryAccount $treasuryAccount)
@@ -57,11 +61,12 @@ class TreasuryAccountController extends Controller
             'bank_name' => ['nullable', 'string', 'max:255'],
             'opening_balance' => ['sometimes', 'numeric'],
             'is_active' => ['sometimes', 'boolean'],
+            'section_id' => ['nullable', Rule::exists('sections', 'id')->where('school_id', $school->id)],
         ]);
 
         $treasuryAccount->update($validated);
 
-        return response()->json($treasuryAccount);
+        return response()->json($treasuryAccount->load('section'));
     }
 
     public function destroy(Request $request, School $school, TreasuryAccount $treasuryAccount)

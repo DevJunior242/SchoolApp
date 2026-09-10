@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use App\Models\Section;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,7 +17,7 @@ class TreasuryAccount extends Model
     const TYPE_BANK = 'BANK';
 
     protected $fillable = [
-        'school_id', 'name', 'type', 'bank_name', 'opening_balance', 'is_active',
+        'school_id','section_id', 'name', 'type', 'bank_name', 'opening_balance', 'is_active',
     ];
 
     protected function casts(): array
@@ -45,5 +46,9 @@ class TreasuryAccount extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(TreasuryMovement::class);
+    }
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(Section::class);
     }
 }

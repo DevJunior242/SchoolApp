@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\ClassStudent;
 use App\Models\ClassSubjectTeacher;
@@ -17,7 +18,7 @@ use Illuminate\Support\Collection;
 
 class BulletinController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     const MENTION_ADMIS = 'Admis(e) en classe supérieure';
 
@@ -49,6 +50,14 @@ class BulletinController extends Controller
         if (! $classStudent) {
             return response()->json(['message' => "Cet élève n'est inscrit dans aucune classe active."], 404);
         }
+
+        // Le bulletin ne porte pas de section : elle est celle de la classe
+        // active de l'élève pour l'année consultée.
+        $this->authorizeLevelSection(
+            $request,
+            $school,
+            $this->activeSchoolClass($school, $classStudent->schoolClass)
+        );
 
         $schoolYear = $classStudent->schoolClass->schoolYear;
         $selectedSeason = $seasonId ? Season::query()->find($seasonId) : null;

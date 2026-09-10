@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Models\ClassStudent;
 use App\Models\ClassSubjectTeacher;
 use App\Models\Grade;
@@ -13,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class GradeController extends Controller
 {
+    use ValidatesSchoolSection;
     public function students(Request $request, ClassSubjectTeacher $assignment)
     {
         $this->authorize($request, $assignment);
@@ -119,6 +121,9 @@ class GradeController extends Controller
     private function authorize(Request $request, ClassSubjectTeacher $assignment): void
     {
         $userId = $request->user()->id;
+        $schoolClass = $assignment->schoolClass;
+        $level = $this->activeSchoolClass($schoolClass->school, $schoolClass);
+        $this->authorizeLevelSection($request, $schoolClass->school, $level);
 
         if ($assignment->user_id === $userId) {
             return;

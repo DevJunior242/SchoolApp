@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\BookCopy;
@@ -11,7 +12,7 @@ use Illuminate\Http\Request;
 
 class BookController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     /**
      * Visible par tout membre de l'école (catalogue consultable par tous,
@@ -19,6 +20,8 @@ class BookController extends Controller
      */
     public function index(Request $request, School $school)
     {
+        $sectionIds = $this->restrictedSectionIds($request, $school);
+
         $books = Book::query()
             ->where('school_id', $school->id)
             ->when(
@@ -30,6 +33,9 @@ class BookController extends Controller
             )
             ->when($request->query('category'), fn ($query, $category) => $query->where('category', $category))
             ->when($request->query('level_id'), fn ($query, $levelId) => $query->where('level_id', $levelId))
+            ->when($sectionIds, fn ($query, $ids) => $query->where(fn ($levelQuery) => $levelQuery
+                ->whereNull('level_id')
+                ->orWhereHas('level', fn ($query) => $query->whereIn('section_id', $ids))))
             ->withCount([
                 'copies as copies_count',
                 'copies as available_copies_count' => fn ($query) => $query->where('status', BookCopy::STATUS_AVAILABLE),
@@ -66,6 +72,10 @@ class BookController extends Controller
 
         $copiesCount = $validated['copies_count'] ?? 1;
         unset($validated['copies_count']);
+        $level = $this->activeSchoolLevel($school, $validated['level_id'] ?? null);
+        if ($level) {
+            $this->authorizeLevelSection($request, $school, $level);
+        }
 
         $book = Book::query()->create(['school_id' => $school->id, ...$validated]);
 
@@ -91,6 +101,11 @@ class BookController extends Controller
             'level_id' => ['nullable', 'uuid', 'exists:levels,id'],
             'description' => ['nullable', 'string'],
         ]);
+
+        $level = $this->activeSchoolLevel($school, $validated['level_id'] ?? null);
+        if ($level) {
+            $this->authorizeLevelSection($request, $school, $level);
+        }
 
         $book->update($validated);
 

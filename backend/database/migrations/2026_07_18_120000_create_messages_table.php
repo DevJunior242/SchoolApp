@@ -19,6 +19,7 @@ return new class extends Migration
             $table->text('body');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index(['school_id', 'user_id']);
         });

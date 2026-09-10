@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Api\Concerns\ResolvesEventAudience;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\ClassStudent;
 use App\Models\ClassSubjectTeacher;
@@ -17,8 +18,7 @@ use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
-    use ResolvesEventAudience;
+    use AuthorizesSchoolDirecteur, ResolvesEventAudience, ValidatesSchoolSection;
 
     private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire', 'comptable'];
 
@@ -38,6 +38,17 @@ class EventController extends Controller
             ->exists();
 
         $query = Event::query()->where('school_id', $school->id);
+
+        // Une annonce sans classe est volontairement visible à toute
+        // l'école. Les événements rattachés à une classe restent limités
+        // aux sections confiées au membre connecté.
+        $sectionIds = $this->restrictedSectionIds($request, $school);
+        if ($sectionIds) {
+            $query->where(fn ($q) => $q
+                ->whereNull('class_id')
+                ->orWhereHas('schoolClass.level', fn ($levelQuery) => $levelQuery
+                    ->whereIn('section_id', $sectionIds)));
+        }
 
         if (! $isStaff) {
             $classIds = $this->relevantClassIds($userId);
@@ -69,12 +80,10 @@ class EventController extends Controller
         ]);
 
         if (! empty($validated['class_id'])) {
-            $belongsToSchool = SchoolClass::query()
+            $schoolClass = SchoolClass::query()
                 ->where('school_id', $school->id)
-                ->where('id', $validated['class_id'])
-                ->exists();
-
-            abort_unless($belongsToSchool, 404);
+                ->findOrFail($validated['class_id']);
+            $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $schoolClass));
         }
 
         $event = Event::query()->create([
@@ -92,6 +101,10 @@ class EventController extends Controller
     {
         $this->authorizeEventManager($request, $school);
         abort_if($event->school_id !== $school->id, 404);
+        if ($event->class_id) {
+            $event->loadMissing('schoolClass');
+            $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $event->schoolClass));
+        }
 
         $event->delete();
 

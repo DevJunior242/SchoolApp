@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 
 trait AuthorizesStudentHealth
 {
+    use ValidatesSchoolSection;
+
     private const HEALTH_MANAGER_ROLE_SLUGS = ['directeur', 'infirmier'];
 
     /**
@@ -19,15 +21,17 @@ trait AuthorizesStudentHealth
      * la fiche santé suit l'élève, mais l'accès reste filtré par
      * l'établissement qui le suit en ce moment.
      */
-    private function abortUnlessEnrolled(School $school, Student $student): void
+    private function abortUnlessEnrolled(Request $request, School $school, Student $student): void
     {
-        $enrolled = ClassStudent::query()
+        $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
             ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
-            ->exists();
+            ->with('schoolClass')
+            ->first();
 
-        abort_unless($enrolled, 404);
+        abort_unless($classStudent, 404);
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $classStudent->schoolClass));
     }
 
     /**

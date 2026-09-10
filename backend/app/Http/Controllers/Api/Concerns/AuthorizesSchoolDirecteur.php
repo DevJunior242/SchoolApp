@@ -10,7 +10,7 @@ trait AuthorizesSchoolDirecteur
 {
     private function authorizeDirecteur(Request $request, School $school): void
     {
-        $this->authorizeRoles($request, $school, ['directeur'], "Seul le directeur de l'école peut gérer les membres.");
+        $this->authorizeRoles($request, $school, ['fondateur', 'directeur'], "Seuls le fondateur et les directeurs de l'école peuvent gérer les membres.");
     }
 
     /**
@@ -22,7 +22,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'secretaire'],
+            ['fondateur', 'directeur', 'secretaire'],
             'Seuls le directeur et le secrétariat peuvent inscrire des élèves.'
         );
     }
@@ -39,7 +39,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'secretaire', 'comptable', 'infirmier', 'bibliothecaire'],
+            ['directeur', 'secretaire', 'comptable', 'infirmier', 'bibliothecaire','fondateur'],
             "Vous n'avez pas accès à la liste des élèves."
         );
     }
@@ -144,6 +144,7 @@ trait AuthorizesSchoolDirecteur
         $authorized = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $request->user()->id)
+            ->where('status', SchoolUser::STATUS_ACTIVE)
             ->whereHas('role', fn($query) => $query->whereIn('slug', $slugs))
             ->exists();
 

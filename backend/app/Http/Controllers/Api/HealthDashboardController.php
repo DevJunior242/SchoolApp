@@ -21,10 +21,14 @@ class HealthDashboardController extends Controller
     public function summary(Request $request, School $school)
     {
         $this->authorizeHealthManager($request, $school);
+        $sectionIds = $this->restrictedSectionIds($request, $school);
 
         $enrolledStudentIds = ClassStudent::query()
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn ($query) => $query
+                ->where('school_id', $school->id)
+                ->when($sectionIds, fn ($classQuery, $ids) => $classQuery
+                    ->whereHas('level', fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids))))
             ->pluck('student_id')
             ->unique();
 

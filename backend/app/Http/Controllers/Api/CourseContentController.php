@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\ClassStudent;
 use App\Models\ClassSubjectTeacher;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Storage;
 
 class CourseContentController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     /**
      * Comme les routes sœurs (grades/attendances/students) : pas de
@@ -204,11 +205,13 @@ class CourseContentController extends Controller
 
     private function abortUnlessOwner(Request $request, ClassSubjectTeacher $assignment): void
     {
+        $this->ensureAssignmentSectionAccess($request, $assignment);
         abort_unless($assignment->user_id === $request->user()->id, 403, "Vous n'enseignez pas ce cours.");
     }
 
     private function abortUnlessCanView(Request $request, ClassSubjectTeacher $assignment): void
     {
+        $this->ensureAssignmentSectionAccess($request, $assignment);
         $user = $request->user();
 
         if ($assignment->user_id === $user->id) {
@@ -237,5 +240,17 @@ class CourseContentController extends Controller
             ->exists();
 
         abort_unless($hasAccess, 403, "Vous n'avez pas accès à ce cours.");
+    }
+
+    private function ensureAssignmentSectionAccess(Request $request, ClassSubjectTeacher $assignment): void
+    {
+        $assignment->loadMissing('schoolClass.school');
+        $school = $assignment->schoolClass->school;
+
+        $this->authorizeLevelSection(
+            $request,
+            $school,
+            $this->activeSchoolClass($school, $assignment->schoolClass)
+        );
     }
 }

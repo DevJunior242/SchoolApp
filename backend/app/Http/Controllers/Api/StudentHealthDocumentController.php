@@ -18,7 +18,7 @@ class StudentHealthDocumentController extends Controller
 
     public function index(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthViewer($request, $school, $student);
 
         return response()->json(
@@ -28,7 +28,7 @@ class StudentHealthDocumentController extends Controller
 
     public function store(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthManager($request, $school);
 
         $validated = $request->validate([
@@ -55,7 +55,7 @@ class StudentHealthDocumentController extends Controller
 
     public function destroy(Request $request, School $school, Student $student, StudentHealthDocument $document)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthManager($request, $school);
         abort_if($document->student_id !== $student->id || $document->school_id !== $school->id, 404);
 
@@ -67,7 +67,7 @@ class StudentHealthDocumentController extends Controller
 
     public function download(Request $request, School $school, Student $student, StudentHealthDocument $document)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthViewer($request, $school, $student);
         abort_if($document->student_id !== $student->id || $document->school_id !== $school->id, 404);
 

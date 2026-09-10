@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\FeeStructure;
 use App\Models\School;
@@ -13,11 +14,12 @@ use Illuminate\Validation\ValidationException;
 
 class FeeStructureController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     public function index(Request $request, School $school)
     {
         $this->authorizeMember($request, $school);
+        $sectionIds = $this->restrictedSectionIds($request, $school);
 
         $currentYear = $school->schoolYears()->where('is_current', true)->first();
 
@@ -25,9 +27,17 @@ class FeeStructureController extends Controller
             FeeStructure::query()
                 ->where('school_id', $school->id)
                 ->when($currentYear, fn ($query) => $query->where('school_year_id', $currentYear->id))
+                ->where(fn ($query) => $query
+                    ->whereNull('level_id')
+                    ->orWhereHas('level.section.schools', fn ($sectionQuery) => $sectionQuery
+                        ->whereKey($school->id)
+                        ->wherePivot('active', true)))
                 ->when($request->query('level_id'), fn ($query, $levelId) => $query->where('level_id', $levelId))
                 ->when($request->query('category'), fn ($query, $category) => $query->where('category', $category))
                 ->when($request->query('fee_category_id'), fn ($query, $feeCategoryId) => $query->where('fee_category_id', $feeCategoryId))
+                ->when($sectionIds, fn ($query, $ids) => $query->where(fn ($levelQuery) => $levelQuery
+                    ->whereNull('level_id')
+                    ->orWhereHas('level', fn ($query) => $query->whereIn('section_id', $ids))))
                 ->with('level', 'season', 'feeCategory')
                 ->orderBy('order')
                 ->get()
@@ -69,6 +79,10 @@ class FeeStructureController extends Controller
         ]);
 
         $category = $validated['category'] ?? FeeStructure::CATEGORY_TUITION;
+        $level = $this->activeSchoolLevel($school, $validated['level_id'] ?? null);
+        if ($level) {
+            $this->authorizeLevelSection($request, $school, $level);
+        }
         $currentYear = $school->schoolYears()->where('is_current', true)->first();
 
         if (! $currentYear) {

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
+use App\Models\Book;
 use App\Models\BookDocument;
 use App\Models\ClassStudent;
 use App\Models\ParentStudent;
@@ -14,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
 
 class BookDocumentController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     /**
      * Vue bibliothécaire : tous les documents, pour gestion (pas de filtre
@@ -43,6 +45,15 @@ class BookDocumentController extends Controller
             'level_id' => ['nullable', 'uuid', 'exists:levels,id'],
             'file' => ['required', 'file', 'mimes:pdf', 'max:20480'],
         ]);
+
+        $level = $this->activeSchoolLevel($school, $validated['level_id'] ?? null);
+        if ($level) {
+            $this->authorizeLevelSection($request, $school, $level);
+        }
+
+        if (! empty($validated['book_id'])) {
+            abort_unless(Book::query()->whereKey($validated['book_id'])->where('school_id', $school->id)->exists(), 404);
+        }
 
         $document = BookDocument::query()->create([
             'school_id' => $school->id,

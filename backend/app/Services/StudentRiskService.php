@@ -2,22 +2,19 @@
 
 namespace App\Services;
 
+use App\Models\Grade;
+use App\Models\School;
+use App\Models\Payment;
+use App\Models\Student;
 use App\Models\Attendance;
 use App\Models\ClassStudent;
 use App\Models\FeeStructure;
-use App\Models\Grade;
-use App\Models\Payment;
-use App\Models\School;
 use App\Models\SchoolStudent;
-use App\Models\Student;
 use Illuminate\Support\Collection;
 
 /**
  * Score de risque d'abandon scolaire : un système de points (règle métier),
- * pas de machine learning. Sert aussi de prérequis pour une future IA
- * prédictive : le "vrai" signal d'abandon (SchoolStudent::STATUS_LEFT) est
- * déjà tracké dans le schéma existant, donc on aura de quoi entraîner un
- * modèle plus tard sans migration supplémentaire.
+ * pas de machine learning.
  */
 class StudentRiskService
 {
@@ -44,11 +41,17 @@ class StudentRiskService
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    public function reportForSchool(School $school): Collection
+    public function reportForSchool(School $school, ?string $sectionId = null): Collection
     {
         return SchoolStudent::query()
             ->where('school_id', $school->id)
             ->where('status', SchoolStudent::STATUS_ACTIVE)
+            ->when($sectionId, function ($query) use ($sectionId) {
+                $query->whereHas('student.classStudents', function ($q) use ($sectionId) {
+                    $q->where('status', ClassStudent::STATUS_ACTIVE)
+                      ->whereHas('schoolClass.level', fn ($l) => $l->where('section_id', $sectionId));
+                });
+            })
             ->with('student')
             ->get()
             ->map(fn (SchoolStudent $schoolStudent) => $this->scoreFor($school, $schoolStudent->student))
@@ -66,7 +69,7 @@ class StudentRiskService
             ->where('status', ClassStudent::STATUS_ACTIVE)
             ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
             ->latest('created_at')
-            ->with('schoolClass')
+            ->with(['schoolClass.level.section'])
             ->first();
 
         $schoolYearId = $classStudent?->schoolClass?->school_year_id;
@@ -137,6 +140,9 @@ class StudentRiskService
             'student_id' => $student->id,
             'fullname' => $student->fullname,
             'matricule' => $student->matricule,
+            'class_name' => $classStudent?->schoolClass?->name,
+            'section_id' => $classStudent?->schoolClass?->level?->section_id,
+            'section_name' => $classStudent?->schoolClass?->level?->section?->name,
             'absences' => $absences,
             'retards' => $retards,
             'average' => $average,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\BookCopy;
 use App\Models\BookDocument;
@@ -17,7 +18,7 @@ use Illuminate\Http\Request;
 
 class BookLoanController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     /**
      * Étape 1 du prêt, après scan du badge élève : emprunts en cours (avec
@@ -27,7 +28,7 @@ class BookLoanController extends Controller
     public function lookup(Request $request, School $school, Student $student)
     {
         $this->authorizeLibrarian($request, $school);
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
 
         $activeLoans = BookLoan::query()
             ->where('student_id', $student->id)
@@ -63,6 +64,9 @@ class BookLoanController extends Controller
             ->where('status', BookLoan::STATUS_ACTIVE)
             ->with('student')
             ->first();
+        if ($loan) {
+            $this->abortUnlessEnrolled($request, $school, $loan->student);
+        }
 
         return response()->json([
             'copy' => $copy,
@@ -78,7 +82,7 @@ class BookLoanController extends Controller
     public function store(Request $request, School $school, Student $student)
     {
         $this->authorizeLibrarian($request, $school);
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
 
         $validated = $request->validate([
             'book_copy_id' => ['required', 'uuid', 'exists:book_copies,id'],
@@ -141,6 +145,7 @@ class BookLoanController extends Controller
     {
         $this->authorizeLibrarian($request, $school);
         abort_if($loan->school_id !== $school->id, 404);
+        $this->abortUnlessEnrolled($request, $school, $loan->student);
         abort_unless($loan->status === BookLoan::STATUS_ACTIVE, 422, 'Ce prêt n\'est plus en cours.');
 
         $loan->update([
@@ -164,6 +169,7 @@ class BookLoanController extends Controller
     {
         $this->authorizeLibrarian($request, $school);
         abort_if($loan->school_id !== $school->id, 404);
+        $this->abortUnlessEnrolled($request, $school, $loan->student);
         abort_unless($loan->status === BookLoan::STATUS_ACTIVE, 422, 'Ce prêt n\'est plus en cours.');
 
         $loan->update(['status' => BookLoan::STATUS_LOST]);
@@ -180,7 +186,7 @@ class BookLoanController extends Controller
     {
         $student = $request->user()->studentProfile;
         abort_unless($student, 404);
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
 
         return response()->json($this->studentLibrarySummary($school, $student));
     }
@@ -252,15 +258,17 @@ class BookLoanController extends Controller
      * un id réel mais d'un autre établissement ne doit pas pouvoir emprunter
      * ni apparaître dans la recherche ici.
      */
-    private function abortUnlessEnrolled(School $school, Student $student): void
+    private function abortUnlessEnrolled(Request $request, School $school, Student $student): void
     {
-        $enrolled = ClassStudent::query()
+        $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
             ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
-            ->exists();
+            ->with('schoolClass')
+            ->first();
 
-        abort_unless($enrolled, 404);
+        abort_unless($classStudent, 404);
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $classStudent->schoolClass));
     }
 
     private function promoteNextReservation(string $bookId): ?BookReservation

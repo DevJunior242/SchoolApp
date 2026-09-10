@@ -18,7 +18,7 @@ class StudentVaccinationController extends Controller
 
     public function index(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthViewer($request, $school, $student);
 
         return response()->json($student->vaccinations()->orderByDesc('administered_at')->get());
@@ -26,7 +26,7 @@ class StudentVaccinationController extends Controller
 
     public function store(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthManager($request, $school);
 
         $validated = $request->validate([
@@ -55,7 +55,7 @@ class StudentVaccinationController extends Controller
 
     public function destroy(Request $request, School $school, Student $student, StudentVaccination $vaccination)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthManager($request, $school);
         abort_if($vaccination->student_id !== $student->id, 404);
 
@@ -69,7 +69,7 @@ class StudentVaccinationController extends Controller
 
     public function downloadDocument(Request $request, School $school, Student $student, StudentVaccination $vaccination)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthViewer($request, $school, $student);
         abort_if($vaccination->student_id !== $student->id, 404);
         abort_unless($vaccination->document_path, 404);

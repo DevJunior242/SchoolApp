@@ -46,9 +46,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'terms_accepted_at' => 'datetime',
-            // Chiffrés au repos (clé APP_KEY) : la valeur en base n'est jamais
-            // lisible telle quelle, mais reste utilisable normalement via
-            // l'attribut ($user->two_factor_secret) grâce au cast.
+            
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'datetime',
@@ -76,6 +74,11 @@ class User extends Authenticatable implements MustVerifyEmailContract
             ->using(SchoolUser::class)
             ->withPivot('role_id', 'status')
             ->withTimestamps();
+    }
+
+    public function schoolUsers(): HasMany
+    {
+        return $this->hasMany(SchoolUser::class);
     }
 
     public function studentProfile(): HasOne

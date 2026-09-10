@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\SectionController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\TeacherController;
@@ -88,8 +89,11 @@ Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
     ->name('verification.verify');
 
 Route::get('/schools', [SchoolController::class, 'index']);
+Route::get('/schools/{school}/levels', [LevelController::class, 'forSchool']);
 Route::get('/roles', [RoleController::class, 'index']);
 Route::get('/countries', [CountryController::class, 'index']);
+Route::get('/sections', [SectionController::class, 'index']);
+Route::get('/sections/{section}', [SectionController::class, 'show']);
 Route::get('/levels', [LevelController::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
 
@@ -129,10 +133,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Ces actions créent des données réelles (école, appartenance) :
     // exigées avec un email vérifié pour limiter les comptes jetables.
-    Route::middleware('verified')->group(function () {
-        Route::post('/schools', [SchoolController::class, 'store']);
-        Route::post('/schools/{school}/join', [SchoolController::class, 'join']);
 
+    Route::middleware('verified')->group(function () {
+                    Route::post('/schools', [SchoolController::class, 'store']);
+
+        Route::post('/schools/{school}/join', [SchoolController::class, 'join']);
         Route::post('/marketplace/providers', [ServiceProviderController::class, 'store']);
         Route::put('/marketplace/my-provider', [ServiceProviderController::class, 'updateProfile']);
         Route::post('/marketplace/my-provider/payments', [ServiceProviderController::class, 'reportPayment']);
@@ -306,10 +311,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::post('/schools/{school}/enrollment-requests/{enrollmentRequest}/accept', [EnrollmentRequestController::class, 'accept']);
             Route::post('/schools/{school}/enrollment-requests/{enrollmentRequest}/reject', [EnrollmentRequestController::class, 'reject']);
+            // Les notes sont toujours rattachées à une affectation
+            // professeur–matière–classe : /assignments/{assignment}/grades.
+            // Ne pas exposer de route /schools/{school}/grades sans classe.
 
             Route::post('/schools/{school}/members', [SchoolMemberController::class, 'store']);
             Route::put('/schools/{school}/members/{member}', [SchoolMemberController::class, 'update']);
             Route::delete('/schools/{school}/members/{member}', [SchoolMemberController::class, 'destroy']);
+
             Route::post('/schools/{school}/teachers', [TeacherController::class, 'store']);
             Route::post('/schools/{school}/hr/staff', [SchoolStaffProfileController::class, 'store']);
             Route::put('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'update']);
@@ -427,5 +436,3 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
-
- 

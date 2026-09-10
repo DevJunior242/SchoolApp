@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('service_providers', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->foreignUuid('user_id')->nullable()->unique()->constrained()->cascadeOnDelete();
             $table->tinyInteger('category');
             $table->foreignUuid('country_id')->constrained()->cascadeOnDelete();
             $table->string('city')->nullable();
@@ -18,6 +19,9 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
             $table->tinyInteger('status')->default(1);
+            $table->date('subscription_expires_at')->nullable();
+            $table->date('boosted_until')->nullable();
+            $table->string('whatsapp_number')->nullable();
             $table->timestamps();
 
             $table->index(['status', 'category', 'country_id']);

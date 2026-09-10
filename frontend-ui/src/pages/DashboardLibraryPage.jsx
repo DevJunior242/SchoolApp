@@ -99,7 +99,7 @@ export default function DashboardLibraryPage() {
 }
 
 function CatalogueTab({ schoolId }) {
-  const { data: levels } = useApiGet("/levels");
+  const { data: levels } = useApiGet(`/schools/${schoolId}/levels`);
   const {
     data: books,
     page,
@@ -526,7 +526,7 @@ function ReservationsTab({ schoolId }) {
 }
 
 function DocumentsTab({ schoolId }) {
-  const { data: levels } = useApiGet("/levels");
+  const { data: levels } = useApiGet(`/schools/${schoolId}/levels`);
   const {
     data: documents,
     loading,

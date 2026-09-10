@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
+use App\Models\ClassStudent;
 use App\Http\Controllers\Controller;
 use App\Models\ParentStudent;
 use App\Models\School;
@@ -15,7 +17,7 @@ use Illuminate\Validation\Rule;
 
 class StudentWalletController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire', 'cantine'];
 
@@ -27,10 +29,19 @@ class StudentWalletController extends Controller
     public function index(Request $request, School $school)
     {
         $this->authorizeRoles($request, $school, self::STAFF_ROLE_SLUGS, 'Accès réservé au personnel administratif.');
+        $sectionIds = $this->restrictedSectionIds($request, $school);
 
         return response()->json(
             WalletTransaction::query()
                 ->whereHas('wallet', fn ($query) => $query->where('school_id', $school->id))
+                ->when($sectionIds, fn ($query, $ids) => $query->whereHas(
+                    'wallet.student.classStudents',
+                    fn ($classStudentQuery) => $classStudentQuery
+                        ->where('status', ClassStudent::STATUS_ACTIVE)
+                        ->whereHas('schoolClass', fn ($classQuery) => $classQuery
+                            ->where('school_id', $school->id)
+                            ->whereHas('level', fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
+                ))
                 ->where('type', WalletTransaction::TYPE_RECHARGE)
                 ->when($request->query('status') !== null, fn ($query) => $query->where('status', $request->query('status')))
                 ->with(['wallet.student', 'paymentMethod', 'declaredBy'])
@@ -42,6 +53,7 @@ class StudentWalletController extends Controller
     public function show(Request $request, School $school, Student $student)
     {
         $this->authorizeStaffParentOrSelf($request, $school, $student);
+        $this->authorizeStudentSection($request, $school, $student);
 
         $wallet = StudentWallet::query()->firstOrCreate(
             ['school_id' => $school->id, 'student_id' => $student->id]
@@ -59,6 +71,7 @@ class StudentWalletController extends Controller
     public function requestRecharge(Request $request, School $school, Student $student)
     {
         $this->authorizeStaffParentOrSelf($request, $school, $student);
+        $this->authorizeStudentSection($request, $school, $student);
 
         $validated = $request->validate([
             'payment_method_id' => [
@@ -112,6 +125,7 @@ class StudentWalletController extends Controller
         $this->authorizeRoles($request, $school, ['directeur', 'comptable', 'cantine'], 'Seuls le directeur, le comptable et le personnel de cantine peuvent confirmer une recharge.');
         $wallet = $walletTransaction->wallet;
         abort_if($wallet->school_id !== $school->id, 404);
+        $this->authorizeStudentSection($request, $school, $wallet->student);
         abort_unless($walletTransaction->status === WalletTransaction::STATUS_PENDING, 422);
 
         $walletTransaction->update([
@@ -129,6 +143,7 @@ class StudentWalletController extends Controller
     {
         $this->authorizeRoles($request, $school, ['directeur', 'comptable', 'cantine'], 'Seuls le directeur, le comptable et le personnel de cantine peuvent rejeter une recharge.');
         abort_if($walletTransaction->wallet->school_id !== $school->id, 404);
+        $this->authorizeStudentSection($request, $school, $walletTransaction->wallet->student);
         abort_unless($walletTransaction->status === WalletTransaction::STATUS_PENDING, 422);
 
         $walletTransaction->update([
@@ -179,5 +194,18 @@ class StudentWalletController extends Controller
             ->exists();
 
         abort_unless($isParent, 403, "Vous n'êtes pas autorisé à consulter le portefeuille de cet élève.");
+    }
+
+    private function authorizeStudentSection(Request $request, School $school, Student $student): void
+    {
+        $classStudent = ClassStudent::query()
+            ->where('student_id', $student->id)
+            ->where('status', ClassStudent::STATUS_ACTIVE)
+            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->with('schoolClass')
+            ->latest('created_at')
+            ->firstOrFail();
+
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $classStudent->schoolClass));
     }
 }

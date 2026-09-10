@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\ClassSubjectTeacher;
 use App\Models\School;
@@ -13,11 +14,12 @@ use Illuminate\Validation\ValidationException;
 
 class ClassTeacherController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     public function store(Request $request, School $school, SchoolClass $schoolClass)
     {
         $this->authorizeDirecteur($request, $school);
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $schoolClass));
 
         $validated = $request->validate([
             'subject_id' => ['required', 'uuid', 'exists:subjects,id'],
@@ -59,6 +61,7 @@ class ClassTeacherController extends Controller
     public function destroy(Request $request, School $school, SchoolClass $schoolClass, ClassSubjectTeacher $assignment)
     {
         $this->authorizeDirecteur($request, $school);
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $schoolClass));
 
         abort_if($assignment->class_id !== $schoolClass->id, 404);
 

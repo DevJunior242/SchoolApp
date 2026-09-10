@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\BookCopy;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
 
 class BookReservationController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     /**
      * Vue bibliothécaire : toute la file d'attente de l'école (ou d'un
@@ -24,11 +25,20 @@ class BookReservationController extends Controller
     public function index(Request $request, School $school)
     {
         $this->authorizeLibrarian($request, $school);
+        $sectionIds = $this->restrictedSectionIds($request, $school);
 
         $reservations = BookReservation::query()
             ->where('school_id', $school->id)
             ->whereIn('status', [BookReservation::STATUS_WAITING, BookReservation::STATUS_READY])
             ->when($request->query('book_id'), fn ($query, $bookId) => $query->where('book_id', $bookId))
+            ->when($sectionIds, fn ($query, $ids) => $query->whereHas(
+                'student.classStudents',
+                fn ($classStudentQuery) => $classStudentQuery
+                    ->where('status', ClassStudent::STATUS_ACTIVE)
+                    ->whereHas('schoolClass', fn ($classQuery) => $classQuery
+                        ->where('school_id', $school->id)
+                        ->whereHas('level', fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
+            ))
             ->with('book', 'student')
             ->oldest('reserved_at')
             ->get();
@@ -44,7 +54,7 @@ class BookReservationController extends Controller
     public function store(Request $request, School $school, Student $student)
     {
         $this->abortUnlessSelfParentOrStaff($request, $school, $student);
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
 
         $validated = $request->validate([
             'book_id' => ['required', 'uuid', 'exists:books,id'],
@@ -78,6 +88,7 @@ class BookReservationController extends Controller
     {
         abort_if($reservation->school_id !== $school->id, 404);
         $this->abortUnlessSelfParentOrStaff($request, $school, $reservation->student);
+        $this->abortUnlessEnrolled($request, $school, $reservation->student);
 
         abort_unless(
             in_array($reservation->status, [BookReservation::STATUS_WAITING, BookReservation::STATUS_READY], true),
@@ -115,14 +126,16 @@ class BookReservationController extends Controller
      * Même garde que côté prêts : un id d'élève réel mais hors de cette
      * école ne doit pas pouvoir réserver ni apparaître ici.
      */
-    private function abortUnlessEnrolled(School $school, Student $student): void
+    private function abortUnlessEnrolled(Request $request, School $school, Student $student): void
     {
-        $enrolled = ClassStudent::query()
+        $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
             ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
-            ->exists();
+            ->with('schoolClass')
+            ->first();
 
-        abort_unless($enrolled, 404);
+        abort_unless($classStudent, 404);
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $classStudent->schoolClass));
     }
 }

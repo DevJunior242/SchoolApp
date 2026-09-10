@@ -8,17 +8,19 @@ import {
   DialogContent,
   DialogTitle,
   Stack,
+  MenuItem,
   TextField,
   Typography,
 } from '@mui/material';
 import api from '../api/axios.jsx';
+import { useApiGet } from '../hooks/useApiGet.js';
 import TurnstileWidget from './TurnstileWidget.jsx';
 
 function emptyForm() {
   return {
     child_fullname: '',
     child_birthdate: '',
-    level_wanted: '',
+    level_id: '',
     parent_fullname: '',
     parent_phone: '',
     parent_email: '',
@@ -29,6 +31,9 @@ function emptyForm() {
 }
 
 export default function EnrollmentRequestModal({ open, onClose, school }) {
+  const { data: levels, loading: levelsLoading } = useApiGet(
+    school?.id ? `/schools/${school.id}/levels` : null,
+  );
   const [form, setForm] = useState(emptyForm());
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -102,12 +107,20 @@ export default function EnrollmentRequestModal({ open, onClose, school }) {
                 fullWidth
               />
               <TextField
+                select
                 label="Niveau souhaité (optionnel)"
-                placeholder="ex: CP1, 6ème..."
-                value={form.level_wanted}
-                onChange={handleChange('level_wanted')}
+                value={form.level_id}
+                onChange={handleChange('level_id')}
+                helperText={levelsLoading ? 'Chargement des niveaux...' : ''}
                 fullWidth
-              />
+              >
+                <MenuItem value="">Aucun niveau précisé</MenuItem>
+                {(levels ?? []).map((level) => (
+                  <MenuItem key={level.id} value={level.id}>
+                    {level.section?.name} · {level.name}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Stack>
 
             <Typography variant="subtitle2" sx={{ mt: 1 }}>

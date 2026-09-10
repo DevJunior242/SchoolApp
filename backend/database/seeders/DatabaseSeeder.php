@@ -6,11 +6,10 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Database\Seeders\RoleSeeder;
-use Database\Seeders\LevelSeeder;
 use Database\Seeders\CountrySeeder;
 use Database\Seeders\SubjectSeeder;
-// use Database\Seeders\DemoSchoolSeeder;
 use Illuminate\Support\Facades\Hash;
+use Database\Seeders\SectionAndLevelSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class DatabaseSeeder extends Seeder
@@ -24,17 +23,17 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RoleSeeder::class);
         $this->call(CountrySeeder::class);
-       // $this->call(DemoSchoolSeeder::class);
-        $this->call(LevelSeeder::class);
-        $this->call(SubjectSeeder::class);
-
+ $this->call(
+        SectionAndLevelSeeder::class
+    );        $this->call(SubjectSeeder::class);
+      
         
 
         User::firstOrCreate(
-            ['email' => env('SUPERADMIN_EMAIL')],
+            ['email' => env('SUPERADMIN_EMAIL','admin@example.com')],
             [
                 'fullname' => 'Super Admin',
-                'phone' => env('SUPERADMIN_PHONE'),
+                'phone' => env('SUPERADMIN_PHONE', '+33123456789'),
                 'password' => Hash::make(env('SUPERADMIN_PASSWORD', 'password')),
                 'role_id' => Role::query()->where('slug', 'superadmin')->firstOrFail()->id,
                 'email_verified_at' => now(),

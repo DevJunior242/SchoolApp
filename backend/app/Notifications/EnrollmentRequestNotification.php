@@ -26,7 +26,7 @@ class EnrollmentRequestNotification extends Notification
                 '%s souhaite inscrire %s%s.',
                 $this->enrollmentRequest->parent_fullname,
                 $this->enrollmentRequest->child_fullname,
-                $this->enrollmentRequest->level_wanted ? " en {$this->enrollmentRequest->level_wanted}" : '',
+                $this->enrollmentRequest->level?->name ? " en {$this->enrollmentRequest->level->name}" : '',
             ),
             'enrollment_request_id' => $this->enrollmentRequest->id,
             'url' => '/dashboard/enrollment-requests',
@@ -41,7 +41,7 @@ class EnrollmentRequestNotification extends Notification
                 '%s souhaite inscrire %s%s.',
                 $this->enrollmentRequest->parent_fullname,
                 $this->enrollmentRequest->child_fullname,
-                $this->enrollmentRequest->level_wanted ? " en {$this->enrollmentRequest->level_wanted}" : '',
+                $this->enrollmentRequest->level?->name ? " en {$this->enrollmentRequest->level->name}" : '',
             ));
 
         if ($this->enrollmentRequest->parent_phone) {

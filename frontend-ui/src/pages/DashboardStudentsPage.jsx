@@ -69,13 +69,19 @@ function currentClassOf(schoolStudent) {
   return schoolStudent.student.class_students?.[0]?.school_class ?? null;
 }
 
+function classLabel(schoolClass) {
+  const sectionName = schoolClass.level?.section?.name;
+  const levelName = schoolClass.level?.name;
+  return [sectionName, levelName, schoolClass.name].filter(Boolean).join(" · ");
+}
+
 export default function DashboardStudentsPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
   const { schoolUsers } = useSchools();
   const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role
     ?.slug;
-  const canRegister = ["directeur", "secretaire"].includes(currentRole);
+  const canRegister = ["fondateur", "directeur", "secretaire"].includes(currentRole);
   const canSeeHealth = ["directeur", "infirmier"].includes(currentRole);
   // Seul le directeur peut consulter le bulletin depuis cette liste (le
   // parent y accède via sa propre page) : secrétaire/comptable/infirmier
@@ -204,12 +210,18 @@ export default function DashboardStudentsPage() {
       setSuccess(`${payload.students.length} élève(s) inscrit(s) avec succès.`);
       closeModal();
     } catch (err) {
-      const messages = err.response?.data?.errors;
-      setError(
-        messages
-          ? Object.values(messages).flat().join(" ")
-          : "Impossible d'inscrire ces élèves.",
-      );
+      const data = err.response?.data;
+
+      if (data?.errors) {
+        // Pour les erreurs de validation Laravel (objets d'erreurs)
+        setError(Object.values(data.errors).flat().join(" "));
+      } else if (data?.message) {
+        // Pour les erreurs d'exception comme abort(422, "...")
+        setError(data.message);
+      } else {
+        // Message générique si la réponse est inconnue
+        setError("Impossible d'inscrire ces élèves.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -301,7 +313,7 @@ export default function DashboardStudentsPage() {
           <MenuItem value="">Toutes les classes</MenuItem>
           {classes.map((c) => (
             <MenuItem key={c.id} value={c.id}>
-              {c.name}
+              {classLabel(c)}
             </MenuItem>
           ))}
         </TextField>
@@ -432,6 +444,11 @@ export default function DashboardStudentsPage() {
                 {error}
               </Alert>
             )}
+            {classes.length === 0 && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                Créez d’abord une classe dans une section active avant d’inscrire un élève.
+              </Alert>
+            )}
 
             <Stack spacing={2}>
               {batch.map((row, index) => {
@@ -511,10 +528,11 @@ export default function DashboardStudentsPage() {
                           }
                           required
                           fullWidth
+                          disabled={classes.length === 0}
                         >
                           {classes.map((c) => (
                             <MenuItem key={c.id} value={c.id}>
-                              {c.name}
+                              {classLabel(c)}
                             </MenuItem>
                           ))}
                         </TextField>
@@ -572,6 +590,7 @@ export default function DashboardStudentsPage() {
                                 e.target.value,
                               )
                             }
+                            required
                             fullWidth
                           />
                           <TextField
@@ -634,7 +653,7 @@ export default function DashboardStudentsPage() {
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeModal}>Annuler</Button>
-            <Button type="submit" variant="contained" disabled={submitting}>
+            <Button type="submit" variant="contained" disabled={submitting || classes.length === 0}>
               {submitting
                 ? "Inscription..."
                 : `Inscrire ${batch.length > 1 ? `(${batch.length})` : ""}`}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -28,9 +28,19 @@ import { usePaginatedList } from '../hooks/usePaginatedList.js';
 
 export default function DashboardClassesPage() {
   const { user } = useAuth();
-  const schoolId = user.current_school_id;
-  const countryId = user.current_school?.country_id;
+  const schoolId = user?.current_school_id;
+  const { data: memberships } = useApiGet('/my-schools', { enabled: Boolean(user) });
+  const membership = useMemo(
+    () => (memberships ?? []).find((item) => item.school_id === schoolId),
+    [memberships, schoolId],
+  );
+  const roleSlug = membership?.role?.slug;
+  const canManageClasses = ['fondateur', 'directeur'].includes(roleSlug);
 
+  const activeSections = useMemo(
+    () => (membership?.school?.sections ?? []).filter((section) => section.pivot?.active),
+    [membership],
+  );
   const {
     data: classes,
     page,
@@ -43,12 +53,25 @@ export default function DashboardClassesPage() {
     reload,
   } = usePaginatedList(schoolId ? `/schools/${schoolId}/classes` : null);
 
-  const { data: levels, error: levelsError } = useApiGet('/levels', { params: countryId ? { country_id: countryId } : {} });
-  const { data: teachersData, error: teachersError } = useApiGet(schoolId ? `/schools/${schoolId}/teachers` : null, {
+  const { data: levels, error: levelsError } = useApiGet(
+    canManageClasses && schoolId ? `/schools/${schoolId}/levels` : null,
+  );
+  const availableLevels = useMemo(() => {
+    const activeSectionIds = activeSections.map((section) => section.id);
+    const assignedSectionIds = membership?.sections?.map((section) => section.id) ?? [];
+    const allowedSectionIds = roleSlug !== 'fondateur' && assignedSectionIds.length > 0
+      ? assignedSectionIds
+      : activeSectionIds;
+
+    return (levels ?? []).filter(
+      (level) => activeSectionIds.includes(level.section_id) && allowedSectionIds.includes(level.section_id),
+    );
+  }, [activeSections, levels, membership, roleSlug]);
+  const { data: teachersData, error: teachersError } = useApiGet(canManageClasses && schoolId ? `/schools/${schoolId}/teachers` : null, {
     params: { per_page: 100 },
   });
   const teachers = teachersData?.data ?? [];
-  const { data: subjects, error: subjectsError } = useApiGet('/subjects');
+  const { data: subjects, error: subjectsError } = useApiGet(canManageClasses ? '/subjects' : null);
 
   const auxError = levelsError || teachersError || subjectsError;
 
@@ -76,8 +99,9 @@ export default function DashboardClassesPage() {
       await api.post(`/schools/${schoolId}/classes`, classForm);
       reload();
       closeClassModal();
-    } catch {
-      setClassError('Impossible de créer la classe.');
+    } catch (err) {
+      const messages = err.response?.data?.errors;
+      setClassError(messages ? Object.values(messages).flat().join(' ') : err.response?.data?.message || 'Impossible de créer la classe.');
     } finally {
       setClassSubmitting(false);
     }
@@ -99,7 +123,7 @@ export default function DashboardClassesPage() {
       closeAssignModal();
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setAssignError(messages ? Object.values(messages).flat().join(' ') : "Impossible d'assigner ce professeur.");
+      setAssignError(messages ? Object.values(messages).flat().join(' ') : err.response?.data?.message || "Impossible d'assigner ce professeur.");
     } finally {
       setAssignSubmitting(false);
     }
@@ -122,9 +146,11 @@ export default function DashboardClassesPage() {
           </Typography>
           <Typography color="text.secondary">Un professeur peut enseigner plusieurs matières dans une même classe.</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setClassModalOpen(true)}>
-          Ajouter une classe
-        </Button>
+        {canManageClasses && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setClassModalOpen(true)}>
+            Ajouter une classe
+          </Button>
+        )}
       </Stack>
 
       {(listError || auxError) && (
@@ -162,16 +188,20 @@ export default function DashboardClassesPage() {
                     <Box>
                       <Typography variant="subtitle1">{c.name}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {c.level?.name}
+                        {[c.level?.section?.name ?? activeSections.find((section) => section.id === c.level?.section_id)?.name, c.level?.name]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </Typography>
                     </Box>
                     <Stack direction="row" spacing={1}>
                       <Button size="small" component={RouterLink} to={`/dashboard/classes/${c.id}/timetable`}>
                         Emploi du temps
                       </Button>
-                      <Button size="small" onClick={() => setAssignClass(c)}>
-                        Assigner un professeur
-                      </Button>
+                      {canManageClasses && (
+                        <Button size="small" onClick={() => setAssignClass(c)}>
+                          Assigner un professeur
+                        </Button>
+                      )}
                     </Stack>
                   </Stack>
 
@@ -224,9 +254,9 @@ export default function DashboardClassesPage() {
               required
               fullWidth
             >
-              {(levels ?? []).map((level) => (
+              {availableLevels.map((level) => (
                 <MenuItem key={level.id} value={level.id}>
-                  {level.name}
+                  {activeSections.find((section) => section.id === level.section_id)?.name} · {level.name}
                 </MenuItem>
               ))}
             </TextField>

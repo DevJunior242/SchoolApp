@@ -503,7 +503,7 @@ TXT;
                 ->where('school_id', $school->id)
                 ->whereHas('schoolYear', fn ($q) => $q->where('is_current', true)))
             ->with('teacher')
-            ->get();
+            ->get(); 
 
         $parEnseignant = $assignments
             ->groupBy(fn (ClassSubjectTeacher $a) => $a->teacher?->fullname ?? 'Enseignant inconnu')

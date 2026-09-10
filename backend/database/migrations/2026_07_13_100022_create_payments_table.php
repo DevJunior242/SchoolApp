@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->string('receipt_number')->nullable();
             $table->foreignUuid('school_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('student_id')->constrained('students')->cascadeOnDelete();
             $table->foreignUuid('fee_structure_id')->constrained()->cascadeOnDelete();

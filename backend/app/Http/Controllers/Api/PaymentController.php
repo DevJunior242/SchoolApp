@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\ClassStudent;
 use App\Models\FeeStructure;
@@ -16,7 +17,7 @@ use Illuminate\Validation\Rule;
 
 class PaymentController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire'];
 
@@ -27,11 +28,20 @@ class PaymentController extends Controller
     public function index(Request $request, School $school)
     {
         $this->authorizeRoles($request, $school, self::STAFF_ROLE_SLUGS, 'Accès réservé au personnel administratif.');
+        $sectionIds = $this->restrictedSectionIds($request, $school);
 
         return response()->json(
             Payment::query()
                 ->where('school_id', $school->id)
                 ->when($request->query('status') !== null, fn ($query) => $query->where('status', $request->query('status')))
+                ->when($sectionIds, fn ($query, $ids) => $query->whereHas(
+                    'student.classStudents',
+                    fn ($classStudentQuery) => $classStudentQuery
+                        ->where('status', ClassStudent::STATUS_ACTIVE)
+                        ->whereHas('schoolClass', fn ($classQuery) => $classQuery
+                            ->where('school_id', $school->id)
+                            ->whereHas('level', fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
+                ))
                 ->with(['student', 'feeStructure', 'paymentMethod', 'declaredBy'])
                 ->latest('created_at')
                 ->paginate($request->integer('per_page', 10))
@@ -53,6 +63,9 @@ class PaymentController extends Controller
             ->latest('created_at')
             ->with('schoolClass')
             ->first();
+
+        abort_unless($classStudent, 404);
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $classStudent->schoolClass));
 
         // Une tranche "flat" (inscription, examen, transport, uniformes,
         // autres frais...) n'a pas forcément de level_id : elle s'applique
@@ -94,6 +107,7 @@ class PaymentController extends Controller
     public function store(Request $request, School $school, Student $student)
     {
         $this->authorizeStaffOrParent($request, $school, $student);
+        $this->authorizeStudentSection($request, $school, $student);
 
         $validated = $request->validate([
             'fee_structure_id' => [
@@ -140,6 +154,7 @@ class PaymentController extends Controller
     {
         $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent confirmer un paiement.');
         abort_if($payment->school_id !== $school->id, 404);
+        $this->authorizeStudentSection($request, $school, $payment->student);
 
         $payment->update([
             'status' => Payment::STATUS_CONFIRMED,
@@ -155,6 +170,7 @@ class PaymentController extends Controller
     {
         $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent rejeter un paiement.');
         abort_if($payment->school_id !== $school->id, 404);
+        $this->authorizeStudentSection($request, $school, $payment->student);
 
         $payment->update([
             'status' => Payment::STATUS_REJECTED,
@@ -212,5 +228,18 @@ class PaymentController extends Controller
             ->exists();
 
         abort_unless($isParent, 403, "Vous n'êtes pas autorisé à consulter les paiements de cet élève.");
+    }
+
+    private function authorizeStudentSection(Request $request, School $school, Student $student): void
+    {
+        $classStudent = ClassStudent::query()
+            ->where('student_id', $student->id)
+            ->where('status', ClassStudent::STATUS_ACTIVE)
+            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->latest('created_at')
+            ->with('schoolClass')
+            ->firstOrFail();
+
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $classStudent->schoolClass));
     }
 }

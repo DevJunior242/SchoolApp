@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\ClassSubjectTeacher;
 use App\Models\School;
@@ -14,11 +15,13 @@ use Illuminate\Validation\ValidationException;
 
 class TimetableController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
+    use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
     public function index(Request $request, School $school, SchoolClass $schoolClass)
     {
         $this->authorizeMember($request, $school);
+        $level = $this->activeSchoolClass($school, $schoolClass);
+        $this->authorizeLevelSection($request, $school, $level);
 
         return response()->json(
             TimetableSlot::query()
@@ -36,13 +39,21 @@ class TimetableController extends Controller
      */
     public function mine(Request $request, School $school)
     {
+        $sectionIds = $this->restrictedSectionIds($request, $school);
+
         return response()->json(
             TimetableSlot::query()
                 ->whereHas(
                     'classSubjectTeacher',
                     fn ($query) => $query
                         ->where('user_id', $request->user()->id)
-                        ->whereHas('schoolClass', fn ($q) => $q->where('school_id', $school->id))
+                        ->whereHas('schoolClass', fn ($q) => $q
+                            ->where('school_id', $school->id)
+                            ->whereHas('level.section.schools', fn ($sectionQuery) => $sectionQuery
+                                ->whereKey($school->id)
+                                ->wherePivot('active', true))
+                            ->when($sectionIds, fn ($classQuery, $ids) => $classQuery
+                                ->whereHas('level', fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids))))
                 )
                 ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.schoolClass'])
                 ->orderBy('day_of_week')
@@ -54,6 +65,8 @@ class TimetableController extends Controller
     public function store(Request $request, School $school, SchoolClass $schoolClass)
     {
         $this->authorizeDirecteur($request, $school);
+        $level = $this->activeSchoolClass($school, $schoolClass);
+        $this->authorizeLevelSection($request, $school, $level);
 
         $validated = $request->validate([
             'class_subject_teacher_id' => ['required', 'uuid', 'exists:class_subject_teacher,id'],
@@ -84,6 +97,8 @@ class TimetableController extends Controller
     public function destroy(Request $request, School $school, SchoolClass $schoolClass, TimetableSlot $slot)
     {
         $this->authorizeDirecteur($request, $school);
+        $level = $this->activeSchoolClass($school, $schoolClass);
+        $this->authorizeLevelSection($request, $school, $level);
 
         abort_if($slot->classSubjectTeacher->class_id !== $schoolClass->id, 404);
 

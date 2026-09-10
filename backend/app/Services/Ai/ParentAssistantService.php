@@ -2,30 +2,21 @@
 
 namespace App\Services\Ai;
 
+use App\Models\User;
+use App\Models\Event;
+use App\Models\School;
+use App\Models\Payment;
+use App\Models\Student;
 use App\Models\Attendance;
 use App\Models\ClassStudent;
-use App\Models\Event;
 use App\Models\FeeStructure;
-use App\Models\Payment;
-use App\Models\School;
 use App\Models\SchoolStudent;
-use App\Models\Student;
-use App\Models\User;
-use App\Services\StudentRiskService;
 use Illuminate\Support\Collection;
+use App\Services\StudentRiskService;
 
 /**
- * Assistant IA d'un parent : même principe que SchoolAssistantService (pas
- * de SQL généré par le modèle, un jeu fixe d'outils exécutés côté serveur),
- * mais volontairement une classe séparée plutôt qu'un "mode" partagé — le
- * périmètre de données est totalement différent (les enfants de CE parent
- * uniquement, jamais les autres élèves ni les données globales de l'école
- * comme la trésorerie), et séparer le code réduit le risque qu'un futur outil
- * ajouté côté direction se retrouve accessible à un parent par erreur.
- *
- * Chaque outil ne cherche l'élève concerné que parmi les enfants du parent
- * (jamais dans toute l'école) : c'est la frontière de sécurité de tout ce
- * service.
+ * Assistant IA d'un parent : périmètre strictement limité aux enfants
+ * rattachés au parent connecté au sein de l'établissement.
  */
 class ParentAssistantService
 {
@@ -112,6 +103,7 @@ TXT;
             ->whereHas('schoolStudents', fn ($query) => $query
                 ->where('school_id', $school->id)
                 ->where('status', SchoolStudent::STATUS_ACTIVE))
+            ->with(['classStudents' => fn ($q) => $q->where('status', ClassStudent::STATUS_ACTIVE)->with('schoolClass.level.section')])
             ->get();
     }
 
@@ -125,16 +117,11 @@ TXT;
             'absences_enfant' => $this->toolAbsencesEnfant($children, $arguments['nom_enfant'] ?? ''),
             'moyenne_enfant' => $this->toolMoyenneEnfant($school, $children, $arguments['nom_enfant'] ?? ''),
             'paiements_enfant' => $this->toolPaiementsEnfant($school, $children, $arguments['nom_enfant'] ?? ''),
-            'evenements_a_venir' => $this->toolEvenementsAVenir($school),
+            'evenements_a_venir' => $this->toolEvenementsAVenir($school, $children, $arguments['nom_enfant'] ?? ''),
             default => [['error' => 'Outil inconnu.'], []],
         };
     }
 
-    /**
-     * Ne cherche que parmi les enfants du parent (jamais toute l'école) :
-     * c'est la frontière de sécurité de ce service. Si un seul enfant et
-     * aucun nom fourni, on le prend directement (pas besoin de désambiguïser).
-     */
     private function findChild(Collection $children, string $nomEnfant): ?Student
     {
         if (trim($nomEnfant) === '') {
@@ -156,6 +143,7 @@ TXT;
             return [['error' => "Précisez de quel enfant il s'agit (plusieurs enfants sont rattachés à votre compte)."], []];
         }
 
+        $activeClassStudent = $student->classStudents->firstWhere('status', ClassStudent::STATUS_ACTIVE);
         $token = 'ENFANT_CIBLE';
 
         $dates = Attendance::query()
@@ -169,6 +157,8 @@ TXT;
 
         return [[
             'enfant' => $token,
+            'classe' => $activeClassStudent?->schoolClass?->name,
+            'section' => $activeClassStudent?->schoolClass?->level?->section?->name,
             'nombre_absences' => $dates->count(),
             'dates_recentes' => $dates->all(),
         ], [$token => $student->fullname]];
@@ -187,17 +177,14 @@ TXT;
 
         return [[
             'enfant' => $token,
+            'classe' => $score['class_name'] ?? null,
+            'section' => $score['section_name'] ?? null,
             'moyenne_generale' => $score['average'],
             'absences' => $score['absences'],
             'retards' => $score['retards'],
         ], [$token => $student->fullname]];
     }
 
-    /**
-     * Même calcul que PaymentController::forStudent (frais applicables au
-     * niveau de l'élève pour l'année en cours, hors abonnement cantine qui a
-     * son propre circuit) — même source de vérité que la page de paiements.
-     */
     private function toolPaiementsEnfant(School $school, Collection $children, string $nomEnfant): array
     {
         $student = $this->findChild($children, $nomEnfant);
@@ -213,7 +200,7 @@ TXT;
             ->where('status', ClassStudent::STATUS_ACTIVE)
             ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
             ->latest('created_at')
-            ->with('schoolClass')
+            ->with(['schoolClass.level.section'])
             ->first();
 
         $totalDue = $classStudent
@@ -235,17 +222,29 @@ TXT;
 
         return [[
             'enfant' => $token,
+            'classe' => $classStudent?->schoolClass?->name,
+            'section' => $classStudent?->schoolClass?->level?->section?->name,
             'total_du' => round((float) $totalDue, 2),
             'total_paye' => round((float) $totalConfirmed, 2),
             'solde_restant' => round((float) $totalDue - (float) $totalConfirmed, 2),
         ], [$token => $student->fullname]];
     }
 
-    private function toolEvenementsAVenir(School $school): array
+    private function toolEvenementsAVenir(School $school, Collection $children, string $nomEnfant = ''): array
     {
+        $student = $this->findChild($children, $nomEnfant);
+        $activeClassStudent = $student?->classStudents->firstWhere('status', ClassStudent::STATUS_ACTIVE);
+        $sectionId = $activeClassStudent?->schoolClass?->level?->section_id;
+
         $events = Event::query()
             ->where('school_id', $school->id)
             ->where('start_at', '>=', now())
+            ->when($sectionId, function ($query) use ($sectionId) {
+                $query->where(function ($q) use ($sectionId) {
+                    $q->whereNull('section_id')
+                      ->orWhere('section_id', $sectionId);
+                });
+            })
             ->orderBy('start_at')
             ->limit(5)
             ->get()
@@ -261,9 +260,6 @@ TXT;
 
     private function toolDefinitions(Collection $children): array
     {
-        // Le paramètre nom_enfant n'est requis que si le parent a plusieurs
-        // enfants dans cette école : avec un seul, findChild() le prend
-        // directement sans qu'il ait besoin d'être nommé dans la question.
         $nomEnfantRequired = $children->count() > 1;
         $nomEnfantProperty = [
             'nom_enfant' => [
@@ -278,25 +274,26 @@ TXT;
         return [
             $this->tool(
                 'absences_enfant',
-                "Utilise cet outil quand la question porte sur les ABSENCES d'un enfant du parent. Retourne le nombre et les dates d'absence.",
+                "Utilise cet outil quand la question porte sur les ABSENCES d'un enfant du parent. Retourne la classe, la section, le nombre et les dates d'absence.",
                 $nomEnfantProperty,
                 $nomEnfantRequired ? ['nom_enfant'] : []
             ),
             $this->tool(
                 'moyenne_enfant',
-                "Utilise cet outil quand la question porte sur la MOYENNE/les NOTES d'un enfant du parent. Retourne sa moyenne générale et ses indicateurs (absences, retards).",
+                "Utilise cet outil quand la question porte sur la MOYENNE/les NOTES d'un enfant du parent. Retourne sa classe, sa section, sa moyenne générale et ses indicateurs.",
                 $nomEnfantProperty,
                 $nomEnfantRequired ? ['nom_enfant'] : []
             ),
             $this->tool(
                 'paiements_enfant',
-                "Utilise cet outil quand la question porte sur les FRAIS DE SCOLARITÉ / PAIEMENTS / ce que doit un enfant du parent (ex: \"combien je dois encore payer ?\", \"est-ce que j'ai fini de payer ?\"). Retourne le total dû, déjà payé et le solde restant.",
+                "Utilise cet outil quand la question porte sur les FRAIS DE SCOLARITÉ / PAIEMENTS / ce que doit un enfant du parent. Retourne le total dû, déjà payé et le solde restant.",
                 $nomEnfantProperty,
                 $nomEnfantRequired ? ['nom_enfant'] : []
             ),
             $this->tool(
                 'evenements_a_venir',
                 "Retourne les 5 prochains événements de l'école (réunions, examens, sorties, jours fériés...).",
+                $nomEnfantProperty,
                 []
             ),
         ];
@@ -311,9 +308,6 @@ TXT;
                 'description' => $description,
                 'parameters' => [
                     'type' => 'object',
-                    // (object) force l'encodage JSON en "{}" plutôt qu'en "[]"
-                    // quand $properties est vide : Groq valide le schéma plus
-                    // strictement qu'OpenAI et rejette un tableau à cet endroit.
                     'properties' => (object) $properties,
                     'required' => $required,
                 ],

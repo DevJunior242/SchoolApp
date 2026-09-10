@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentsRequest;
@@ -24,7 +25,7 @@ use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
 {
-    use AuthorizesSchoolDirecteur, ResolvesMemberUser;
+    use AuthorizesSchoolDirecteur, ResolvesMemberUser, ValidatesSchoolSection;
 
     /**
      * Le compte élève (majeur, avec son propre login) récupère sa propre
@@ -78,6 +79,7 @@ class StudentController extends Controller
     public function index(Request $request, School $school)
     {
         $this->authorizeStudentViewer($request, $school);
+        $sectionIds = $this->restrictedSectionIds($request, $school);
 
         return response()->json(
             SchoolStudent::query()
@@ -96,9 +98,15 @@ class StudentController extends Controller
                     $request->query('class_id'),
                     fn ($query, $classId) => $query->whereHas(
                         'student.classStudents',
-                        fn ($q) => $q->where('status', ClassStudent::STATUS_ACTIVE)->where('class_id', $classId)
+                        fn ($q) => $q->where('status', ClassStudent::STATUS_ACTIVE)
+                            ->where('class_id', $classId)
+                            ->whereHas('schoolClass', fn ($classQuery) => $classQuery->where('school_id', $school->id))
                     )
                 )
+                ->when($sectionIds, fn ($query, $ids) => $query->whereHas(
+                    'student.classStudents.schoolClass.level',
+                    fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids)
+                ))
                 ->with([
                     'student.user',
                     'student.parents',
@@ -124,16 +132,18 @@ class StudentController extends Controller
         $validated = $request->validated();
 
         $results = DB::transaction(fn () => array_map(
-            fn (array $entry) => $this->enrollStudent($school, $entry),
+            fn (array $entry) => $this->enrollStudent($school, $entry, $request),
             $validated['students']
         ));
 
         return response()->json($results, 201);
     }
 
-    private function enrollStudent(School $school, array $entry): Student
+    private function enrollStudent(School $school, array $entry, Request $request): Student
     {
         $class = SchoolClass::query()->where('school_id', $school->id)->findOrFail($entry['class_id']);
+        $level = $this->activeSchoolClass($school, $class);
+        $this->authorizeLevelSection($request, $school, $level);
         $isMajeur = Carbon::parse($entry['date_of_birth'])->age >= 18;
 
         $studentUser = null;

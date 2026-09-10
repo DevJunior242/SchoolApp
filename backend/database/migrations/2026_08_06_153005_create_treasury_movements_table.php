@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -18,12 +18,12 @@ return new class extends Migration
             // directement, frais bancaires, correction de solde.
             $table->string('type');
             $table->decimal('amount', 12, 2);
+            $table->date('movement_date');
             $table->text('note')->nullable();
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['treasury_account_id', 'created_at']);
-        });
+$table->index(['treasury_account_id', 'movement_date']);        });
     }
 
     public function down(): void

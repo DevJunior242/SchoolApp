@@ -10,7 +10,9 @@ return new class extends Migration
     {
         Schema::create('marketplace_plans', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->tinyInteger('type')->default(1);
             $table->tinyInteger('period');
+            $table->unsignedInteger('duration_days')->nullable();
             $table->decimal('amount', 12, 2);
             $table->string('currency')->default('FCFA');
             $table->boolean('active')->default(true);

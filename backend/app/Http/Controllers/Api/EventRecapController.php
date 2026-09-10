@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Api\Concerns\ResolvesEventAudience;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\EventRecap;
@@ -17,8 +18,7 @@ use Illuminate\Support\Facades\Storage;
 
 class EventRecapController extends Controller
 {
-    use AuthorizesSchoolDirecteur;
-    use ResolvesEventAudience;
+    use AuthorizesSchoolDirecteur, ResolvesEventAudience, ValidatesSchoolSection;
 
     /**
      * Visible par tous les membres de l'école une fois publié ; le staff
@@ -27,6 +27,7 @@ class EventRecapController extends Controller
     public function show(Request $request, School $school, Event $event)
     {
         abort_if($event->school_id !== $school->id, 404);
+        $this->authorizeEventSection($request, $school, $event);
 
         $recap = EventRecap::query()->where('event_id', $event->id)->with('photos')->first();
 
@@ -50,6 +51,7 @@ class EventRecapController extends Controller
     {
         $this->authorizeEventManager($request, $school);
         abort_if($event->school_id !== $school->id, 404);
+        $this->authorizeEventSection($request, $school, $event);
 
         $validated = $request->validate([
             'summary' => ['nullable', 'string', 'max:5000'],
@@ -92,6 +94,7 @@ class EventRecapController extends Controller
     {
         $this->authorizeEventManager($request, $school);
         abort_if($event->school_id !== $school->id, 404);
+        $this->authorizeEventSection($request, $school, $event);
         abort_if($photo->eventRecap->event_id !== $event->id, 404);
 
         Storage::disk('public')->delete($photo->path);
@@ -107,6 +110,16 @@ class EventRecapController extends Controller
             ->where('user_id', $request->user()->id)
             ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'censeur', 'secretaire']))
             ->exists();
+    }
+
+    private function authorizeEventSection(Request $request, School $school, Event $event): void
+    {
+        if (! $event->class_id) {
+            return;
+        }
+
+        $event->loadMissing('schoolClass');
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $event->schoolClass));
     }
 
     private function notifyAudience(Event $event, School $school, EventRecap $recap, string $publisherId): void

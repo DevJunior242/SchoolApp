@@ -17,6 +17,7 @@ class ResetPasswordNotification extends Notification
         return ['brevo'];
     }
 
+    
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)

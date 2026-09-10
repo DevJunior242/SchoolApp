@@ -1,10 +1,11 @@
-import { useState } from "react";
+ import { useState } from "react";
 import {
   Alert,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -34,8 +35,8 @@ import { useSchools } from "../hooks/useSchools.js";
 
 const CREDIT_TYPES = ["DEPOSIT", "TRANSFER_IN"];
 
-function emptyAccountForm(defaultType = "CASH") {
-  return { name: "", type: defaultType, bank_name: "", opening_balance: "" };
+function emptyAccountForm(defaultType = "CASH", defaultSectionId = "") {
+  return { name: "", type: defaultType, bank_name: "", opening_balance: "", section_id: defaultSectionId };
 }
 
 function emptyMvtForm() {
@@ -51,6 +52,8 @@ function emptyDepositForm() {
 }
 
 function BankSummaryCard({ account, canManage, onDeleted, onEdit }) {
+  const sectionName = account.section?.name;
+
   return (
     <Card variant="outlined">
       <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -71,9 +74,12 @@ function BankSummaryCard({ account, canManage, onDeleted, onEdit }) {
             <AccountBalanceIcon fontSize="small" />
           </Box>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={700} noWrap>
-              {account.name}
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="subtitle1" fontWeight={700} noWrap>
+                {account.name}
+              </Typography>
+              {sectionName && <Chip label={sectionName} size="small" variant="outlined" color="primary" sx={{ height: 20, fontSize: "0.7rem" }} />}
+            </Stack>
             {account.bank_name && (
               <Typography variant="caption" color="text.secondary">
                 {account.bank_name}
@@ -148,7 +154,7 @@ function DepositWithdrawForm({ schoolId, accounts, onChanged }) {
         >
           {accounts.map((a) => (
             <MenuItem key={a.id} value={a.id}>
-              {a.name}
+              {a.name} {a.section?.name ? `[${a.section.name}]` : ""}
               {a.bank_name ? ` (${a.bank_name})` : ""}
             </MenuItem>
           ))}
@@ -196,6 +202,7 @@ function DepositWithdrawForm({ schoolId, accounts, onChanged }) {
 
 function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChanged }) {
   const AccountIcon = account.type === "CASH" ? PaymentsIcon : AccountBalanceIcon;
+  const sectionName = account.section?.name;
 
   const { data: movementsData, reload: reloadMovements } = useApiGet(
     `/schools/${schoolId}/treasury-accounts/${account.id}/movements`,
@@ -250,9 +257,14 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChange
           >
             <AccountIcon fontSize="small" />
           </Box>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ flexGrow: 1 }}>
-            {account.name}
-          </Typography>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="subtitle1" fontWeight={700} noWrap>
+                {account.name}
+              </Typography>
+              {sectionName && <Chip label={sectionName} size="small" variant="outlined" color="primary" sx={{ height: 20, fontSize: "0.7rem" }} />}
+            </Stack>
+          </Box>
           {canManage && (
             <Stack direction="row" spacing={0.25}>
               <IconButton size="small" onClick={() => onEdit(account)} aria-label="Modifier le compte">
@@ -409,7 +421,7 @@ function TransferForm({
           >
             {accounts.map((a) => (
               <MenuItem key={a.id} value={a.id}>
-                {a.name}
+                {a.name} {a.section?.name ? `[${a.section.name}]` : ""}
               </MenuItem>
             ))}
           </TextField>
@@ -422,7 +434,7 @@ function TransferForm({
           >
             {accounts.map((a) => (
               <MenuItem key={a.id} value={a.id}>
-                {a.name}
+                {a.name} {a.section?.name ? `[${a.section.name}]` : ""}
               </MenuItem>
             ))}
           </TextField>
@@ -443,23 +455,32 @@ function TransferForm({
   );
 }
 
-export default function DashboardTreasuryPage({ embedded = false, typeFilter = null } = {}) {
+export default function DashboardTreasuryPage({ embedded = false, typeFilter = null, sectionId = null } = {}) {
   const { user } = useAuth();
   const schoolId = user?.current_school_id;
   const { schoolUsers } = useSchools();
   const currentRole = schoolUsers.find((su) => su?.school?.id === schoolId)?.role?.slug;
   const canManage = ["directeur", "comptable"].includes(currentRole ?? "");
 
+  // Récupération des sections de l'école
+  const { data: sectionsData } = useApiGet(schoolId ? `/schools/${schoolId}/sections` : null);
+  const sections = Array.isArray(sectionsData) ? sectionsData : sectionsData?.data ?? [];
+
+  // Récupération des comptes de trésorerie
   const {
     data: accountsData,
     loading: accountsLoading,
     error: accountsError,
     reload: reloadAccounts,
-  } = useApiGet(schoolId ? `/schools/${schoolId}/treasury-accounts` : null);
-  const accounts = (accountsData ?? []).filter((a) => !typeFilter || a.type === typeFilter);
+  } = useApiGet(schoolId ? `/schools/${schoolId}/treasury-accounts` : null, {
+    params: sectionId ? { section_id: sectionId } : {},
+  });
+
+  const rawAccounts = Array.isArray(accountsData) ? accountsData : accountsData?.data ?? [];
+  const accounts = rawAccounts.filter((a) => (!typeFilter || a.type === typeFilter) && (!sectionId || a.section_id === sectionId));
 
   const [accountModalOpen, setAccountModalOpen] = useState(false);
-  const [accountForm, setAccountForm] = useState(emptyAccountForm(typeFilter ?? "CASH"));
+  const [accountForm, setAccountForm] = useState(() => emptyAccountForm(typeFilter ?? "CASH", sectionId ?? ""));
   const [editingAccount, setEditingAccount] = useState(null);
   const [accountError, setAccountError] = useState(null);
 
@@ -467,16 +488,14 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
   const [transferError, setTransferError] = useState(null);
   const [transferSuccess, setTransferSuccess] = useState(null);
   const [transferSubmitting, setTransferSubmitting] = useState(false);
-  // Défauts dérivés à l'affichage (pas stockés en state) : dès que les
-  // comptes chargent, les selects sont déjà pré-remplis sans effet ni
-  // synchronisation manuelle.
+
   const transferFrom = transferForm.from || accounts[0]?.id || "";
   const transferTo = transferForm.to || accounts[1]?.id || accounts[0]?.id || "";
 
   function closeAccountModal() {
     setAccountModalOpen(false);
     setEditingAccount(null);
-    setAccountForm(emptyAccountForm(typeFilter ?? "CASH"));
+    setAccountForm(emptyAccountForm(typeFilter ?? "CASH", sectionId ?? ""));
     setAccountError(null);
   }
 
@@ -487,6 +506,7 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
       type: account.type,
       bank_name: account.bank_name ?? "",
       opening_balance: account.opening_balance ?? "",
+      section_id: account.section_id ?? "",
     });
     setAccountError(null);
     setAccountModalOpen(true);
@@ -495,20 +515,24 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
   async function handleSaveAccount(e) {
     e.preventDefault();
     setAccountError(null);
+    const payload = {
+      name: accountForm.name,
+      type: accountForm.type,
+      bank_name: accountForm.bank_name || null,
+      opening_balance: accountForm.opening_balance || 0,
+      section_id: accountForm.section_id || null,
+    };
+
     try {
       if (editingAccount) {
-        await api.put(`/schools/${schoolId}/treasury-accounts/${editingAccount.id}`, {
-          name: accountForm.name,
-          bank_name: accountForm.bank_name || null,
-          opening_balance: accountForm.opening_balance || 0,
-        });
+        await api.put(`/schools/${schoolId}/treasury-accounts/${editingAccount.id}`, payload);
       } else {
-        await api.post(`/schools/${schoolId}/treasury-accounts`, accountForm);
+        await api.post(`/schools/${schoolId}/treasury-accounts`, payload);
       }
       reloadAccounts();
       closeAccountModal();
     } catch {
-      setAccountError("Impossible de créer ce compte.");
+      setAccountError("Impossible de sauvegarder ce compte.");
     }
   }
 
@@ -703,6 +727,23 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
               fullWidth
               autoFocus
             />
+
+            <TextField
+              select
+              label="Section"
+              value={accountForm.section_id}
+              onChange={(e) => setAccountForm((prev) => ({ ...prev, section_id: e.target.value }))}
+              fullWidth
+              helperText="Optionnel : associer à une section spécifique"
+            >
+              <MenuItem value="">Toutes les sections (Général)</MenuItem>
+              {sections.map((sec) => (
+                <MenuItem key={sec.id} value={sec.id}>
+                  {sec.name}
+                </MenuItem>
+              ))}
+            </TextField>
+
             {!typeFilter && !editingAccount && (
               <TextField
                 select

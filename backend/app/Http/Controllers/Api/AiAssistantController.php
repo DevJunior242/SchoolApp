@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Exceptions\AiNotConfiguredException;
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
-use App\Http\Controllers\Controller;
+use Throwable;
 use App\Models\School;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use App\Http\Controllers\Controller;
+use App\Services\StudentRiskService;
 use App\Services\Ai\ParentAssistantService;
 use App\Services\Ai\SchoolAssistantService;
-use App\Services\StudentRiskService;
-use Illuminate\Http\Request;
-use Throwable;
+use App\Exceptions\AiNotConfiguredException;
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class AiAssistantController extends Controller
 {
@@ -20,7 +21,11 @@ class AiAssistantController extends Controller
     {
         $this->authorizeDirecteur($request, $school);
 
-        return response()->json(['students' => $riskService->reportForSchool($school)->values()]);
+        $sectionId = $request->query('section_id');
+
+        return response()->json([
+            'students' => $riskService->reportForSchool($school, $sectionId)->values(),
+        ]);
     }
 
     public function ask(Request $request, School $school, SchoolAssistantService $assistant)
@@ -29,10 +34,19 @@ class AiAssistantController extends Controller
 
         $validated = $request->validate([
             'question' => ['required', 'string', 'max:500'],
+            'section_id' => [
+                'nullable',
+                'string',
+                Rule::exists('sections', 'id')->where('school_id', $school->id),
+            ],
         ]);
 
         try {
-            $answer = $assistant->ask($school, $validated['question']);
+            $answer = $assistant->ask(
+                $school,
+                $validated['question'],
+                $validated['section_id'] ?? null
+            );
         } catch (AiNotConfiguredException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (Throwable $e) {

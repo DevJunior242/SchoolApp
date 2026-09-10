@@ -16,7 +16,7 @@ class StudentMedicalVisitController extends Controller
 
     public function index(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthViewer($request, $school, $student);
 
         return response()->json(
@@ -34,7 +34,7 @@ class StudentMedicalVisitController extends Controller
      */
     public function store(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthManager($request, $school);
 
         $validated = $request->validate([

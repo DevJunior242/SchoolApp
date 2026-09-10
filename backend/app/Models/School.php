@@ -2,13 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Section;
+use App\Models\Book;
+use App\Models\SchoolUser;
+use App\Models\SchoolClass;
+use App\Models\SchoolSection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Cache;
 
 class School extends Model
 {
@@ -146,11 +151,7 @@ class School extends Model
         return $this->belongsTo(SchoolPricingPlan::class, 'pricing_plan_id');
     }
 
-    public function schoolUsers(): HasMany
-    {
-        return $this->hasMany(SchoolUser::class);
-    }
-
+   
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'school_users')
@@ -164,10 +165,7 @@ class School extends Model
         return $this->hasMany(SchoolYear::class);
     }
 
-    public function classes(): HasMany
-    {
-        return $this->hasMany(SchoolClass::class);
-    }
+   
 
     public function paymentMethods(): HasMany
     {
@@ -192,5 +190,28 @@ class School extends Model
     public function books(): HasMany
     {
         return $this->hasMany(Book::class);
+    }
+
+    // public function sections(): BelongsToMany
+    // {
+    //     return $this->belongsToMany(Section::class, 'school_sections')
+    //                 ->using(SchoolSection::class)
+    //                 ->withPivot('active')
+    //                 ->withTimestamps();
+    // }
+ public function sections()
+    {
+        return $this->belongsToMany(Section::class, 'school_sections')
+            ->withPivot('active')
+            ->withTimestamps();
+    }
+    public function schoolUsers(): HasMany
+    {
+        return $this->hasMany(SchoolUser::class);
+    }
+
+    public function classes(): HasMany
+    {
+        return $this->hasMany(SchoolClass::class);
     }
 }

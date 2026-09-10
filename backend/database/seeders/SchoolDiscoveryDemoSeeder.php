@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Country;
 use App\Models\School;
+use App\Models\Country;
 use Illuminate\Database\Seeder;
 
 class SchoolDiscoveryDemoSeeder extends Seeder

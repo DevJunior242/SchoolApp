@@ -17,7 +17,7 @@ class StudentHealthProfileController extends Controller
 
     public function show(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthViewer($request, $school, $student);
 
         return response()->json($student->healthProfile);
@@ -25,7 +25,7 @@ class StudentHealthProfileController extends Controller
 
     public function update(Request $request, School $school, Student $student)
     {
-        $this->abortUnlessEnrolled($school, $student);
+        $this->abortUnlessEnrolled($request, $school, $student);
         $this->authorizeHealthManager($request, $school);
 
         $validated = $request->validate([
