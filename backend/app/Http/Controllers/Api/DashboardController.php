@@ -18,7 +18,7 @@ class DashboardController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire', 'comptable'];
+    private const STAFF_ROLE_SLUGS = ['fondateur', 'directeur', 'censeur', 'surveillant', 'secretaire', 'comptable'];
 
     /**
      * Chiffres clés + actions en attente pour le tableau de bord du
