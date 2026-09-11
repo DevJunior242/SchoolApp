@@ -45,13 +45,15 @@ class TreasuryMovementController extends Controller
         abort_if($treasuryAccount->school_id !== $school->id, 404);
 
         $validated = $request->validate([
-            'type' => ['required', 'in:'.implode(',', self::TYPES)],
+            'type' => ['required', 'in:' . implode(',', self::TYPES)],
             'amount' => ['required', 'numeric', 'min:0.01'],
+            'movement_date' => ['nullable', 'date'],
             'note' => ['nullable', 'string'],
         ]);
 
         $movement = TreasuryMovement::query()->create([
             ...$validated,
+            'movement_date' => $validated['movement_date'] ?? now()->format('Y-m-d'),
             'school_id' => $school->id,
             'treasury_account_id' => $treasuryAccount->id,
             'created_by' => $request->user()->id,

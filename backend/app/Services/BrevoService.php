@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use Brevo\Brevo;
+use Illuminate\Support\Facades\Log;
 use Brevo\TransactionalEmails\Requests\SendTransacEmailRequest;
 use Brevo\TransactionalEmails\Types\SendTransacEmailRequestSender;
 use Brevo\TransactionalEmails\Types\SendTransacEmailRequestToItem;
-use Illuminate\Support\Facades\Log;
 
 class BrevoService
 {
@@ -39,9 +39,13 @@ class BrevoService
                 ])
             );
         } catch (\Throwable $e) {
-            Log::error('Brevo error', [
-                'message' => $e->getMessage(),
-            ]);
+             Log::error('Brevo error', [
+        'message' => $e->getMessage(),
+        'code' => $e->getCode(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+        'trace' => $e->getTraceAsString(),
+    ]);
 
             return false;
         }

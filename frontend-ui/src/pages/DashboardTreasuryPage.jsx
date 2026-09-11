@@ -1,4 +1,4 @@
- import { useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Box,
@@ -36,7 +36,13 @@ import { useSchools } from "../hooks/useSchools.js";
 const CREDIT_TYPES = ["DEPOSIT", "TRANSFER_IN"];
 
 function emptyAccountForm(defaultType = "CASH", defaultSectionId = "") {
-  return { name: "", type: defaultType, bank_name: "", opening_balance: "", section_id: defaultSectionId };
+  return {
+    name: "",
+    type: defaultType,
+    bank_name: "",
+    opening_balance: "",
+    section_id: defaultSectionId,
+  };
 }
 
 function emptyMvtForm() {
@@ -78,7 +84,15 @@ function BankSummaryCard({ account, canManage, onDeleted, onEdit }) {
               <Typography variant="subtitle1" fontWeight={700} noWrap>
                 {account.name}
               </Typography>
-              {sectionName && <Chip label={sectionName} size="small" variant="outlined" color="primary" sx={{ height: 20, fontSize: "0.7rem" }} />}
+              {sectionName && (
+                <Chip
+                  label={sectionName}
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  sx={{ height: 20, fontSize: "0.7rem" }}
+                />
+              )}
             </Stack>
             {account.bank_name && (
               <Typography variant="caption" color="text.secondary">
@@ -88,10 +102,18 @@ function BankSummaryCard({ account, canManage, onDeleted, onEdit }) {
           </Box>
           {canManage && (
             <Stack direction="row" spacing={0.25}>
-              <IconButton size="small" onClick={() => onEdit(account)} aria-label="Modifier le compte">
+              <IconButton
+                size="small"
+                onClick={() => onEdit(account)}
+                aria-label="Modifier le compte"
+              >
                 <EditIcon fontSize="small" />
               </IconButton>
-              <IconButton size="small" onClick={() => onDeleted(account.id)} aria-label="Supprimer le compte">
+              <IconButton
+                size="small"
+                onClick={() => onDeleted(account.id)}
+                aria-label="Supprimer le compte"
+              >
                 <DeleteIcon fontSize="small" />
               </IconButton>
             </Stack>
@@ -119,16 +141,26 @@ function DepositWithdrawForm({ schoolId, accounts, onChanged }) {
     }
     setSubmitting(true);
     try {
-      await api.post(`/schools/${schoolId}/treasury-accounts/${accountId}/movements`, {
-        type,
-        amount: form.amount,
-        note: form.note,
-      });
-      setForm((prev) => ({ ...emptyDepositForm(), account_id: prev.account_id }));
+      await api.post(
+        `/schools/${schoolId}/treasury-accounts/${accountId}/movements`,
+        {
+          type,
+          amount: form.amount,
+          note: form.note,
+        },
+      );
+      setForm((prev) => ({
+        ...emptyDepositForm(),
+        account_id: prev.account_id,
+      }));
       onChanged();
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setError(messages ? Object.values(messages).flat().join(" ") : "Impossible d'enregistrer ce mouvement.");
+      setError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Impossible d'enregistrer ce mouvement.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -149,7 +181,9 @@ function DepositWithdrawForm({ schoolId, accounts, onChanged }) {
           select
           label="Compte"
           value={accountId}
-          onChange={(e) => setForm((prev) => ({ ...prev, account_id: e.target.value }))}
+          onChange={(e) =>
+            setForm((prev) => ({ ...prev, account_id: e.target.value }))
+          }
           fullWidth
         >
           {accounts.map((a) => (
@@ -164,14 +198,18 @@ function DepositWithdrawForm({ schoolId, accounts, onChanged }) {
             label="Montant (FCFA)"
             type="number"
             value={form.amount}
-            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, amount: e.target.value }))
+            }
             fullWidth
           />
           <TextField
             label="Motif"
             placeholder="ex. Dépôt recettes scolarité"
             value={form.note}
-            onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, note: e.target.value }))
+            }
             fullWidth
           />
         </Stack>
@@ -200,15 +238,39 @@ function DepositWithdrawForm({ schoolId, accounts, onChanged }) {
   );
 }
 
-function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChanged }) {
-  const AccountIcon = account.type === "CASH" ? PaymentsIcon : AccountBalanceIcon;
+function AccountCard({
+  schoolId,
+  account,
+  canManage,
+  onDeleted,
+  onEdit,
+  onChanged,
+}) {
+  const AccountIcon =
+    account.type === "CASH" ? PaymentsIcon : AccountBalanceIcon;
   const sectionName = account.section?.name;
 
-  const { data: movementsData, reload: reloadMovements } = useApiGet(
-    `/schools/${schoolId}/treasury-accounts/${account.id}/movements`,
+  const {
+    data: movementsData,
+    loading: movementsLoading,
+    reload: reloadMovements,
+  } = useApiGet(
+    schoolId && account?.id
+      ? `/schools/${schoolId}/treasury-accounts/${account.id}/movements`
+      : null,
     { params: { per_page: 6 } },
   );
-  const movements = movementsData?.data ?? [];
+
+  const movements = Array.isArray(movementsData)
+    ? movementsData
+    : (movementsData?.data ?? []);
+
+  // Rafraîchir l'historique quand le solde change (ex: après un virement dans le parent)
+  const [lastBalance, setLastBalance] = useState(account?.balance);
+  if (account?.balance !== lastBalance) {
+    setLastBalance(account?.balance);
+    reloadMovements();
+  }
 
   const [mvtForm, setMvtForm] = useState(emptyMvtForm());
   const [mvtError, setMvtError] = useState(null);
@@ -222,17 +284,25 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChange
     }
     setSubmitting(true);
     try {
-      await api.post(`/schools/${schoolId}/treasury-accounts/${account.id}/movements`, {
-        type,
-        amount: mvtForm.amount,
-        note: mvtForm.note,
-      });
+      await api.post(
+        `/schools/${schoolId}/treasury-accounts/${account.id}/movements`,
+        {
+          type,
+          amount: mvtForm.amount,
+          note: mvtForm.note,
+          movement_date: new Date().toISOString().split("T")[0],
+        },
+      );
       setMvtForm(emptyMvtForm());
       reloadMovements();
       onChanged();
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setMvtError(messages ? Object.values(messages).flat().join(" ") : "Impossible d'enregistrer ce mouvement.");
+      setMvtError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Impossible d'enregistrer ce mouvement.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -260,24 +330,50 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChange
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography variant="subtitle1" fontWeight={700} noWrap>
-                {account.name}
+                {account?.name}
               </Typography>
-              {sectionName && <Chip label={sectionName} size="small" variant="outlined" color="primary" sx={{ height: 20, fontSize: "0.7rem" }} />}
+              {sectionName && (
+                <Chip
+                  label={sectionName}
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  sx={{ height: 20, fontSize: "0.7rem" }}
+                />
+              )}
             </Stack>
+            {account?.bank_name && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                noWrap
+                display="block"
+              >
+                {account.bank_name}
+              </Typography>
+            )}
           </Box>
           {canManage && (
             <Stack direction="row" spacing={0.25}>
-              <IconButton size="small" onClick={() => onEdit(account)} aria-label="Modifier le compte">
+              <IconButton
+                size="small"
+                onClick={() => onEdit(account)}
+                aria-label="Modifier le compte"
+              >
                 <EditIcon fontSize="small" />
               </IconButton>
-              <IconButton size="small" onClick={() => onDeleted(account.id)} aria-label="Supprimer le compte">
+              <IconButton
+                size="small"
+                onClick={() => onDeleted(account.id)}
+                aria-label="Supprimer le compte"
+              >
                 <DeleteIcon fontSize="small" />
               </IconButton>
             </Stack>
           )}
         </Stack>
         <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
-          {Number(account.balance ?? 0).toLocaleString()} FCFA
+          {Number(account?.balance ?? 0).toLocaleString()} FCFA
         </Typography>
 
         {canManage && (
@@ -287,14 +383,18 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChange
               type="number"
               placeholder="Montant"
               value={mvtForm.amount}
-              onChange={(e) => setMvtForm((prev) => ({ ...prev, amount: e.target.value }))}
+              onChange={(e) =>
+                setMvtForm((prev) => ({ ...prev, amount: e.target.value }))
+              }
               sx={{ flex: 1, minWidth: 0 }}
             />
             <TextField
               size="small"
               placeholder="Motif"
               value={mvtForm.note}
-              onChange={(e) => setMvtForm((prev) => ({ ...prev, note: e.target.value }))}
+              onChange={(e) =>
+                setMvtForm((prev) => ({ ...prev, note: e.target.value }))
+              }
               sx={{ flex: 1, minWidth: 0 }}
             />
             <Button
@@ -303,10 +403,9 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChange
               color="success"
               disabled={submitting}
               onClick={() => submitMovement("DEPOSIT")}
-              startIcon={<ArrowUpwardIcon fontSize="small" />}
-              sx={{ borderRadius: 5, flexShrink: 0 }}
+              sx={{ borderRadius: 5, flexShrink: 0, minWidth: 40, px: 1 }}
             >
-              Entrée
+              <ArrowUpwardIcon fontSize="small" />
             </Button>
             <Button
               size="small"
@@ -314,15 +413,14 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChange
               color="error"
               disabled={submitting}
               onClick={() => submitMovement("WITHDRAWAL")}
-              startIcon={<ArrowDownwardIcon fontSize="small" />}
-              sx={{ borderRadius: 5, flexShrink: 0 }}
+              sx={{ borderRadius: 5, flexShrink: 0, minWidth: 40, px: 1 }}
             >
-              Sortie
+              <ArrowDownwardIcon fontSize="small" />
             </Button>
           </Stack>
         )}
         {mvtError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 2, py: 0 }}>
             {mvtError}
           </Alert>
         )}
@@ -330,15 +428,24 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChange
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}
+          sx={{
+            textTransform: "uppercase",
+            fontWeight: 700,
+            letterSpacing: "0.05em",
+          }}
         >
           Historique
         </Typography>
-        <Stack divider={<Divider />} sx={{ mt: 1 }}>
+        <Stack divider={<Divider />} sx={{ mt: 1, minHeight: 40 }}>
           {movements.map((m) => {
             const isCredit = CREDIT_TYPES.includes(m.type);
+            const displayDate = m.movement_date || m.created_at;
             return (
-              <Stack key={m.id} direction="row" sx={{ alignItems: "center", gap: 1.5, py: 1 }}>
+              <Stack
+                key={m.id}
+                direction="row"
+                sx={{ alignItems: "center", gap: 1.5, py: 1 }}
+              >
                 <Box
                   sx={{
                     width: 30,
@@ -349,28 +456,43 @@ function AccountCard({ schoolId, account, canManage, onDeleted, onEdit, onChange
                     justifyContent: "center",
                     flexShrink: 0,
                     bgcolor: isCredit ? "success.dark" : "error.dark",
-                    color: isCredit ? "success.light" : "error.light",
+                    color: "white",
                     opacity: 0.9,
                   }}
                 >
-                  {isCredit ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
+                  {isCredit ? (
+                    <ArrowUpwardIcon sx={{ fontSize: 16 }} />
+                  ) : (
+                    <ArrowDownwardIcon sx={{ fontSize: 16 }} />
+                  )}
                 </Box>
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                   <Typography variant="body2" fontWeight={700} noWrap>
-                    {m.note || "Sans note"}
+                    {m.note || "Mouvement"}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {m.created_at ? new Date(m.created_at).toLocaleDateString("fr-FR") : ""}
+                    {displayDate
+                      ? new Date(displayDate).toLocaleDateString("fr-FR")
+                      : ""}
                   </Typography>
                 </Box>
-                <Typography variant="body2" fontWeight={700} color={isCredit ? "success.main" : "error.main"}>
+                <Typography
+                  variant="body2"
+                  fontWeight={700}
+                  color={isCredit ? "success.main" : "error.main"}
+                >
                   {isCredit ? "+" : "-"}
-                  {Number(m.amount).toLocaleString()} FCFA
+                  {Number(m.amount ?? 0).toLocaleString()}
                 </Typography>
               </Stack>
             );
           })}
-          {movements.length === 0 && (
+          {movementsLoading && movements.length === 0 && (
+            <Typography variant="caption" color="text.secondary" sx={{ py: 1 }}>
+              Chargement...
+            </Typography>
+          )}
+          {!movementsLoading && movements.length === 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
               Aucun mouvement.
             </Typography>
@@ -410,13 +532,19 @@ function TransferForm({
           {transferSuccess}
         </Alert>
       )}
-      <Box component="form" onSubmit={onSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <Box
+        component="form"
+        onSubmit={onSubmit}
+        sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+      >
         <Stack direction="row" spacing={2}>
           <TextField
             select
             label="Du compte"
             value={transferFrom}
-            onChange={(e) => setTransferForm((prev) => ({ ...prev, from: e.target.value }))}
+            onChange={(e) =>
+              setTransferForm((prev) => ({ ...prev, from: e.target.value }))
+            }
             fullWidth
           >
             {accounts.map((a) => (
@@ -429,7 +557,9 @@ function TransferForm({
             select
             label="Vers le compte"
             value={transferTo}
-            onChange={(e) => setTransferForm((prev) => ({ ...prev, to: e.target.value }))}
+            onChange={(e) =>
+              setTransferForm((prev) => ({ ...prev, to: e.target.value }))
+            }
             fullWidth
           >
             {accounts.map((a) => (
@@ -443,11 +573,18 @@ function TransferForm({
           label="Montant (FCFA)"
           type="number"
           value={transferForm.amount}
-          onChange={(e) => setTransferForm((prev) => ({ ...prev, amount: e.target.value }))}
+          onChange={(e) =>
+            setTransferForm((prev) => ({ ...prev, amount: e.target.value }))
+          }
           required
           fullWidth
         />
-        <Button type="submit" variant="contained" startIcon={<SwapHorizIcon />} disabled={transferSubmitting}>
+        <Button
+          type="submit"
+          variant="contained"
+          startIcon={<SwapHorizIcon />}
+          disabled={transferSubmitting}
+        >
           {transferSubmitting ? "Virement..." : "Virer"}
         </Button>
       </Box>
@@ -455,17 +592,29 @@ function TransferForm({
   );
 }
 
-export default function DashboardTreasuryPage({ embedded = false, typeFilter = null, sectionId = null } = {}) {
+export default function DashboardTreasuryPage({
+  embedded = false,
+  typeFilter = null,
+  sectionId = null,
+} = {}) {
   const { user } = useAuth();
   const schoolId = user?.current_school_id;
+
   const { schoolUsers } = useSchools();
-  const currentRole = schoolUsers.find((su) => su?.school?.id === schoolId)?.role?.slug;
-  const canManage = ["directeur", "comptable"].includes(currentRole ?? "");
+  const currentRole = schoolUsers.find((su) => su?.school?.id === schoolId)
+    ?.role?.slug;
+  const canManage = ["directeur", "comptable", "fondateur"].includes(
+    currentRole ?? "",
+  );
 
   // Récupération des sections de l'école
-  const { data: sectionsData } = useApiGet(schoolId ? `/schools/${schoolId}/sections` : null);
-  const sections = Array.isArray(sectionsData) ? sectionsData : sectionsData?.data ?? [];
+  const { data: sectionsData } = useApiGet(
+    schoolId ? `/schools/${schoolId}/sections` : null,
+  );
 
+  const sections = Array.isArray(sectionsData)
+    ? sectionsData
+    : (sectionsData?.data ?? []);
   // Récupération des comptes de trésorerie
   const {
     data: accountsData,
@@ -476,11 +625,19 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
     params: sectionId ? { section_id: sectionId } : {},
   });
 
-  const rawAccounts = Array.isArray(accountsData) ? accountsData : accountsData?.data ?? [];
-  const accounts = rawAccounts.filter((a) => (!typeFilter || a.type === typeFilter) && (!sectionId || a.section_id === sectionId));
+  const rawAccounts = Array.isArray(accountsData)
+    ? accountsData
+    : (accountsData?.data ?? []);
+  const accounts = rawAccounts.filter(
+    (a) =>
+      (!typeFilter || a.type === typeFilter) &&
+      (!sectionId || a.section_id === sectionId),
+  );
 
   const [accountModalOpen, setAccountModalOpen] = useState(false);
-  const [accountForm, setAccountForm] = useState(() => emptyAccountForm(typeFilter ?? "CASH", sectionId ?? ""));
+  const [accountForm, setAccountForm] = useState(() =>
+    emptyAccountForm(typeFilter ?? "CASH", sectionId ?? ""),
+  );
   const [editingAccount, setEditingAccount] = useState(null);
   const [accountError, setAccountError] = useState(null);
 
@@ -490,7 +647,8 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
   const [transferSubmitting, setTransferSubmitting] = useState(false);
 
   const transferFrom = transferForm.from || accounts[0]?.id || "";
-  const transferTo = transferForm.to || accounts[1]?.id || accounts[0]?.id || "";
+  const transferTo =
+    transferForm.to || accounts[1]?.id || accounts[0]?.id || "";
 
   function closeAccountModal() {
     setAccountModalOpen(false);
@@ -511,7 +669,6 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
     setAccountError(null);
     setAccountModalOpen(true);
   }
-
   async function handleSaveAccount(e) {
     e.preventDefault();
     setAccountError(null);
@@ -525,17 +682,28 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
 
     try {
       if (editingAccount) {
-        await api.put(`/schools/${schoolId}/treasury-accounts/${editingAccount.id}`, payload);
+        await api.put(
+          `/schools/${schoolId}/treasury-accounts/${editingAccount.id}`,
+          payload,
+        );
       } else {
         await api.post(`/schools/${schoolId}/treasury-accounts`, payload);
       }
       reloadAccounts();
       closeAccountModal();
-    } catch {
-      setAccountError("Impossible de sauvegarder ce compte.");
+    } catch (error) {
+      console.error("Erreur enregistrement compte :", error);
+      const data = error.response?.data;
+
+      if (data?.errors) {
+        setAccountError(Object.values(data.errors).flat().join(" "));
+      } else if (data?.message) {
+        setAccountError(data.message);
+      } else {
+        setAccountError("Impossible de sauvegarder ce compte.");
+      }
     }
   }
-
   async function deleteAccount(id) {
     await api.delete(`/schools/${schoolId}/treasury-accounts/${id}`);
     reloadAccounts();
@@ -553,22 +721,32 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
     try {
       const fromName = accounts.find((a) => a.id === transferFrom)?.name ?? "";
       const toName = accounts.find((a) => a.id === transferTo)?.name ?? "";
-      await api.post(`/schools/${schoolId}/treasury-accounts/${transferFrom}/movements`, {
-        type: "TRANSFER_OUT",
-        amount: transferForm.amount,
-        note: `Virement vers ${toName}`,
-      });
-      await api.post(`/schools/${schoolId}/treasury-accounts/${transferTo}/movements`, {
-        type: "TRANSFER_IN",
-        amount: transferForm.amount,
-        note: `Virement depuis ${fromName}`,
-      });
+      await api.post(
+        `/schools/${schoolId}/treasury-accounts/${transferFrom}/movements`,
+        {
+          type: "TRANSFER_OUT",
+          amount: transferForm.amount,
+          note: `Virement vers ${toName}`,
+        },
+      );
+      await api.post(
+        `/schools/${schoolId}/treasury-accounts/${transferTo}/movements`,
+        {
+          type: "TRANSFER_IN",
+          amount: transferForm.amount,
+          note: `Virement depuis ${fromName}`,
+        },
+      );
       setTransferSuccess("Virement effectué.");
       setTransferForm((prev) => ({ ...prev, amount: "" }));
       reloadAccounts();
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setTransferError(messages ? Object.values(messages).flat().join(" ") : "Impossible d'effectuer ce virement.");
+      setTransferError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Impossible d'effectuer ce virement.",
+      );
     } finally {
       setTransferSubmitting(false);
     }
@@ -584,7 +762,15 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
         {embedded ? (
           <Box />
         ) : (
@@ -593,13 +779,17 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
               Trésorerie
             </Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
-              Caisses et comptes bancaires de l'école, avec leur solde calculé à partir des paiements et dépenses
-              confirmés.
+              Caisses et comptes bancaires de l'école, avec leur solde calculé à
+              partir des paiements et dépenses confirmés.
             </Typography>
           </Box>
         )}
         {canManage && typeFilter !== "BANK" && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAccountModalOpen(true)}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setAccountModalOpen(true)}
+          >
             Ajouter un compte
           </Button>
         )}
@@ -616,9 +806,17 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
       ) : (
         <Grid container spacing={2} sx={{ mb: 4 }}>
           {accounts.map((account) => (
-            <Grid key={account.id} size={{ xs: 12, sm: 6, md: typeFilter === "BANK" ? 4 : 6 }}>
+            <Grid
+              key={account.id}
+              size={{ xs: 12, sm: 6, md: typeFilter === "BANK" ? 4 : 6 }}
+            >
               {typeFilter === "BANK" ? (
-                <BankSummaryCard account={account} canManage={canManage} onDeleted={deleteAccount} onEdit={editAccount} />
+                <BankSummaryCard
+                  account={account}
+                  canManage={canManage}
+                  onDeleted={deleteAccount}
+                  onEdit={editAccount}
+                />
               ) : (
                 <AccountCard
                   schoolId={schoolId}
@@ -657,7 +855,9 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
           )}
           {accounts.length === 0 && typeFilter !== "BANK" && (
             <Grid size={12}>
-              <Typography color="text.secondary">Aucun compte de trésorerie configuré.</Typography>
+              <Typography color="text.secondary">
+                Aucun compte de trésorerie configuré.
+              </Typography>
             </Grid>
           )}
         </Grid>
@@ -667,7 +867,11 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
         <Grid container spacing={2}>
           {canManage && accounts.length > 0 && (
             <Grid size={{ xs: 12, md: 6 }}>
-              <DepositWithdrawForm schoolId={schoolId} accounts={accounts} onChanged={reloadAccounts} />
+              <DepositWithdrawForm
+                schoolId={schoolId}
+                accounts={accounts}
+                onChanged={reloadAccounts}
+              />
             </Grid>
           )}
           {canManage && accounts.length > 1 && (
@@ -705,7 +909,12 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
         )
       )}
 
-      <Dialog open={accountModalOpen} onClose={closeAccountModal} fullWidth maxWidth="xs">
+      <Dialog
+        open={accountModalOpen}
+        onClose={closeAccountModal}
+        fullWidth
+        maxWidth="xs"
+      >
         <DialogTitle>
           {editingAccount
             ? "Modifier le compte"
@@ -716,13 +925,17 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
                 : "Ajouter un compte de trésorerie"}
         </DialogTitle>
         <Box component="form" onSubmit={handleSaveAccount}>
-          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
             {accountError && <Alert severity="error">{accountError}</Alert>}
             <TextField
               label="Nom"
               placeholder="Caisse principale, Compte BOA..."
               value={accountForm.name}
-              onChange={(e) => setAccountForm((prev) => ({ ...prev, name: e.target.value }))}
+              onChange={(e) =>
+                setAccountForm((prev) => ({ ...prev, name: e.target.value }))
+              }
               required
               fullWidth
               autoFocus
@@ -732,7 +945,12 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
               select
               label="Section"
               value={accountForm.section_id}
-              onChange={(e) => setAccountForm((prev) => ({ ...prev, section_id: e.target.value }))}
+              onChange={(e) =>
+                setAccountForm((prev) => ({
+                  ...prev,
+                  section_id: e.target.value,
+                }))
+              }
               fullWidth
               helperText="Optionnel : associer à une section spécifique"
             >
@@ -749,7 +967,9 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
                 select
                 label="Type"
                 value={accountForm.type}
-                onChange={(e) => setAccountForm((prev) => ({ ...prev, type: e.target.value }))}
+                onChange={(e) =>
+                  setAccountForm((prev) => ({ ...prev, type: e.target.value }))
+                }
                 required
                 fullWidth
               >
@@ -762,7 +982,12 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
                 label="Banque"
                 placeholder="Ecobank, UBA..."
                 value={accountForm.bank_name}
-                onChange={(e) => setAccountForm((prev) => ({ ...prev, bank_name: e.target.value }))}
+                onChange={(e) =>
+                  setAccountForm((prev) => ({
+                    ...prev,
+                    bank_name: e.target.value,
+                  }))
+                }
                 fullWidth
               />
             )}
@@ -775,7 +1000,12 @@ export default function DashboardTreasuryPage({ embedded = false, typeFilter = n
                   : "Le solde actuel sera calculé après les mouvements enregistrés."
               }
               value={accountForm.opening_balance}
-              onChange={(e) => setAccountForm((prev) => ({ ...prev, opening_balance: e.target.value }))}
+              onChange={(e) =>
+                setAccountForm((prev) => ({
+                  ...prev,
+                  opening_balance: e.target.value,
+                }))
+              }
               fullWidth
             />
           </DialogContent>

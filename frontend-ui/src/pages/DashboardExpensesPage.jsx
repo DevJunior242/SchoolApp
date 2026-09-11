@@ -72,7 +72,7 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
   const currentRole = currentMembership?.role?.slug;
   const allowedSections = currentMembership?.sections ?? [];
   const isSectionRestricted = allowedSections.length > 0;
-  const canManage = ["directeur", "comptable"].includes(currentRole ?? "");
+  const canManage = ["directeur", "comptable","fondateur"].includes(currentRole ?? "");
 
   const { data: categoriesData, reload: reloadCategories } = useApiGet(
     schoolId ? `/schools/${schoolId}/expense-categories` : null,

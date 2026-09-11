@@ -24,7 +24,13 @@ class TreasuryMovement extends Model
     const CREDIT_TYPES = [self::TYPE_DEPOSIT, self::TYPE_TRANSFER_IN];
 
     protected $fillable = [
-        'school_id', 'treasury_account_id', 'type', 'amount', 'note', 'created_by',
+        'school_id',
+        'treasury_account_id',
+        'type',
+        'amount',
+        'movement_date',
+        'note',
+        'created_by',
     ];
 
     protected function casts(): array

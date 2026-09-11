@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\School;
-use Illuminate\Http\Request;
-use App\Models\TreasuryAccount;
-use Illuminate\Validation\Rule;
-use App\Services\TreasuryService;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Controller;
+use App\Models\School;
+use App\Models\TreasuryAccount;
+use App\Services\TreasuryService;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Throwable;
 
 class TreasuryAccountController extends Controller
 {
@@ -21,7 +24,7 @@ class TreasuryAccountController extends Controller
         $accounts = TreasuryAccount::query()
             ->where('school_id', $school->id)
             ->where('is_active', true)
-            ->when($request->filled('section_id'), fn ($query) => $query->where('section_id', $request->query('section_id')))
+            ->when($request->filled('section_id'), fn($query) => $query->where('section_id', $request->query('section_id')))
             ->with('section')
             ->orderBy('name')
             ->get();
@@ -37,17 +40,32 @@ class TreasuryAccountController extends Controller
     {
         $this->authorizeFinanceManager($request, $school);
 
+        // 1. Validation : vérifier l'existence dans la table pivot school_sections
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:'.implode(',', [TreasuryAccount::TYPE_CASH, TreasuryAccount::TYPE_BANK])],
+            'type' => ['required', 'in:' . implode(',', [TreasuryAccount::TYPE_CASH, TreasuryAccount::TYPE_BANK])],
             'bank_name' => ['nullable', 'string', 'max:255'],
             'opening_balance' => ['nullable', 'numeric'],
-            'section_id' => ['nullable', Rule::exists('sections', 'id')->where('school_id', $school->id)],
+            'section_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('school_sections', 'section_id')->where('school_id', $school->id)
+                // Si school_id est directement sur la table sections, utilisez :
+                // Rule::exists('sections', 'id')->where('school_id', $school->id)
+            ],
         ]);
 
-        $account = TreasuryAccount::query()->create([...$validated, 'school_id' => $school->id]);
+        try {
+            $account = TreasuryAccount::query()->create([
+                ...$validated,
+                'school_id' => $school->id,
+            ]);
 
-        return response()->json($account->load('section'), 201);
+            return response()->json($account->load('section'), 201);
+        } catch (Throwable $e) {
+            Log::error('Treasury account creation error', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Erreur lors de la création du compte.'], 500);
+        }
     }
 
     public function update(Request $request, School $school, TreasuryAccount $treasuryAccount)
@@ -57,7 +75,7 @@ class TreasuryAccountController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'type' => ['sometimes', 'in:'.implode(',', [TreasuryAccount::TYPE_CASH, TreasuryAccount::TYPE_BANK])],
+            'type' => ['sometimes', 'in:' . implode(',', [TreasuryAccount::TYPE_CASH, TreasuryAccount::TYPE_BANK])],
             'bank_name' => ['nullable', 'string', 'max:255'],
             'opening_balance' => ['sometimes', 'numeric'],
             'is_active' => ['sometimes', 'boolean'],

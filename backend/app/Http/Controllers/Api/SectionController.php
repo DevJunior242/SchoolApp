@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Models\School;
 use App\Models\Section;
+use App\Http\Controllers\Controller;
 
 class SectionController extends Controller
 {
@@ -22,10 +23,12 @@ class SectionController extends Controller
     /**
      * Affiche une section spécifique et ses niveaux.
      */
-    public function show(Section $section)
-    {
-        return response()->json(
-            $section->load(['levels' => fn ($query) => $query->orderBy('order')])
-        );
-    }
+public function show(School $school)
+{
+    return response()->json(
+        $school->sections()
+            ->with(['levels' => fn ($query) => $query->orderBy('order')])
+            ->get()
+    );
+}
 }

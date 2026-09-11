@@ -2,24 +2,25 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
-use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
-use App\Http\Controllers\Controller;
+use App\Models\School;
+use App\Models\Payment;
+use App\Models\Student;
+use App\Models\SchoolUser;
 use App\Models\ClassStudent;
 use App\Models\FeeStructure;
-use App\Models\ParentStudent;
-use App\Models\Payment;
-use App\Models\School;
-use App\Models\SchoolUser;
-use App\Models\Student;
 use Illuminate\Http\Request;
+use App\Models\ParentStudent;
 use Illuminate\Validation\Rule;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class PaymentController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire'];
+    private const STAFF_ROLE_SLUGS = ['fondateur', 'directeur', 'comptable', 'secretaire'];
+    private const AUTO_CONFIRM_ROLES = ['fondateur', 'directeur', 'comptable'];
 
     /**
      * Vue globale du comptable/directeur : tous les paiements de l'école,
@@ -33,14 +34,14 @@ class PaymentController extends Controller
         return response()->json(
             Payment::query()
                 ->where('school_id', $school->id)
-                ->when($request->query('status') !== null, fn ($query) => $query->where('status', $request->query('status')))
-                ->when($sectionIds, fn ($query, $ids) => $query->whereHas(
+                ->when($request->query('status') !== null, fn($query) => $query->where('status', $request->query('status')))
+                ->when($sectionIds, fn($query, $ids) => $query->whereHas(
                     'student.classStudents',
-                    fn ($classStudentQuery) => $classStudentQuery
+                    fn($classStudentQuery) => $classStudentQuery
                         ->where('status', ClassStudent::STATUS_ACTIVE)
-                        ->whereHas('schoolClass', fn ($classQuery) => $classQuery
+                        ->whereHas('schoolClass', fn($classQuery) => $classQuery
                             ->where('school_id', $school->id)
-                            ->whereHas('level', fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
+                            ->whereHas('level', fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
                 ))
                 ->with(['student', 'feeStructure', 'paymentMethod', 'declaredBy'])
                 ->latest('created_at')
@@ -59,7 +60,7 @@ class PaymentController extends Controller
         $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->latest('created_at')
             ->with('schoolClass')
             ->first();
@@ -74,15 +75,15 @@ class PaymentController extends Controller
         // (CafeteriaMealServiceController), pas celui-ci.
         $feeStructures = $classStudent
             ? FeeStructure::query()
-                ->where('school_id', $school->id)
-                ->where(fn ($query) => $query
-                    ->where('level_id', $classStudent->schoolClass->level_id)
-                    ->orWhereNull('level_id'))
-                ->where('category', '!=', FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION)
-                ->where('school_year_id', $classStudent->schoolClass->school_year_id)
-                ->with('feeCategory')
-                ->orderBy('order')
-                ->get()
+            ->where('school_id', $school->id)
+            ->where(fn($query) => $query
+                ->where('level_id', $classStudent->schoolClass->level_id)
+                ->orWhereNull('level_id'))
+            ->where('category', '!=', FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION)
+            ->where('school_year_id', $classStudent->schoolClass->school_year_id)
+            ->with('feeCategory')
+            ->orderBy('order')
+            ->get()
             : collect();
 
         $payments = Payment::query()
@@ -127,13 +128,13 @@ class PaymentController extends Controller
             'transaction_id' => ['nullable', 'string', 'max:100'],
         ]);
 
-        // Un directeur/comptable qui encaisse en direct (espèces au bureau,
+        // Un directeur/comptable/fondateur qui encaisse en direct (espèces au bureau,
         // vérification immédiate) confirme sur le coup. Le secrétariat et
         // les parents restent en attente de validation par le comptable.
         $canAutoConfirm = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $request->user()->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'comptable']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', self::AUTO_CONFIRM_ROLES))
             ->exists();
 
         $payment = Payment::query()->create([
@@ -152,7 +153,7 @@ class PaymentController extends Controller
 
     public function confirm(Request $request, School $school, Payment $payment)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent confirmer un paiement.');
+        $this->authorizeRoles($request, $school, self::AUTO_CONFIRM_ROLES, 'Seuls le directeur, le fondateur et le comptable peuvent confirmer un paiement.');
         abort_if($payment->school_id !== $school->id, 404);
         $this->authorizeStudentSection($request, $school, $payment->student);
 
@@ -168,7 +169,7 @@ class PaymentController extends Controller
 
     public function reject(Request $request, School $school, Payment $payment)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent rejeter un paiement.');
+        $this->authorizeRoles($request, $school, self::AUTO_CONFIRM_ROLES, 'Seuls le directeur, le fondateur et le comptable peuvent rejeter un paiement.');
         abort_if($payment->school_id !== $school->id, 404);
         $this->authorizeStudentSection($request, $school, $payment->student);
 
@@ -207,7 +208,7 @@ class PaymentController extends Controller
         $studentBelongsToSchool = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->exists();
 
         abort_unless($studentBelongsToSchool, 404, "Cet élève n'est pas inscrit dans cette école.");
@@ -215,7 +216,7 @@ class PaymentController extends Controller
         $isStaff = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', self::STAFF_ROLE_SLUGS))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', self::STAFF_ROLE_SLUGS))
             ->exists();
 
         if ($isStaff) {
@@ -235,7 +236,7 @@ class PaymentController extends Controller
         $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->latest('created_at')
             ->with('schoolClass')
             ->firstOrFail();

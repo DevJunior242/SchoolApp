@@ -689,14 +689,15 @@ export default function DashboardAccountingPage() {
         variant="scrollable"
         allowScrollButtonsMobile
       >
-        <Tab value="recettes" label="Recettes" />
-        <Tab value="depenses" label="Dépenses" />
+        <Tab value="tableau-de-bord" label="Tableau de bord" />
         <Tab value="caisse" label="Caisse" />
         <Tab value="comptes-bancaires" label="Comptes bancaires" />
-        <Tab value="recharges-cantine" label="Recharges cantine" />
-        <Tab value="tableau-de-bord" label="Tableau de bord" />
-        <Tab value="rapports" label="Rapports" />
         <Tab value="abonnement" label="Abonnement SaaS" />
+        <Tab value="recettes" label="Recettes" />
+        <Tab value="depenses" label="Dépenses" />
+
+        <Tab value="recharges-cantine" label="Recharges cantine" />
+        <Tab value="rapports" label="Rapports" />
       </Tabs>
 
       {tab === "recettes" && <DashboardPaymentsPage embedded />}

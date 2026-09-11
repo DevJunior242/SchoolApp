@@ -28,7 +28,7 @@ class PaymentMethodController extends Controller
 
     public function store(Request $request, School $school)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les moyens de paiement.');
+        $this->authorizeRoles($request, $school, ['directeur', 'comptable','fondateur'], 'Seuls le directeur et le comptable peuvent gérer les moyens de paiement.');
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],

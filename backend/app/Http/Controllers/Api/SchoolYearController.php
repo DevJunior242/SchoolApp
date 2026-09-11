@@ -25,7 +25,7 @@ class SchoolYearController extends Controller
     {
         return response()->json(
             $school->schoolYears()
-                ->with(['seasons' => fn ($query) => $query->orderBy('order')])
+                ->with(['seasons' => fn($query) => $query->orderBy('order')])
                 ->orderByDesc('start_date')
                 ->get()
         );
@@ -43,7 +43,7 @@ class SchoolYearController extends Controller
 
         $now = Carbon::now();
         $startYear = $now->month >= 9 ? $now->year : $now->year - 1;
-        $label = "{$startYear}-".($startYear + 1);
+        $label = "{$startYear}-" . ($startYear + 1);
 
         if ($school->schoolYears()->where('label', $label)->exists()) {
             throw ValidationException::withMessages([

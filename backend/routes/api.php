@@ -93,7 +93,7 @@ Route::get('/schools/{school}/levels', [LevelController::class, 'forSchool']);
 Route::get('/roles', [RoleController::class, 'index']);
 Route::get('/countries', [CountryController::class, 'index']);
 Route::get('/sections', [SectionController::class, 'index']);
-Route::get('/sections/{section}', [SectionController::class, 'show']);
+Route::get('/schools/{school}/sections', [SectionController::class, 'show']);
 Route::get('/levels', [LevelController::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
 

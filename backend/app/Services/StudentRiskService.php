@@ -49,12 +49,12 @@ class StudentRiskService
             ->when($sectionId, function ($query) use ($sectionId) {
                 $query->whereHas('student.classStudents', function ($q) use ($sectionId) {
                     $q->where('status', ClassStudent::STATUS_ACTIVE)
-                      ->whereHas('schoolClass.level', fn ($l) => $l->where('section_id', $sectionId));
+                        ->whereHas('schoolClass.level', fn($l) => $l->where('section_id', $sectionId));
                 });
             })
             ->with('student')
             ->get()
-            ->map(fn (SchoolStudent $schoolStudent) => $this->scoreFor($school, $schoolStudent->student))
+            ->map(fn(SchoolStudent $schoolStudent) => $this->scoreFor($school, $schoolStudent->student))
             ->sortByDesc('score')
             ->values();
     }
@@ -67,7 +67,7 @@ class StudentRiskService
         $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->latest('created_at')
             ->with(['schoolClass.level.section'])
             ->first();
@@ -77,32 +77,32 @@ class StudentRiskService
         $absences = Attendance::query()
             ->where('student_id', $student->id)
             ->where('status', Attendance::STATUS_ABSENT)
-            ->when($schoolYearId, fn ($query) => $query->whereHas(
+            ->when($schoolYearId, fn($query) => $query->whereHas(
                 'classSubjectTeacher.schoolClass',
-                fn ($q) => $q->where('school_year_id', $schoolYearId)
+                fn($q) => $q->where('school_year_id', $schoolYearId)
             ))
             ->count();
 
         $retards = Attendance::query()
             ->where('student_id', $student->id)
             ->where('status', Attendance::STATUS_RETARD)
-            ->when($schoolYearId, fn ($query) => $query->whereHas(
+            ->when($schoolYearId, fn($query) => $query->whereHas(
                 'classSubjectTeacher.schoolClass',
-                fn ($q) => $q->where('school_year_id', $schoolYearId)
+                fn($q) => $q->where('school_year_id', $schoolYearId)
             ))
             ->count();
 
         $grades = Grade::query()
             ->where('student_id', $student->id)
-            ->when($schoolYearId, fn ($query) => $query->whereHas(
+            ->when($schoolYearId, fn($query) => $query->whereHas(
                 'classSubjectTeacher.schoolClass',
-                fn ($q) => $q->where('school_year_id', $schoolYearId)
+                fn($q) => $q->where('school_year_id', $schoolYearId)
             ))
             ->get();
 
         $totalWeight = $grades->sum('coefficient');
         $average = $totalWeight > 0
-            ? round($grades->sum(fn (Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight, 2)
+            ? round($grades->sum(fn(Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight, 2)
             : null;
 
         $hasPaymentDelay = false;

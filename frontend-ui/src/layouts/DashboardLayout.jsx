@@ -141,6 +141,11 @@ const DIRECTEUR_NAV_GROUPS = [
         to: "/dashboard/accounting",
         icon: <AccountBalanceWalletIcon />,
       },
+      {
+        label: "Paiements",
+        to: "/dashboard/payments",
+        icon: <PaymentsIcon />,
+      },
     ],
   },
   {

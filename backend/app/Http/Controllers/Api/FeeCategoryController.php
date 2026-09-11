@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
-use App\Http\Controllers\Controller;
-use App\Models\FeeCategory;
 use App\Models\School;
 use App\Models\SchoolUser;
+use App\Models\FeeCategory;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class FeeCategoryController extends Controller
 {
@@ -28,7 +28,7 @@ class FeeCategoryController extends Controller
 
     public function store(Request $request, School $school)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les catégories de frais.');
+        $this->authorizeRoles($request, $school, ['directeur', 'comptable','fondateur'], 'Seuls le directeur et le comptable peuvent gérer les catégories de frais.');
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
