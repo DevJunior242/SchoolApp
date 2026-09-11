@@ -35,6 +35,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const STATUS_LABELS = {
   0: { label: "En attente", color: "warning" },
@@ -51,14 +53,25 @@ const CATEGORY_CUSTOM = 3;
 // coller à ses propres frais — pas de liste figée. La cantine et la
 // bibliothèque n'y figurent jamais : ces recettes sont encaissées sur
 // place par leur propre personnel, pas via ce formulaire générique.
-const TUITION_TILE = { key: "tuition", label: "Frais de scolarité", icon: <SchoolIcon /> };
+const TUITION_TILE = {
+  key: "tuition",
+  label: "Frais de scolarité",
+  icon: <SchoolIcon />,
+};
 
 function emptyMethodForm() {
   return { name: "", number: "", instructions: "", treasury_account_id: "" };
 }
 
 function emptyFeeForm() {
-  return { category: CATEGORY_TUITION, fee_category_id: "", level_id: "", label: "", amount: "", due_date: "" };
+  return {
+    category: CATEGORY_TUITION,
+    fee_category_id: "",
+    level_id: "",
+    label: "",
+    amount: "",
+    due_date: "",
+  };
 }
 
 function emptyCategoryForm() {
@@ -84,14 +97,19 @@ function emptyCollectForm() {
 
 export default function DashboardPaymentsPage({ embedded = false } = {}) {
   const { user } = useAuth();
+  console.log("user", user);
   const schoolId = user.current_school_id;
   const { schoolUsers, loading: roleLoading } = useSchools();
   const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role
     ?.slug;
-  const canManageConfig = ["directeur", "comptable","fondateur"].includes(currentRole);
+  const canManageConfig = ["directeur", "comptable", "fondateur"].includes(
+    currentRole,
+  );
 
   const [methods, setMethods] = useState([]);
-  const { data: treasuryAccountsData } = useApiGet(schoolId ? `/schools/${schoolId}/treasury-accounts` : null);
+  const { data: treasuryAccountsData } = useApiGet(
+    schoolId ? `/schools/${schoolId}/treasury-accounts` : null,
+  );
   const treasuryAccounts = treasuryAccountsData ?? [];
   const { data: feeCategoriesData, reload: reloadFeeCategories } = useApiGet(
     schoolId ? `/schools/${schoolId}/fee-categories` : null,
@@ -101,7 +119,11 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   // catégories que l'école a créées elle-même.
   const categoryTiles = [
     TUITION_TILE,
-    ...feeCategories.map((c) => ({ key: c.id, label: c.name, icon: <DescriptionIcon /> })),
+    ...feeCategories.map((c) => ({
+      key: c.id,
+      label: c.name,
+      icon: <DescriptionIcon />,
+    })),
   ];
   const [levels, setLevels] = useState([]);
   const [feeLevel, setFeeLevel] = useState("");
@@ -134,12 +156,20 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
 
   const [receiptOpen, setReceiptOpen] = useState(null);
 
-  const { data: recentReceiptsData, reload: reloadRecentReceipts } = useApiGet(
-    schoolId ? `/schools/${schoolId}/payments` : null,
-    { params: { status: 1, per_page: 6 } },
-  );
-  const recentReceipts = recentReceiptsData?.data ?? [];
-
+  // const { data: recentReceiptsData, reload: reloadRecentReceipts } = useApiGet(
+  //   schoolId ? `/schools/${schoolId}/payments` : null,
+  //   { params: { status: 1, per_page: 6 } },
+  // );
+  const {
+    data: recentReceipts,
+    page: recentPage,
+    setPage: setRecentPage,
+    lastPage: recentLastPage,
+    reload: reloadRecentReceipts,
+  } = usePaginatedList(schoolId ? `/schools/${schoolId}/payments` : null, {
+    status: 1,
+    per_page: 5, // Limité à 5 par page
+  });
   const [statusFilter, setStatusFilter] = useState("");
   const {
     data: payments,
@@ -152,6 +182,8 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   } = usePaginatedList(schoolId ? `/schools/${schoolId}/payments` : null, {
     status: statusFilter === "" ? undefined : statusFilter,
   });
+
+  console.log(payments);
 
   function reloadRecettes() {
     reloadPayments();
@@ -172,15 +204,17 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
 
   async function loadFeeStructures(levelId, categoryKey) {
     try {
-      const params = categoryKey === "tuition"
-        ? { level_id: levelId || undefined, category: CATEGORY_TUITION }
-        : { category: CATEGORY_CUSTOM, fee_category_id: categoryKey };
-      const response = await api.get(`/schools/${schoolId}/fee-structures`, { params });
+      const params =
+        categoryKey === "tuition"
+          ? { level_id: levelId || undefined, category: CATEGORY_TUITION }
+          : { category: CATEGORY_CUSTOM, fee_category_id: categoryKey };
+      const response = await api.get(`/schools/${schoolId}/fee-structures`, {
+        params,
+      });
       setFeeStructures(response.data);
     } catch (err) {
       setConfigError(
-        err.response?.data?.message ||
-          "Impossible de charger les tranches.",
+        err.response?.data?.message || "Impossible de charger les tranches.",
       );
     }
   }
@@ -238,7 +272,10 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     e.preventDefault();
     setCategoryError(null);
     try {
-      const response = await api.post(`/schools/${schoolId}/fee-categories`, categoryForm);
+      const response = await api.post(
+        `/schools/${schoolId}/fee-categories`,
+        categoryForm,
+      );
       await reloadFeeCategories();
       closeCategoryModal();
       // Bascule directement sur la catégorie qu'on vient de créer, aussi
@@ -364,6 +401,72 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     reloadRecettes();
   }
 
+  async function getBase64ImageFromUrl(url) {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      return null; // Si l'image échoue, on retourne null (nullable)
+    }
+  }
+  async function generatePDF(payment, schoolName, logoUrl) {
+    const doc = new jsPDF({ unit: "mm", format: [100, 80] });
+    let yPos = 10;
+
+    // 1. Gestion du Logo (Nullable)
+    if (logoUrl) {
+      const logoBase64 = await getBase64ImageFromUrl(logoUrl);
+      if (logoBase64) {
+        doc.addImage(logoBase64, "PNG", 30, yPos, 20, 20); // x, y, largeur, hauteur
+        yPos += 25;
+      }
+    }
+
+    // 2. En-tête
+    doc.setFontSize(10);
+    doc.text(schoolName || "Nom de l'école", 40, yPos, { align: "center" });
+    yPos += 7;
+
+    doc.setFontSize(12);
+    doc.text("REÇU DE PAIEMENT", 40, yPos, { align: "center" });
+    yPos += 10;
+
+    doc.setFontSize(8);
+    doc.text(`N°: ${payment.receipt_number || "—"}`, 5, yPos);
+    yPos += 5;
+    doc.text(
+      `Date: ${payment.confirmed_at ? new Date(payment.confirmed_at).toLocaleDateString("fr-FR") : ""}`,
+      5,
+      yPos,
+    );
+
+    // 3. Tableau
+    autoTable(doc, {
+      startY: yPos + 5,
+      head: [["Désignation", "Valeur"]],
+      body: [
+        ["Élève", payment.student?.fullname || "—"],
+        ["Catégorie", payment.fee_structure?.label || "—"],
+        ["Mode", payment.payment_method?.name || "—"],
+        [
+          "Montant",
+          Number(payment.amount)
+            .toFixed(0)
+            .replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA",
+        ],
+      ],
+      styles: { fontSize: 8, cellPadding: 1 },
+      headStyles: { fillColor: [41, 128, 185] },
+    });
+
+    doc.save(`Recu_${payment.receipt_number || "paiement"}.pdf`);
+  }
   if (!schoolId) {
     return (
       <Box sx={{ py: 8, textAlign: "center" }}>
@@ -747,642 +850,6 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                         ? new Date(p.confirmed_at).toLocaleDateString("fr-FR")
                         : ""}
                     </Typography>
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
-                    <TextField
-                      select
-                      label="Mode de paiement"
-                      value={collectForm.payment_method_id}
-                      onChange={(e) => {
-                        const method = methods.find(
-                          (m) => m.id === e.target.value,
-                        );
-                        const isCash =
-                          method?.treasury_account?.type === "CASH";
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          payment_method_id: e.target.value,
-                          sender_number: isCash
-                            ? "En mains propres"
-                            : prev.sender_number === "En mains propres"
-                              ? ""
-                              : prev.sender_number,
-                        }));
-                      }}
-                      required
-                      fullWidth
-                    >
-                      {methods.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name}{" "}
-                          {m.treasury_account
-                            ? `(${
-                                m.treasury_account.type === "CASH"
-                                  ? "Caisse"
-                                  : "Banque"
-                              })`
-                            : ""}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      label="Numéro (payeur, ou 'Espèces')"
-                      value={collectForm.sender_number}
-                      onChange={(e) =>
-                        setCollectForm((prev) => ({
-                          ...prev,
-                          sender_number: e.target.value,
-                        }))
-                      }
-                      required
-                      fullWidth
-                      disabled={
-                        methods.find(
-                          (m) => m.id === collectForm.payment_method_id,
-                        )?.treasury_account?.type === "CASH"
-                      }
-                    />{" "}
                   </Box>
                   <Typography
                     variant="body2"
@@ -1392,6 +859,17 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                   >
                     +{Number(p.amount).toLocaleString()} FCFA
                   </Typography>
+
+                  {/* Ajout de la pagination */}
+                  {recentLastPage > 1 && (
+                    <Pagination
+                      count={recentLastPage}
+                      page={recentPage}
+                      onChange={(_, value) => setRecentPage(value)}
+                      size="small"
+                      sx={{ mt: 2, justifyContent: "center", display: "flex" }}
+                    />
+                  )}
                 </Box>
               ))}
               {recentReceipts.length === 0 && (
@@ -1872,7 +1350,6 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
           </DialogActions>
         </Box>
       </Dialog>
-
       <Dialog
         open={Boolean(receiptOpen)}
         onClose={() => setReceiptOpen(null)}
@@ -1936,22 +1413,20 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
               <Button onClick={() => setReceiptOpen(null)}>Fermer</Button>
               <Button
                 variant="contained"
-                startIcon={<PrintIcon />}
-                onClick={() => window.print()}
+                onClick={() =>
+                  generatePDF(
+                    receiptOpen,
+                    user.current_school?.name,
+                    user.current_school?.logo_url || null, // logo_url contient déjà l'URL complète
+                  )
+                }
               >
-                Imprimer
+                Télécharger PDF
               </Button>
             </DialogActions>
           </Box>
         )}
       </Dialog>
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .receipt-print-area, .receipt-print-area * { visibility: visible; }
-          .receipt-print-area { position: fixed; top: 0; left: 0; width: 100%; }
-        }
-      `}</style>
     </Box>
   );
 }

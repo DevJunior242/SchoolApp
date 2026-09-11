@@ -18,7 +18,7 @@ class SchoolPolicy
             ->where('school_id', $school->id)
             ->where('user_id', $user->id)
             ->where('status', SchoolUser::STATUS_ACTIVE)
-            ->whereHas('role', fn ($query) => $query->where('slug', 'directeur'))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['directeur', 'fondateur']))
             ->exists();
     }
 }
