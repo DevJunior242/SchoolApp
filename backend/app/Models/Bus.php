@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Bus extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $fillable = ['school_id', 'label', 'plate_number', 'driver_id'];
 

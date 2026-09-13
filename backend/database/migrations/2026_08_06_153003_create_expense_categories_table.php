@@ -14,6 +14,8 @@ return new class extends Migration
             $table->string('name');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->index(['school_id', 'is_active']);
+            $table->index(['school_id', 'section_id']);
         });
     }
 

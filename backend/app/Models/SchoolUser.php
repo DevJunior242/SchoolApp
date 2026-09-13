@@ -3,16 +3,18 @@
 namespace App\Models;
 
 use App\Models\Role;
-use App\Models\User;
 use App\Models\School;
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use App\Models\User;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SchoolUser extends Pivot
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $table = 'school_users';
 

@@ -4,20 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use App\Models\Section;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TreasuryAccount extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const TYPE_CASH = 'CASH';
 
     const TYPE_BANK = 'BANK';
 
     protected $fillable = [
-        'school_id','section_id', 'name', 'type', 'bank_name', 'opening_balance', 'is_active',
+        'school_id',
+        'section_id',
+        'name',
+        'type',
+        'bank_name',
+        'opening_balance',
+        'is_active',
     ];
 
     protected function casts(): array

@@ -25,6 +25,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['school_id', 'student_id']);
+            $table->softDeletes();
         });
     }
 

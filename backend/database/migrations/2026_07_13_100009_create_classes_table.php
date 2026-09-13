@@ -21,6 +21,7 @@ return new class extends Migration
 
             $table->unique(['school_id', 'level_id', 'school_year_id', 'name']);
             $table->index('name');
+            $table->softDeletes();
         });
     }
 

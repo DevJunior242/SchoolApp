@@ -15,10 +15,14 @@ import {
   Stack,
   TextField,
   Typography,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { motion } from "motion/react";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
@@ -39,15 +43,37 @@ export default function DashboardTeachersPage() {
     error: listError,
     reload,
   } = usePaginatedList(schoolId ? `/schools/${schoolId}/teachers` : null);
+
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   function closeModal() {
     setOpen(false);
     setForm(emptyForm);
     setError(null);
+    setEditingTeacher(null);
+  }
+
+  function openAddModal() {
+    setEditingTeacher(null);
+    setForm(emptyForm);
+    setError(null);
+    setOpen(true);
+  }
+
+  function openEditModal(teacher) {
+    setEditingTeacher(teacher);
+    setForm({
+      fullname: teacher.user?.fullname || "",
+      email: teacher.user?.email || "",
+      phone: teacher.user?.phone || "",
+    });
+    setError(null);
+    setOpen(true);
   }
 
   async function handleSubmit(e) {
@@ -55,7 +81,16 @@ export default function DashboardTeachersPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await api.post(`/schools/${schoolId}/teachers`, form);
+      if (editingTeacher) {
+        // Update
+        await api.put(
+          `/schools/${schoolId}/teachers/${editingTeacher.id}`,
+          form,
+        );
+      } else {
+        // Create
+        await api.post(`/schools/${schoolId}/teachers`, form);
+      }
       reload();
       closeModal();
     } catch (err) {
@@ -63,7 +98,23 @@ export default function DashboardTeachersPage() {
       setError(
         messages
           ? Object.values(messages).flat().join(" ")
-          : err.response?.data?.message || "Impossible d'ajouter ce professeur.",
+          : err.response?.data?.message ||
+              "Impossible de sauvegarder ce professeur.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(teacher) {
+    setSubmitting(true);
+    try {
+      await api.delete(`/schools/${schoolId}/teachers/${teacher.id}`);
+      setDeleteConfirm(null);
+      reload();
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Impossible de supprimer ce professeur.",
       );
     } finally {
       setSubmitting(false);
@@ -101,7 +152,7 @@ export default function DashboardTeachersPage() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => setOpen(true)}
+          onClick={openAddModal}
         >
           Ajouter un professeur
         </Button>
@@ -143,20 +194,50 @@ export default function DashboardTeachersPage() {
             >
               <Card variant="outlined">
                 <CardContent
-                  sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                    justifyContent: "space-between",
+                  }}
                 >
-                  <Avatar sx={{ bgcolor: "primary.main" }}>
-                    {t.user?.fullname.charAt(0).toUpperCase()}
-                  </Avatar>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="subtitle1" noWrap>
-                      {t.user?.fullname}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" noWrap>
-                      {t.user?.email}{" "}
-                      {t.user?.phone ? `· ${t.user?.phone}` : ""}
-                    </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      minWidth: 0,
+                    }}
+                  >
+                    <Avatar sx={{ bgcolor: "primary.main" }}>
+                      {t.user?.fullname.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="subtitle1" noWrap>
+                        {t.user?.fullname}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {t.user?.email}{" "}
+                        {t.user?.phone ? `· ${t.user?.phone}` : ""}
+                      </Typography>
+                    </Box>
                   </Box>
+                  <Stack direction="row" spacing={1}>
+                    <Tooltip title="Modifier">
+                      <IconButton size="small" onClick={() => openEditModal(t)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Supprimer">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => setDeleteConfirm(t)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
                 </CardContent>
               </Card>
             </motion.div>
@@ -180,8 +261,11 @@ export default function DashboardTeachersPage() {
         </Stack>
       )}
 
+      {/* Add/Edit Modal */}
       <Dialog open={open} onClose={closeModal} fullWidth maxWidth="xs">
-        <DialogTitle>Ajouter un professeur</DialogTitle>
+        <DialogTitle>
+          {editingTeacher ? "Modifier le professeur" : "Ajouter un professeur"}
+        </DialogTitle>
         <Box component="form" onSubmit={handleSubmit}>
           <DialogContent
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
@@ -207,7 +291,11 @@ export default function DashboardTeachersPage() {
             />
             <TextField
               label="Nom complet"
-              helperText="Requis uniquement si le professeur n'a pas encore de compte"
+              helperText={
+                editingTeacher
+                  ? ""
+                  : "Requis uniquement si le professeur n'a pas encore de compte"
+              }
               value={form.fullname}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, fullname: e.target.value }))
@@ -218,10 +306,49 @@ export default function DashboardTeachersPage() {
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeModal}>Annuler</Button>
             <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? "Ajout..." : "Ajouter"}
+              {submitting
+                ? editingTeacher
+                  ? "Modification..."
+                  : "Ajout..."
+                : editingTeacher
+                  ? "Modifier"
+                  : "Ajouter"}
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        maxWidth="xs"
+      >
+        <DialogTitle>Supprimer le professeur?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Êtes-vous sûr de vouloir supprimer{" "}
+            <strong>{deleteConfirm?.user?.fullname}</strong>?
+          </Typography>
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteConfirm(null)} disabled={submitting}>
+            Annuler
+          </Button>
+          <Button
+            onClick={() => handleDelete(deleteConfirm)}
+            variant="contained"
+            color="error"
+            disabled={submitting}
+          >
+            {submitting ? "Suppression..." : "Supprimer"}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

@@ -35,6 +35,7 @@ return new class extends Migration
             $table->unsignedInteger('library_loan_duration_days')->default(14);
             $table->string('academic_period_type', 10)->default('trimestre');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

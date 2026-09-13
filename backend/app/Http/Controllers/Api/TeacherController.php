@@ -22,10 +22,10 @@ class TeacherController extends Controller
         return response()->json(
             SchoolUser::query()
                 ->where('school_id', $school->id)
-                ->whereHas('role', fn ($query) => $query->where('slug', 'professeur'))
+                ->whereHas('role', fn($query) => $query->where('slug', 'professeur'))
                 ->when(
                     $request->query('search'),
-                    fn ($query, $search) => $query->whereHas('user', fn ($q) => $q->where('fullname', 'like', "%{$search}%"))
+                    fn($query, $search) => $query->whereHas('user', fn($q) => $q->where('fullname', 'like', "%{$search}%"))
                 )
                 ->with(['user', 'role'])
                 ->paginate($request->integer('per_page', 10))
@@ -66,5 +66,44 @@ class TeacherController extends Controller
         }
 
         return response()->json($schoolUser->load('user', 'role'), 201);
+    }
+
+    public function update(Request $request, School $school, SchoolUser $schoolUser)
+    {
+        $this->authorizeDirecteur($request, $school);
+
+        // Vérifier que le schoolUser appartient à l'école
+        if ($schoolUser->school_id !== $school->id) {
+            return response()->json(['message' => 'Professeur non trouvé'], 404);
+        }
+
+        $validated = $request->validate([
+            'fullname' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email'],
+            'phone' => ['nullable', 'string', 'max:30'],
+        ]);
+
+        // Update l'utilisateur associé
+        if (!empty($validated)) {
+            $schoolUser->user->update(array_filter($validated));
+        }
+
+        return response()->json($schoolUser->fresh()->load('user', 'role'), 200);
+    }
+
+    public function destroy(Request $request, School $school, SchoolUser $schoolUser)
+    {
+        $this->authorizeDirecteur($request, $school);
+
+        // Vérifier que le schoolUser appartient à l'école
+        if ($schoolUser->school_id !== $school->id) {
+            return response()->json(['message' => 'Professeur non trouvé'], 404);
+        }
+
+        $schoolUser->delete(); // Soft delete
+
+        $this->syncStaffQuota($school->fresh());
+
+        return response()->json(['message' => 'Professeur supprimé'], 200);
     }
 }

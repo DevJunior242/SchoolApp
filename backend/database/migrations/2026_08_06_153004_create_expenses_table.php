@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('expenses', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('school_id')->constrained()->cascadeOnDelete();
-             $table->foreignUuid('section_id')->nullable()
+            $table->foreignUuid('section_id')->nullable()
                 ->constrained('sections')->nullOnDelete();
             $table->foreignUuid('expense_category_id')->constrained()->cascadeOnDelete();
             // Nullable : une dépense peut être déclarée avant qu'on sache
@@ -30,8 +30,9 @@ return new class extends Migration
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamps();
 
-            $table->index(['school_id','section_id', 'status']);
+            $table->index(['school_id', 'section_id', 'status']);
             $table->index(['school_id', 'expense_date']);
+            $table->softDeletes();
         });
     }
 

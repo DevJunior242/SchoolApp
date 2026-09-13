@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BookDocument extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $fillable = ['school_id', 'book_id', 'title', 'path', 'level_id', 'uploaded_by', 'download_count'];
 

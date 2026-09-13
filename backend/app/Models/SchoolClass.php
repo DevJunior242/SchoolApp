@@ -2,25 +2,33 @@
 
 namespace App\Models;
 
-use App\Models\Level;
-use App\Models\School;
-use App\Models\Student;
-use App\Models\SchoolYear;
 use App\Models\ClassStudent;
 use App\Models\ClassSubjectTeacher;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Level;
+use App\Models\School;
+use App\Models\SchoolYear;
+use App\Models\Student;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 
 class SchoolClass extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $table = 'classes';
 
     protected $fillable = ['school_id', 'level_id', 'school_year_id', 'name'];
+
+
+    public static function booted() // ✅ Ajoute ça
+    {
+        Log::info('SchoolClass model booted!');
+    }
 
     public function school(): BelongsTo
     {

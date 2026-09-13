@@ -135,7 +135,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // exigées avec un email vérifié pour limiter les comptes jetables.
 
     Route::middleware('verified')->group(function () {
-                    Route::post('/schools', [SchoolController::class, 'store']);
+        Route::post('/schools', [SchoolController::class, 'store']);
 
         Route::post('/schools/{school}/join', [SchoolController::class, 'join']);
         Route::post('/marketplace/providers', [ServiceProviderController::class, 'store']);
@@ -229,11 +229,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/events/{event}/recap', [EventRecapController::class, 'show']);
         Route::get('/schools/{school}/enrollment-requests', [EnrollmentRequestController::class, 'index']);
         Route::get('/schools/{school}/members', [SchoolMemberController::class, 'index']);
-        Route::get('/schools/{school}/teachers', [TeacherController::class, 'index']);
         Route::get('/schools/{school}/hr/staff', [SchoolStaffProfileController::class, 'index']);
         Route::get('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'show']);
         Route::get('/schools/{school}/hr/leaves', [SchoolStaffLeaveController::class, 'index']);
-        Route::get('/schools/{school}/classes', [ClassController::class, 'index']);
         Route::get('/schools/{school}/students', [StudentController::class, 'index']);
         Route::get('/schools/{school}/parents', [ParentController::class, 'index']);
         Route::get('/schools/{school}/parents/{parent}/children', [ParentController::class, 'children']);
@@ -318,15 +316,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/members', [SchoolMemberController::class, 'store']);
             Route::put('/schools/{school}/members/{member}', [SchoolMemberController::class, 'update']);
             Route::delete('/schools/{school}/members/{member}', [SchoolMemberController::class, 'destroy']);
+            Route::prefix('schools/{school}')->group(function () {
+                // Teachers
+                Route::get('/teachers', [TeacherController::class, 'index']);
+                Route::post('/teachers', [TeacherController::class, 'store']);
+                Route::put('/teachers/{schoolUser}', [TeacherController::class, 'update']);
+                Route::delete('/teachers/{schoolUser}', [TeacherController::class, 'destroy']);
+            });
 
-            Route::post('/schools/{school}/teachers', [TeacherController::class, 'store']);
             Route::post('/schools/{school}/hr/staff', [SchoolStaffProfileController::class, 'store']);
             Route::put('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'update']);
             Route::delete('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'destroy']);
             Route::post('/schools/{school}/hr/leaves', [SchoolStaffLeaveController::class, 'store']);
             Route::put('/schools/{school}/hr/leaves/{leave}/status', [SchoolStaffLeaveController::class, 'updateStatus']);
-
-            Route::post('/schools/{school}/classes', [ClassController::class, 'store']);
+            Route::prefix('schools/{school}')->group(function () {
+                Route::get('/classes', [ClassController::class, 'index']);
+                Route::post('/classes', [ClassController::class, 'store']);
+                Route::put('/classes/{class}', [ClassController::class, 'update']); // ✅
+                Route::delete('/classes/{class}', [ClassController::class, 'destroy']); // ✅
+            });
             Route::post('/schools/{school}/classes/{schoolClass}/teachers', [ClassTeacherController::class, 'store']);
             Route::delete('/schools/{school}/classes/{schoolClass}/teachers/{assignment}', [ClassTeacherController::class, 'destroy']);
 
@@ -434,5 +442,3 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 });
-
-

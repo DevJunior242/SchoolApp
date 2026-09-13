@@ -19,7 +19,7 @@ class StudentWalletController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire', 'cantine'];
+    private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire', 'cantine', 'fondateur'];
 
     /**
      * File d'attente du personnel autorisé (comptable/directeur/secrétariat
@@ -33,17 +33,17 @@ class StudentWalletController extends Controller
 
         return response()->json(
             WalletTransaction::query()
-                ->whereHas('wallet', fn ($query) => $query->where('school_id', $school->id))
-                ->when($sectionIds, fn ($query, $ids) => $query->whereHas(
+                ->whereHas('wallet', fn($query) => $query->where('school_id', $school->id))
+                ->when($sectionIds, fn($query, $ids) => $query->whereHas(
                     'wallet.student.classStudents',
-                    fn ($classStudentQuery) => $classStudentQuery
+                    fn($classStudentQuery) => $classStudentQuery
                         ->where('status', ClassStudent::STATUS_ACTIVE)
-                        ->whereHas('schoolClass', fn ($classQuery) => $classQuery
+                        ->whereHas('schoolClass', fn($classQuery) => $classQuery
                             ->where('school_id', $school->id)
-                            ->whereHas('level', fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
+                            ->whereHas('level', fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
                 ))
                 ->where('type', WalletTransaction::TYPE_RECHARGE)
-                ->when($request->query('status') !== null, fn ($query) => $query->where('status', $request->query('status')))
+                ->when($request->query('status') !== null, fn($query) => $query->where('status', $request->query('status')))
                 ->with(['wallet.student', 'paymentMethod', 'declaredBy'])
                 ->latest('created_at')
                 ->paginate($request->integer('per_page', 10))
@@ -98,7 +98,7 @@ class StudentWalletController extends Controller
         $canAutoConfirm = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $request->user()->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'comptable', 'cantine']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['directeur', 'comptable', 'cantine']))
             ->exists();
 
         $transaction = $wallet->transactions()->create([
@@ -181,7 +181,7 @@ class StudentWalletController extends Controller
         $isStaff = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', self::STAFF_ROLE_SLUGS))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', self::STAFF_ROLE_SLUGS))
             ->exists();
 
         if ($isStaff) {
@@ -201,7 +201,7 @@ class StudentWalletController extends Controller
         $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->with('schoolClass')
             ->latest('created_at')
             ->firstOrFail();

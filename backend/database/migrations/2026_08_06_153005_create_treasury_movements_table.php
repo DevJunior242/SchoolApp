@@ -23,7 +23,9 @@ return new class extends Migration
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-$table->index(['treasury_account_id', 'movement_date']);        });
+            $table->index(['treasury_account_id', 'movement_date']);
+            $table->softDeletes();
+        });
     }
 
     public function down(): void

@@ -21,6 +21,7 @@ return new class extends Migration
 
             // Un utilisateur a un rôle unique dans un établissement donné
             $table->unique(['school_id', 'user_id']);
+            $table->softDeletes();
         });
     }
 
