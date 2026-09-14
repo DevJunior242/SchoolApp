@@ -4,13 +4,14 @@ namespace App\Models;
 
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class ClassStudent extends Pivot
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $table = 'class_student';
 

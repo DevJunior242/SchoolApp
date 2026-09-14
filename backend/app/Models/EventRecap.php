@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Event;
 use App\Models\User;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EventRecap extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $fillable = ['event_id', 'summary', 'video_url', 'published_at', 'created_by'];
 

@@ -5,13 +5,14 @@ namespace App\Models;
 use App\Models\ClassSubjectTeacher;
 use App\Models\Season;
 use App\Models\Student;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Grade extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const TYPE_DEVOIR = 'devoir';
 
@@ -32,8 +33,15 @@ class Grade extends Model
     ];
 
     protected $fillable = [
-        'class_subject_teacher_id', 'student_id', 'season_id', 'evaluation_type',
-        'title', 'score', 'max_score', 'coefficient', 'graded_at',
+        'class_subject_teacher_id',
+        'student_id',
+        'season_id',
+        'evaluation_type',
+        'title',
+        'score',
+        'max_score',
+        'coefficient',
+        'graded_at',
     ];
 
     protected function casts(): array

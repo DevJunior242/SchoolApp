@@ -81,17 +81,26 @@ export default function DashboardStudentsPage() {
   const { schoolUsers } = useSchools();
   const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role
     ?.slug;
-  const canRegister = ["fondateur", "directeur", "secretaire"].includes(currentRole);
-  const canSeeHealth = ["directeur", "infirmier"].includes(currentRole);
+  const canRegister = ["fondateur", "directeur", "secretaire"].includes(
+    currentRole,
+  );
+  const canSeeHealth = ["directeur", "infirmier", "fondateur"].includes(
+    currentRole,
+  );
   // Seul le directeur peut consulter le bulletin depuis cette liste (le
   // parent y accède via sa propre page) : secrétaire/comptable/infirmier
   // recevaient un 403 silencieux en cliquant, le bouton ne doit pas leur
   // être montré.
   const canSeeBulletin = currentRole === "directeur";
-  const canSeeCafeteria = ["directeur", "comptable", "secretaire"].includes(
+  const canSeeCafeteria = [
+    "directeur",
+    "comptable",
+    "secretaire",
+    "fondateur",
+  ].includes(currentRole);
+  const canAssignBus = ["directeur", "secretaire", "fondateur"].includes(
     currentRole,
   );
-  const canAssignBus = ["directeur", "secretaire"].includes(currentRole);
 
   const [classFilter, setClassFilter] = useState("");
   const {
@@ -373,7 +382,11 @@ export default function DashboardStudentsPage() {
         </Stack>
       )}
 
-      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeActionsMenu}>
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={closeActionsMenu}
+      >
         {canSeeBulletin && (
           <MenuItem
             component={RouterLink}
@@ -446,7 +459,8 @@ export default function DashboardStudentsPage() {
             )}
             {classes.length === 0 && (
               <Alert severity="warning" sx={{ mb: 2 }}>
-                Créez d’abord une classe dans une section active avant d’inscrire un élève.
+                Créez d’abord une classe dans une section active avant
+                d’inscrire un élève.
               </Alert>
             )}
 
@@ -653,7 +667,11 @@ export default function DashboardStudentsPage() {
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeModal}>Annuler</Button>
-            <Button type="submit" variant="contained" disabled={submitting || classes.length === 0}>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={submitting || classes.length === 0}
+            >
               {submitting
                 ? "Inscription..."
                 : `Inscrire ${batch.length > 1 ? `(${batch.length})` : ""}`}

@@ -2,17 +2,25 @@
 
 namespace App\Models;
 
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StudentMedication extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $fillable = [
-        'school_id', 'student_id', 'name', 'dosage', 'starts_on', 'ends_on',
-        'notes', 'parent_authorized', 'created_by',
+        'school_id',
+        'student_id',
+        'name',
+        'dosage',
+        'starts_on',
+        'ends_on',
+        'notes',
+        'parent_authorized',
+        'created_by',
     ];
 
     protected function casts(): array

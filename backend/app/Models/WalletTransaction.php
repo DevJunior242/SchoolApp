@@ -5,13 +5,14 @@ namespace App\Models;
 use App\Models\PaymentMethod;
 use App\Models\StudentWallet;
 use App\Models\User;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WalletTransaction extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const TYPE_RECHARGE = 1;
 
@@ -24,9 +25,17 @@ class WalletTransaction extends Model
     const STATUS_REJECTED = 2;
 
     protected $fillable = [
-        'student_wallet_id', 'type', 'amount', 'status', 'payment_method_id',
-        'sender_number', 'transaction_id', 'declared_by', 'confirmed_by',
-        'confirmed_at', 'notes',
+        'student_wallet_id',
+        'type',
+        'amount',
+        'status',
+        'payment_method_id',
+        'sender_number',
+        'transaction_id',
+        'declared_by',
+        'confirmed_by',
+        'confirmed_at',
+        'notes',
     ];
 
     protected function casts(): array

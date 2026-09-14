@@ -92,7 +92,7 @@ class TreasuryAccountController extends Controller
                     'nullable',
                     Rule::exists('school_sections', 'section_id')
                         ->where('school_id', $school->id)
-                        ->where('active', true) // Bonus: filter les sections inactives
+                        ->where('active', true)
                 ],
             ]);
 

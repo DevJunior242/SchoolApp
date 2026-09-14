@@ -5,13 +5,14 @@ namespace App\Models;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\User;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Event extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const TYPE_REUNION = 1;
 
@@ -26,8 +27,15 @@ class Event extends Model
     const TYPE_AUTRE = 6;
 
     protected $fillable = [
-        'school_id', 'class_id', 'title', 'description', 'type',
-        'start_at', 'end_at', 'location', 'created_by',
+        'school_id',
+        'class_id',
+        'title',
+        'description',
+        'type',
+        'start_at',
+        'end_at',
+        'location',
+        'created_by',
     ];
 
     protected function casts(): array

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Bus;
 use App\Models\User;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BusTrip extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const DIRECTION_PICKUP = 1;
 
@@ -22,8 +23,15 @@ class BusTrip extends Model
     const STATUS_COMPLETED = 2;
 
     protected $fillable = [
-        'bus_id', 'driver_id', 'direction', 'status', 'current_latitude',
-        'current_longitude', 'last_ping_at', 'started_at', 'ended_at',
+        'bus_id',
+        'driver_id',
+        'direction',
+        'status',
+        'current_latitude',
+        'current_longitude',
+        'last_ping_at',
+        'started_at',
+        'ended_at',
     ];
 
     protected function casts(): array

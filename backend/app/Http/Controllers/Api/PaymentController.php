@@ -124,7 +124,7 @@ class PaymentController extends Controller
                     ->where('is_active', true),
             ],
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'sender_number' => ['required', 'string', 'max:30'],
+            'sender_number' => ['nullable', 'string', 'max:30'],
             'transaction_id' => ['nullable', 'string', 'max:100'],
         ]);
 

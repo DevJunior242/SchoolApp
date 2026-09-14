@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\School;
 use App\Models\SchoolYear;
 use App\Models\Season;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FeeStructure extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const CATEGORY_TUITION = 1;
 
@@ -29,8 +30,16 @@ class FeeStructure extends Model
     const CATEGORY_CUSTOM = 3;
 
     protected $fillable = [
-        'school_id', 'level_id', 'season_id', 'school_year_id', 'category', 'fee_category_id',
-        'label', 'amount', 'due_date', 'order',
+        'school_id',
+        'level_id',
+        'season_id',
+        'school_year_id',
+        'category',
+        'fee_category_id',
+        'label',
+        'amount',
+        'due_date',
+        'order',
     ];
 
     protected function casts(): array

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Book;
 use App\Models\BookLoan;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BookCopy extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const STATUS_AVAILABLE = 1;
 

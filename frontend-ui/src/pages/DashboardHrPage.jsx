@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Alert,
   Box,
@@ -6,6 +6,10 @@ import {
   Card,
   CardContent,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
   IconButton,
   MenuItem,
@@ -14,9 +18,12 @@ import {
   Stack,
   TextField,
   Typography,
+  InputAdornment,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
 import { useAuth } from "../context/AuthContext.jsx";
 import api from "../api/axios.jsx";
 
@@ -79,13 +86,19 @@ export default function DashboardHrPage() {
   const [leaveForm, setLeaveForm] = useState(initialLeaveForm);
   const [leaveSubmitting, setLeaveSubmitting] = useState(false);
 
+  // ✅ Modal states
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+
   useEffect(() => {
     if (!schoolId) return;
 
     async function loadData() {
       try {
         const [membersRes, leavesRes] = await Promise.all([
-          api.get(`/schools/${schoolId}/hr/staff`, { params: { per_page: 100 } }),
+          api.get(`/schools/${schoolId}/hr/staff`, {
+            params: { per_page: 100 },
+          }),
           api.get(`/schools/${schoolId}/hr/leaves`),
         ]);
 
@@ -124,7 +137,6 @@ export default function DashboardHrPage() {
 
   useEffect(() => {
     if (!schoolId) return;
-
     const timeout = setTimeout(() => {
       loadStaff().catch((err) =>
         setError(
@@ -132,7 +144,6 @@ export default function DashboardHrPage() {
         ),
       );
     }, 300);
-
     return () => clearTimeout(timeout);
   }, [schoolId, page, searchTerm, departmentFilter]);
 
@@ -152,9 +163,21 @@ export default function DashboardHrPage() {
     (person) => Number(person.contract_type) === 1,
   ).length;
   const formatAmount = (amount) =>
-    new Intl.NumberFormat("fr-FR", {
-      maximumFractionDigits: 0,
-    }).format(amount);
+    new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(amount);
+
+  // ✅ Close modals
+  function closeStaffModal() {
+    setStaffModalOpen(false);
+    setEditingUserId(null);
+    setForm(initialForm);
+    setError("");
+  }
+
+  function closeLeaveModal() {
+    setLeaveModalOpen(false);
+    setLeaveForm(initialLeaveForm);
+    setError("");
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -183,8 +206,7 @@ export default function DashboardHrPage() {
       }
 
       await loadStaff();
-      setForm(initialForm);
-      setEditingUserId(null);
+      closeStaffModal();
     } catch (err) {
       const messages = err.response?.data?.errors;
       setError(
@@ -209,6 +231,7 @@ export default function DashboardHrPage() {
       monthly_salary: member.monthly_salary ?? "",
       contract_type: member.contract_type ?? 1,
     });
+    setStaffModalOpen(true);
   }
 
   async function handleDelete(member) {
@@ -220,8 +243,7 @@ export default function DashboardHrPage() {
       await api.delete(`/schools/${schoolId}/hr/staff/${member.user_id}`);
       await loadStaff();
       if (editingUserId === member.user_id) {
-        setEditingUserId(null);
-        setForm(initialForm);
+        closeStaffModal();
       }
     } catch (err) {
       setError(
@@ -238,11 +260,9 @@ export default function DashboardHrPage() {
     setError("");
 
     try {
-      await api.post(`/schools/${schoolId}/hr/leaves`, {
-        ...leaveForm,
-      });
+      await api.post(`/schools/${schoolId}/hr/leaves`, leaveForm);
       await loadLeaves();
-      setLeaveForm(initialLeaveForm);
+      closeLeaveModal();
     } catch (err) {
       const messages = err.response?.data?.errors;
       setError(
@@ -294,6 +314,18 @@ export default function DashboardHrPage() {
             Suivi du personnel, contrats et informations RH.
           </Typography>
         </Box>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setStaffModalOpen(true)}
+          >
+            Ajouter un profil
+          </Button>
+          <Button variant="outlined" onClick={() => setLeaveModalOpen(true)}>
+            Demande de congé
+          </Button>
+        </Stack>
       </Stack>
 
       {error && (
@@ -302,6 +334,7 @@ export default function DashboardHrPage() {
         </Alert>
       )}
 
+      {/* Stats Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card variant="outlined">
@@ -343,7 +376,7 @@ export default function DashboardHrPage() {
           <Card variant="outlined">
             <CardContent>
               <Typography variant="body2" color="text.secondary">
-                Masse salariale mensuelle
+                Masse salariale
               </Typography>
               <Typography variant="h5" fontWeight={700}>
                 {formatAmount(totalPayroll)}
@@ -354,6 +387,7 @@ export default function DashboardHrPage() {
       </Grid>
 
       <Grid container spacing={3}>
+        {/* Personnel List */}
         <Grid item xs={12} md={7}>
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
@@ -373,6 +407,15 @@ export default function DashboardHrPage() {
                   setPage(1);
                 }}
                 fullWidth
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
               <TextField
                 select
@@ -453,7 +496,6 @@ export default function DashboardHrPage() {
                         )}
                         <IconButton
                           size="small"
-                          aria-label="Modifier"
                           onClick={() => handleEdit(member)}
                         >
                           <EditIcon fontSize="small" />
@@ -461,7 +503,6 @@ export default function DashboardHrPage() {
                         <IconButton
                           size="small"
                           color="error"
-                          aria-label="Supprimer"
                           onClick={() => handleDelete(member)}
                         >
                           <DeleteIcon fontSize="small" />
@@ -485,238 +526,8 @@ export default function DashboardHrPage() {
           </Paper>
         </Grid>
 
+        {/* Leaves */}
         <Grid item xs={12} md={5}>
-          <Paper variant="outlined" sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              {editingUserId ? "Modifier le profil RH" : "Ajouter un profil RH"}
-            </Typography>
-            <Box
-              component="form"
-              onSubmit={handleSubmit}
-              sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-            >
-              <TextField
-                select
-                label="Membre"
-                value={form.user_id}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, user_id: e.target.value }))
-                }
-                fullWidth
-                required
-              >
-                {members.map((member) => (
-                  <MenuItem
-                    key={member.user_id || member.id}
-                    value={member.user_id || member.id}
-                  >
-                    {member.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              <TextField
-                label="Département"
-                placeholder="Ex. Comptabilité"
-                value={form.department}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, department: e.target.value }))
-                }
-                fullWidth
-              />
-
-              <TextField
-                label="Poste"
-                placeholder="Ex. Comptable"
-                value={form.position}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, position: e.target.value }))
-                }
-                fullWidth
-              />
-
-              <TextField
-                select
-                label="Statut"
-                value={form.employment_status}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    employment_status: Number(e.target.value),
-                  }))
-                }
-                fullWidth
-              >
-                {EMPLOYMENT_STATUS_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              <TextField
-                label="Date d'embauche"
-                type="date"
-                value={form.hire_date}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, hire_date: e.target.value }))
-                }
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-
-              <TextField
-                label="Salaire mensuel"
-                placeholder="Ex. 250000"
-                type="number"
-                value={form.monthly_salary}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    monthly_salary: e.target.value,
-                  }))
-                }
-                fullWidth
-              />
-
-              <TextField
-                select
-                label="Type de contrat"
-                value={form.contract_type}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    contract_type: Number(e.target.value),
-                  }))
-                }
-                fullWidth
-              >
-                {CONTRACT_TYPE_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              {editingUserId && (
-                <Button
-                  type="button"
-                  variant="text"
-                  color="secondary"
-                  onClick={() => {
-                    setEditingUserId(null);
-                    setForm(initialForm);
-                  }}
-                >
-                  Annuler
-                </Button>
-              )}
-
-              <Button type="submit" variant="contained" disabled={submitting}>
-                {submitting
-                  ? "Enregistrement..."
-                  : editingUserId
-                    ? "Mettre à jour"
-                    : "Enregistrer"}
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={3} sx={{ mt: 0 }}>
-        <Grid item xs={12} md={5}>
-          <Paper variant="outlined" sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Nouvelle demande de congé
-            </Typography>
-            <Box
-              component="form"
-              onSubmit={handleLeaveSubmit}
-              sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-            >
-              <TextField
-                select
-                label="Personnel"
-                value={leaveForm.user_id}
-                onChange={(e) =>
-                  setLeaveForm((prev) => ({ ...prev, user_id: e.target.value }))
-                }
-                required
-                fullWidth
-              >
-                {staff.map((member) => (
-                  <MenuItem key={member.user_id} value={member.user_id}>
-                    {member.fullname}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="Type de congé"
-                placeholder="Ex. Congé familial"
-                value={leaveForm.leave_type}
-                onChange={(e) =>
-                  setLeaveForm((prev) => ({
-                    ...prev,
-                    leave_type: e.target.value,
-                  }))
-                }
-                required
-                fullWidth
-              />
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <TextField
-                  label="Du"
-                  type="date"
-                  value={leaveForm.starts_on}
-                  onChange={(e) =>
-                    setLeaveForm((prev) => ({
-                      ...prev,
-                      starts_on: e.target.value,
-                    }))
-                  }
-                  InputLabelProps={{ shrink: true }}
-                  required
-                  fullWidth
-                />
-                <TextField
-                  label="Au"
-                  type="date"
-                  value={leaveForm.ends_on}
-                  onChange={(e) =>
-                    setLeaveForm((prev) => ({
-                      ...prev,
-                      ends_on: e.target.value,
-                    }))
-                  }
-                  InputLabelProps={{ shrink: true }}
-                  required
-                  fullWidth
-                />
-              </Stack>
-              <TextField
-                label="Motif"
-                value={leaveForm.reason}
-                onChange={(e) =>
-                  setLeaveForm((prev) => ({ ...prev, reason: e.target.value }))
-                }
-                multiline
-                minRows={3}
-                fullWidth
-              />
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={leaveSubmitting}
-              >
-                {leaveSubmitting
-                  ? "Enregistrement..."
-                  : "Enregistrer la demande"}
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={7}>
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Demandes de congé
@@ -789,6 +600,233 @@ export default function DashboardHrPage() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* ✅ Staff Modal */}
+      <Dialog
+        open={staffModalOpen}
+        onClose={closeStaffModal}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {editingUserId ? "Modifier le profil RH" : "Ajouter un profil RH"}
+        </DialogTitle>
+        <Box component="form" onSubmit={handleSubmit}>
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            {error && <Alert severity="error">{error}</Alert>}
+
+            <TextField
+              select
+              label="Membre"
+              value={form.user_id}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, user_id: e.target.value }))
+              }
+              fullWidth
+              required
+              disabled={!!editingUserId}
+            >
+              {members.map((member) => (
+                <MenuItem
+                  key={member.user_id || member.id}
+                  value={member.user_id || member.id}
+                >
+                  {member.label}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Département"
+              placeholder="Ex. Comptabilité"
+              value={form.department}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, department: e.target.value }))
+              }
+              fullWidth
+            />
+
+            <TextField
+              label="Poste"
+              placeholder="Ex. Comptable"
+              value={form.position}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, position: e.target.value }))
+              }
+              fullWidth
+            />
+
+            <TextField
+              select
+              label="Statut"
+              value={form.employment_status}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  employment_status: Number(e.target.value),
+                }))
+              }
+              fullWidth
+            >
+              {EMPLOYMENT_STATUS_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Date d'embauche"
+              type="date"
+              value={form.hire_date}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, hire_date: e.target.value }))
+              }
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              label="Salaire mensuel"
+              placeholder="Ex. 250000"
+              type="number"
+              value={form.monthly_salary}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, monthly_salary: e.target.value }))
+              }
+              fullWidth
+            />
+
+            <TextField
+              select
+              label="Type de contrat"
+              value={form.contract_type}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  contract_type: Number(e.target.value),
+                }))
+              }
+              fullWidth
+            >
+              {CONTRACT_TYPE_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={closeStaffModal}>Annuler</Button>
+            <Button type="submit" variant="contained" disabled={submitting}>
+              {submitting
+                ? "Enregistrement..."
+                : editingUserId
+                  ? "Mettre à jour"
+                  : "Enregistrer"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      {/* ✅ Leave Modal */}
+      <Dialog
+        open={leaveModalOpen}
+        onClose={closeLeaveModal}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Nouvelle demande de congé</DialogTitle>
+        <Box component="form" onSubmit={handleLeaveSubmit}>
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            {error && <Alert severity="error">{error}</Alert>}
+
+            <TextField
+              select
+              label="Personnel"
+              value={leaveForm.user_id}
+              onChange={(e) =>
+                setLeaveForm((prev) => ({ ...prev, user_id: e.target.value }))
+              }
+              required
+              fullWidth
+            >
+              {staff.map((member) => (
+                <MenuItem key={member.user_id} value={member.user_id}>
+                  {member.fullname}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Type de congé"
+              placeholder="Ex. Congé familial"
+              value={leaveForm.leave_type}
+              onChange={(e) =>
+                setLeaveForm((prev) => ({
+                  ...prev,
+                  leave_type: e.target.value,
+                }))
+              }
+              required
+              fullWidth
+            />
+
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                label="Du"
+                type="date"
+                value={leaveForm.starts_on}
+                onChange={(e) =>
+                  setLeaveForm((prev) => ({
+                    ...prev,
+                    starts_on: e.target.value,
+                  }))
+                }
+                InputLabelProps={{ shrink: true }}
+                required
+                fullWidth
+              />
+              <TextField
+                label="Au"
+                type="date"
+                value={leaveForm.ends_on}
+                onChange={(e) =>
+                  setLeaveForm((prev) => ({ ...prev, ends_on: e.target.value }))
+                }
+                InputLabelProps={{ shrink: true }}
+                required
+                fullWidth
+              />
+            </Stack>
+
+            <TextField
+              label="Motif"
+              value={leaveForm.reason}
+              onChange={(e) =>
+                setLeaveForm((prev) => ({ ...prev, reason: e.target.value }))
+              }
+              multiline
+              minRows={3}
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={closeLeaveModal}>Annuler</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={leaveSubmitting}
+            >
+              {leaveSubmitting ? "Enregistrement..." : "Enregistrer la demande"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
     </Box>
   );
 }

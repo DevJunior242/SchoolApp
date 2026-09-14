@@ -4,13 +4,14 @@ namespace App\Models;
 
 use App\Models\School;
 use App\Models\Section;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SchoolSection extends Pivot
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $table = 'school_sections';
 

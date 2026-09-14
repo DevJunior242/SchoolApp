@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SchoolStaffProfile extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     public const EMPLOYMENT_FULL_TIME = 1;
     public const EMPLOYMENT_PART_TIME = 2;

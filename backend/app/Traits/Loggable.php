@@ -33,12 +33,12 @@ trait Loggable
             $newValues = null;
 
             if ($action === 'created') {
-                $newValues = $model->getAttributes(); // ✅ Toutes les nouvelles valeurs
+                $newValues = $model->getAttributes(); //  Toutes les nouvelles valeurs
             } elseif ($action === 'updated') {
-                $oldValues = $model->getOriginal(); // ✅ Les anciennes valeurs
-                $newValues = $model->getChanges(); // ✅ Que ce qui a changé
+                $oldValues = $model->getOriginal(); //  Les anciennes valeurs
+                $newValues = $model->getChanges(); //  Que ce qui a changé
             } elseif ($action === 'deleted') {
-                $oldValues = $model->getAttributes(); // ✅ Toutes les valeurs avant suppression
+                $oldValues = $model->getAttributes(); //  Toutes les valeurs avant suppression
             }
 
             ActivityLog::create([

@@ -9,21 +9,29 @@ use App\Models\School;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CafeteriaMealService extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const COVERED_BY_WALLET = 1;
 
     const COVERED_BY_SUBSCRIPTION = 2;
 
     protected $fillable = [
-        'school_id', 'student_id', 'cafeteria_menu_id', 'cafeteria_menu_item_id',
-        'served_at', 'served_by', 'covered_by', 'wallet_transaction_id', 'fee_structure_id',
+        'school_id',
+        'student_id',
+        'cafeteria_menu_id',
+        'cafeteria_menu_item_id',
+        'served_at',
+        'served_by',
+        'covered_by',
+        'wallet_transaction_id',
+        'fee_structure_id',
     ];
 
     protected function casts(): array

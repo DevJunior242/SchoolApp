@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Grade;
 use App\Models\School;
 use App\Models\SchoolYear;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Season extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const TYPE_TRIMESTRE = 'trimestre';
 

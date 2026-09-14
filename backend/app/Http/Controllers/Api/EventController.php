@@ -20,7 +20,7 @@ class EventController extends Controller
 {
     use AuthorizesSchoolDirecteur, ResolvesEventAudience, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire', 'comptable'];
+    private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire', 'comptable', 'fondateur'];
 
     /**
      * Le staff voit tous les événements de l'école. Les autres ne voient
@@ -34,7 +34,7 @@ class EventController extends Controller
         $isStaff = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', self::STAFF_ROLE_SLUGS))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', self::STAFF_ROLE_SLUGS))
             ->exists();
 
         $query = Event::query()->where('school_id', $school->id);
@@ -44,9 +44,9 @@ class EventController extends Controller
         // aux sections confiées au membre connecté.
         $sectionIds = $this->restrictedSectionIds($request, $school);
         if ($sectionIds) {
-            $query->where(fn ($q) => $q
+            $query->where(fn($q) => $q
                 ->whereNull('class_id')
-                ->orWhereHas('schoolClass.level', fn ($levelQuery) => $levelQuery
+                ->orWhereHas('schoolClass.level', fn($levelQuery) => $levelQuery
                     ->whereIn('section_id', $sectionIds)));
         }
 
@@ -69,9 +69,13 @@ class EventController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'type' => ['required', 'in:'.implode(',', [
-                Event::TYPE_REUNION, Event::TYPE_EXAMEN, Event::TYPE_SORTIE,
-                Event::TYPE_FERIE, Event::TYPE_BULLETIN, Event::TYPE_AUTRE,
+            'type' => ['required', 'in:' . implode(',', [
+                Event::TYPE_REUNION,
+                Event::TYPE_EXAMEN,
+                Event::TYPE_SORTIE,
+                Event::TYPE_FERIE,
+                Event::TYPE_BULLETIN,
+                Event::TYPE_AUTRE,
             ])],
             'class_id' => ['nullable', 'uuid', 'exists:classes,id'],
             'start_at' => ['required', 'date'],
@@ -115,14 +119,14 @@ class EventController extends Controller
     {
         $asParent = ClassStudent::query()
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('student.parents', fn ($query) => $query->where('parent_user_id', $userId))
+            ->whereHas('student.parents', fn($query) => $query->where('parent_user_id', $userId))
             ->pluck('class_id');
 
         $asTeacher = ClassSubjectTeacher::query()->where('user_id', $userId)->pluck('class_id');
 
         $asStudent = ClassStudent::query()
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('student', fn ($query) => $query->where('user_id', $userId))
+            ->whereHas('student', fn($query) => $query->where('user_id', $userId))
             ->pluck('class_id');
 
         return $asParent->merge($asTeacher)->merge($asStudent)->unique()->values()->all();

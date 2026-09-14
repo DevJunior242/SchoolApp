@@ -2,19 +2,20 @@
 
 namespace App\Models;
 
-use App\Models\User;
+use App\Models\ExpenseCategory;
+use App\Models\PaymentMethod;
 use App\Models\School;
 use App\Models\Section;
-use App\Models\PaymentMethod;
-use App\Models\ExpenseCategory;
 use App\Models\TreasuryAccount;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Expense extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const STATUS_PENDING = 0;
 
@@ -23,10 +24,20 @@ class Expense extends Model
     const STATUS_REJECTED = 2;
 
     protected $fillable = [
-        'school_id', 'expense_category_id', 'treasury_account_id', 'payment_method_id',
+        'school_id',
+        'expense_category_id',
+        'treasury_account_id',
+        'payment_method_id',
         'section_id',
-        'amount', 'supplier_name', 'description', 'expense_date', 'receipt_path', 'status',
-        'declared_by', 'confirmed_by', 'confirmed_at',
+        'amount',
+        'supplier_name',
+        'description',
+        'expense_date',
+        'receipt_path',
+        'status',
+        'declared_by',
+        'confirmed_by',
+        'confirmed_at',
     ];
 
     protected function casts(): array

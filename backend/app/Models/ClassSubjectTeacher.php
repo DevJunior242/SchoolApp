@@ -2,21 +2,22 @@
 
 namespace App\Models;
 
+use App\Models\Attendance;
+use App\Models\CourseContent;
+use App\Models\Grade;
+use App\Models\SchoolClass;
+use App\Models\Subject;
+use App\Models\TimetableSlot;
+use App\Models\User;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\SchoolClass;
-use App\Models\Subject;
-use App\Models\User;
-use App\Models\TimetableSlot;
-use App\Models\Grade;
-use App\Models\Attendance;
-use App\Models\CourseContent;
 
 class ClassSubjectTeacher extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $table = 'class_subject_teacher';
 

@@ -5,11 +5,21 @@ import GuestRoute from "./components/GuestRoute.jsx";
 
 const PublicLayout = lazy(() => import("./layouts/PublicLayout.jsx"));
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
-const SuperAdminActivationKeysPage = lazy(() => import("./pages/SuperAdminActivationKeysPage.jsx"));
-const SuperAdminSchoolsPage = lazy(() => import("./pages/SuperAdminSchoolsPage.jsx"));
-const SuperAdminSchoolPricingPlansPage = lazy(() => import("./pages/SuperAdminSchoolPricingPlansPage.jsx"));
-const SuperAdminSchoolSubscriptionsPage = lazy(() => import("./pages/SuperAdminSchoolSubscriptionsPage.jsx"));
-const SuperAdminDemoRequestsPage = lazy(() => import("./pages/SuperAdminDemoRequestsPage.jsx"));
+const SuperAdminActivationKeysPage = lazy(
+  () => import("./pages/SuperAdminActivationKeysPage.jsx"),
+);
+const SuperAdminSchoolsPage = lazy(
+  () => import("./pages/SuperAdminSchoolsPage.jsx"),
+);
+const SuperAdminSchoolPricingPlansPage = lazy(
+  () => import("./pages/SuperAdminSchoolPricingPlansPage.jsx"),
+);
+const SuperAdminSchoolSubscriptionsPage = lazy(
+  () => import("./pages/SuperAdminSchoolSubscriptionsPage.jsx"),
+);
+const SuperAdminDemoRequestsPage = lazy(
+  () => import("./pages/SuperAdminDemoRequestsPage.jsx"),
+);
 const HomePage = lazy(() => import("./pages/HomePage.jsx"));
 const CreateSchoolPage = lazy(() => import("./pages/CreateSchoolPage.jsx"));
 const PricingPage = lazy(() => import("./pages/PricingPage.jsx"));
@@ -18,60 +28,135 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage.jsx"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage.jsx"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage.jsx"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage.jsx"));
-const DashboardOverviewPage = lazy(() => import("./pages/DashboardOverviewPage.jsx"));
-const DashboardSchoolsPage = lazy(() => import("./pages/DashboardSchoolsPage.jsx"));
-const DashboardMembersPage = lazy(() => import("./pages/DashboardMembersPage.jsx"));
-const DashboardTeachersPage = lazy(() => import("./pages/DashboardTeachersPage.jsx"));
+const DashboardOverviewPage = lazy(
+  () => import("./pages/DashboardOverviewPage.jsx"),
+);
+const DashboardSchoolsPage = lazy(
+  () => import("./pages/DashboardSchoolsPage.jsx"),
+);
+const DashboardMembersPage = lazy(
+  () => import("./pages/DashboardMembersPage.jsx"),
+);
+const DashboardTeachersPage = lazy(
+  () => import("./pages/DashboardTeachersPage.jsx"),
+);
 const DashboardHrPage = lazy(() => import("./pages/DashboardHrPage.jsx"));
-const DashboardClassesPage = lazy(() => import("./pages/DashboardClassesPage.jsx"));
-const DashboardStudentsPage = lazy(() => import("./pages/DashboardStudentsPage.jsx"));
-const DashboardTimetablePage = lazy(() => import("./pages/DashboardTimetablePage.jsx"));
-const TeacherAssignmentsPage = lazy(() => import("./pages/TeacherAssignmentsPage.jsx"));
+const DashboardClassesPage = lazy(
+  () => import("./pages/DashboardClassesPage.jsx"),
+);
+const DashboardStudentsPage = lazy(
+  () => import("./pages/DashboardStudentsPage.jsx"),
+);
+const DashboardExamsPage = lazy(() => import("./pages/DashboardExamsPage.jsx"));
+const DashboardTimetablePage = lazy(
+  () => import("./pages/DashboardTimetablePage.jsx"),
+);
+const TeacherAssignmentsPage = lazy(
+  () => import("./pages/TeacherAssignmentsPage.jsx"),
+);
 const GradeEntryPage = lazy(() => import("./pages/GradeEntryPage.jsx"));
 const BulletinPage = lazy(() => import("./pages/BulletinPage.jsx"));
-const DashboardParentsPage = lazy(() => import("./pages/DashboardParentsPage.jsx"));
-const DashboardPaymentsPage = lazy(() => import("./pages/DashboardPaymentsPage.jsx"));
-const DashboardExpensesPage = lazy(() => import("./pages/DashboardExpensesPage.jsx"));
-const DashboardTreasuryPage = lazy(() => import("./pages/DashboardTreasuryPage.jsx"));
-const DashboardAccountingPage = lazy(() => import("./pages/DashboardAccountingPage.jsx"));
+const DashboardParentsPage = lazy(
+  () => import("./pages/DashboardParentsPage.jsx"),
+);
+const DashboardPaymentsPage = lazy(
+  () => import("./pages/DashboardPaymentsPage.jsx"),
+);
+const DashboardExpensesPage = lazy(
+  () => import("./pages/DashboardExpensesPage.jsx"),
+);
+const DashboardTreasuryPage = lazy(
+  () => import("./pages/DashboardTreasuryPage.jsx"),
+);
+const DashboardAccountingPage = lazy(
+  () => import("./pages/DashboardAccountingPage.jsx"),
+);
 const ParentPaymentsPage = lazy(() => import("./pages/ParentPaymentsPage.jsx"));
-const AttendanceEntryPage = lazy(() => import("./pages/AttendanceEntryPage.jsx"));
-const ParentAttendancePage = lazy(() => import("./pages/ParentAttendancePage.jsx"));
-const ParentBulletinsPage = lazy(() => import("./pages/ParentBulletinsPage.jsx"));
-const AttendanceJustificationsPage = lazy(() => import("./pages/AttendanceJustificationsPage.jsx"));
-const TeacherTimetablePage = lazy(() => import("./pages/TeacherTimetablePage.jsx"));
-const DashboardEventsPage = lazy(() => import("./pages/DashboardEventsPage.jsx"));
-const DashboardEnrollmentRequestsPage = lazy(() => import("./pages/DashboardEnrollmentRequestsPage.jsx"));
-const DashboardSettingsPage = lazy(() => import("./pages/DashboardSettingsPage.jsx"));
-const AccountSecurityPage = lazy(() => import("./pages/AccountSecurityPage.jsx"));
+const AttendanceEntryPage = lazy(
+  () => import("./pages/AttendanceEntryPage.jsx"),
+);
+const ParentAttendancePage = lazy(
+  () => import("./pages/ParentAttendancePage.jsx"),
+);
+const ParentBulletinsPage = lazy(
+  () => import("./pages/ParentBulletinsPage.jsx"),
+);
+const AttendanceJustificationsPage = lazy(
+  () => import("./pages/AttendanceJustificationsPage.jsx"),
+);
+const TeacherTimetablePage = lazy(
+  () => import("./pages/TeacherTimetablePage.jsx"),
+);
+const DashboardEventsPage = lazy(
+  () => import("./pages/DashboardEventsPage.jsx"),
+);
+const DashboardEnrollmentRequestsPage = lazy(
+  () => import("./pages/DashboardEnrollmentRequestsPage.jsx"),
+);
+const DashboardSettingsPage = lazy(
+  () => import("./pages/DashboardSettingsPage.jsx"),
+);
+const AccountSecurityPage = lazy(
+  () => import("./pages/AccountSecurityPage.jsx"),
+);
 const ProfilePage = lazy(() => import("./pages/ProfilePage.jsx"));
-const DashboardSchoolYearPage = lazy(() => import("./pages/DashboardSchoolYearPage.jsx"));
-const DashboardMessagesPage = lazy(() => import("./pages/DashboardMessagesPage.jsx"));
+const DashboardSchoolYearPage = lazy(
+  () => import("./pages/DashboardSchoolYearPage.jsx"),
+);
+const DashboardMessagesPage = lazy(
+  () => import("./pages/DashboardMessagesPage.jsx"),
+);
 const EventRecapPage = lazy(() => import("./pages/EventRecapPage.jsx"));
 const StudentHealthPage = lazy(() => import("./pages/StudentHealthPage.jsx"));
-const HealthDashboardPage = lazy(() => import("./pages/HealthDashboardPage.jsx"));
+const HealthDashboardPage = lazy(
+  () => import("./pages/HealthDashboardPage.jsx"),
+);
 const StudentWalletPage = lazy(() => import("./pages/StudentWalletPage.jsx"));
 const StudentQrBadgePage = lazy(() => import("./pages/StudentQrBadgePage.jsx"));
-const DashboardCafeteriaPage = lazy(() => import("./pages/DashboardCafeteriaPage.jsx"));
-const ParentCafeteriaPage = lazy(() => import("./pages/ParentCafeteriaPage.jsx"));
-const StudentSelfBadgePage = lazy(() => import("./pages/StudentSelfBadgePage.jsx"));
-const StudentSelfWalletPage = lazy(() => import("./pages/StudentSelfWalletPage.jsx"));
-const StudentSelfBulletinPage = lazy(() => import("./pages/StudentSelfBulletinPage.jsx"));
+const DashboardCafeteriaPage = lazy(
+  () => import("./pages/DashboardCafeteriaPage.jsx"),
+);
+const ParentCafeteriaPage = lazy(
+  () => import("./pages/ParentCafeteriaPage.jsx"),
+);
+const StudentSelfBadgePage = lazy(
+  () => import("./pages/StudentSelfBadgePage.jsx"),
+);
+const StudentSelfWalletPage = lazy(
+  () => import("./pages/StudentSelfWalletPage.jsx"),
+);
+const StudentSelfBulletinPage = lazy(
+  () => import("./pages/StudentSelfBulletinPage.jsx"),
+);
 const DashboardBusesPage = lazy(() => import("./pages/DashboardBusesPage.jsx"));
 const BusDriverTripPage = lazy(() => import("./pages/BusDriverTripPage.jsx"));
-const ParentBusTrackingPage = lazy(() => import("./pages/ParentBusTrackingPage.jsx"));
-const DashboardLibraryPage = lazy(() => import("./pages/DashboardLibraryPage.jsx"));
+const ParentBusTrackingPage = lazy(
+  () => import("./pages/ParentBusTrackingPage.jsx"),
+);
+const DashboardLibraryPage = lazy(
+  () => import("./pages/DashboardLibraryPage.jsx"),
+);
 const MyLibraryPage = lazy(() => import("./pages/MyLibraryPage.jsx"));
 const ParentLibraryPage = lazy(() => import("./pages/ParentLibraryPage.jsx"));
-const AssignmentCourseContentPage = lazy(() => import("./pages/AssignmentCourseContentPage.jsx"));
+const AssignmentCourseContentPage = lazy(
+  () => import("./pages/AssignmentCourseContentPage.jsx"),
+);
 const MyCoursesPage = lazy(() => import("./pages/MyCoursesPage.jsx"));
 const ParentCoursesPage = lazy(() => import("./pages/ParentCoursesPage.jsx"));
-const DashboardMarketplacePage = lazy(() => import("./pages/DashboardMarketplacePage.jsx"));
-const SuperAdminMarketplacePage = lazy(() => import("./pages/SuperAdminMarketplacePage.jsx"));
+const DashboardMarketplacePage = lazy(
+  () => import("./pages/DashboardMarketplacePage.jsx"),
+);
+const SuperAdminMarketplacePage = lazy(
+  () => import("./pages/SuperAdminMarketplacePage.jsx"),
+);
 const ProviderItemsPage = lazy(() => import("./pages/ProviderItemsPage.jsx"));
 const BecomeProviderPage = lazy(() => import("./pages/BecomeProviderPage.jsx"));
-const DashboardAiAssistantPage = lazy(() => import("./pages/DashboardAiAssistantPage.jsx"));
-const ParentAiAssistantPage = lazy(() => import("./pages/ParentAiAssistantPage.jsx"));
+const DashboardAiAssistantPage = lazy(
+  () => import("./pages/DashboardAiAssistantPage.jsx"),
+);
+const ParentAiAssistantPage = lazy(
+  () => import("./pages/ParentAiAssistantPage.jsx"),
+);
 const TermsPage = lazy(() => import("./pages/TermsPage.jsx"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage.jsx"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage.jsx"));
@@ -144,6 +229,7 @@ function App() {
           <Route path="hr" element={<DashboardHrPage />} />
           <Route path="classes" element={<DashboardClassesPage />} />
           <Route path="students" element={<DashboardStudentsPage />} />
+          <Route path="exams" element={<DashboardExamsPage />} />
           <Route
             path="classes/:classId/timetable"
             element={<DashboardTimetablePage />}
@@ -153,7 +239,10 @@ function App() {
             path="assignments/:assignmentId/grades"
             element={<GradeEntryPage />}
           />
-          <Route path="students/:studentId/bulletin" element={<BulletinPage />} />
+          <Route
+            path="students/:studentId/bulletin"
+            element={<BulletinPage />}
+          />
           <Route
             path="students/:studentId/health"
             element={<StudentHealthPage />}
@@ -166,7 +255,10 @@ function App() {
             path="students/:studentId/qr-badge"
             element={<StudentQrBadgePage />}
           />
-          <Route path="my-children-cafeteria" element={<ParentCafeteriaPage />} />
+          <Route
+            path="my-children-cafeteria"
+            element={<ParentCafeteriaPage />}
+          />
           <Route path="my-badge" element={<StudentSelfBadgePage />} />
           <Route path="my-wallet" element={<StudentSelfWalletPage />} />
           <Route path="my-bulletin" element={<StudentSelfBulletinPage />} />
@@ -209,7 +301,10 @@ function App() {
             path="my-children-attendances"
             element={<ParentAttendancePage />}
           />
-          <Route path="my-children-bulletins" element={<ParentBulletinsPage />} />
+          <Route
+            path="my-children-bulletins"
+            element={<ParentBulletinsPage />}
+          />
           <Route
             path="attendance-justifications"
             element={<AttendanceJustificationsPage />}
@@ -239,7 +334,10 @@ function App() {
             path="school-subscriptions"
             element={<SuperAdminSchoolSubscriptionsPage />}
           />
-          <Route path="demo-requests" element={<SuperAdminDemoRequestsPage />} />
+          <Route
+            path="demo-requests"
+            element={<SuperAdminDemoRequestsPage />}
+          />
         </Route>
       </Routes>
     </Suspense>

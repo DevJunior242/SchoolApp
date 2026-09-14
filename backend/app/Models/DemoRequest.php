@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class DemoRequest extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const STATUS_PENDING = 0;
 
@@ -16,6 +17,10 @@ class DemoRequest extends Model
     const STATUS_CLOSED = 2;
 
     protected $fillable = [
-        'school_name', 'email', 'phone', 'description', 'status',
+        'school_name',
+        'email',
+        'phone',
+        'description',
+        'status',
     ];
 }

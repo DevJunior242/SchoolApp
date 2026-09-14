@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\School;
 use App\Models\Student;
 use App\Models\WalletTransaction;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StudentWallet extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $fillable = ['school_id', 'student_id', 'balance', 'low_balance_notified'];
 

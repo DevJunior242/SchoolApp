@@ -67,6 +67,13 @@ use App\Http\Controllers\Api\StudentMedicalVisitController;
 use App\Http\Controllers\Api\CafeteriaMealServiceController;
 use App\Http\Controllers\Api\StudentHealthProfileController;
 use App\Http\Controllers\Api\StudentHealthDocumentController;
+use App\Http\Controllers\Api\ExamTypeController;
+use App\Http\Controllers\Api\ExamController;
+use App\Http\Controllers\Api\ExamTargetController;
+use App\Http\Controllers\Api\ExamSubjectController;
+use App\Http\Controllers\Api\ExamCandidateController;
+use App\Http\Controllers\Api\ExamCandidateSubjectController;
+use App\Http\Controllers\Api\ExamResultController;
 
 // Routes publiques sensibles (pas d'authentification) : throttle par IP,
 // un limiteur nommé dédié par action pour éviter qu'elles se contaminent.
@@ -233,6 +240,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'show']);
         Route::get('/schools/{school}/hr/leaves', [SchoolStaffLeaveController::class, 'index']);
         Route::get('/schools/{school}/students', [StudentController::class, 'index']);
+        Route::get('/schools/{school}/exam-types', [ExamTypeController::class, 'index']);
+        Route::get('/schools/{school}/exams', [ExamController::class, 'index']);
+        Route::get('/schools/{school}/exams/{exam}', [ExamController::class, 'show']);
+        Route::get('/schools/{school}/exams/{exam}/targets', [ExamTargetController::class, 'index']);
+        Route::get('/schools/{school}/exams/{exam}/subjects', [ExamSubjectController::class, 'index']);
+        Route::get('/schools/{school}/exams/{exam}/candidates', [ExamCandidateController::class, 'index']);
+        Route::get('/schools/{school}/exams/{exam}/candidates/{candidate}/subjects', [ExamCandidateSubjectController::class, 'index']);
+        Route::get('/schools/{school}/exams/{exam}/results', [ExamResultController::class, 'index']);
+        Route::get('/schools/{school}/exams/{exam}/results/{candidate}', [ExamResultController::class, 'show']);
         Route::get('/schools/{school}/parents', [ParentController::class, 'index']);
         Route::get('/schools/{school}/parents/{parent}/children', [ParentController::class, 'children']);
         Route::get('/schools/{school}/my-children', [ParentController::class, 'mine']);
@@ -339,6 +355,34 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/schools/{school}/classes/{schoolClass}/teachers/{assignment}', [ClassTeacherController::class, 'destroy']);
 
             Route::post('/schools/{school}/students', [StudentController::class, 'store']);
+
+            Route::post('/schools/{school}/exam-types', [ExamTypeController::class, 'store']);
+            Route::put('/schools/{school}/exam-types/{examType}', [ExamTypeController::class, 'update']);
+            Route::delete('/schools/{school}/exam-types/{examType}', [ExamTypeController::class, 'destroy']);
+
+            Route::post('/schools/{school}/exams', [ExamController::class, 'store']);
+            Route::put('/schools/{school}/exams/{exam}', [ExamController::class, 'update']);
+            Route::delete('/schools/{school}/exams/{exam}', [ExamController::class, 'destroy']);
+
+            Route::post('/schools/{school}/exams/{exam}/targets', [ExamTargetController::class, 'store']);
+            Route::put('/schools/{school}/exams/{exam}/targets/{target}', [ExamTargetController::class, 'update']);
+            Route::delete('/schools/{school}/exams/{exam}/targets/{target}', [ExamTargetController::class, 'destroy']);
+
+            Route::post('/schools/{school}/exams/{exam}/subjects', [ExamSubjectController::class, 'store']);
+            Route::put('/schools/{school}/exams/{exam}/subjects/{examSubject}', [ExamSubjectController::class, 'update']);
+            Route::delete('/schools/{school}/exams/{exam}/subjects/{examSubject}', [ExamSubjectController::class, 'destroy']);
+
+            Route::post('/schools/{school}/exams/{exam}/candidates', [ExamCandidateController::class, 'store']);
+            Route::post('/schools/{school}/exams/{exam}/candidates/generate', [ExamCandidateController::class, 'generate']);
+            Route::put('/schools/{school}/exams/{exam}/candidates/{candidate}', [ExamCandidateController::class, 'update']);
+            Route::delete('/schools/{school}/exams/{exam}/candidates/{candidate}', [ExamCandidateController::class, 'destroy']);
+
+            Route::post('/schools/{school}/exams/{exam}/candidates/{candidate}/subjects', [ExamCandidateSubjectController::class, 'store']);
+            Route::put('/schools/{school}/exams/{exam}/candidates/{candidate}/subjects/{candidateSubject}', [ExamCandidateSubjectController::class, 'update']);
+            Route::delete('/schools/{school}/exams/{exam}/candidates/{candidate}/subjects/{candidateSubject}', [ExamCandidateSubjectController::class, 'destroy']);
+
+            Route::post('/schools/{school}/exams/{exam}/results/calculate', [ExamResultController::class, 'calculate']);
+            Route::post('/schools/{school}/exams/{exam}/results/validate', [ExamResultController::class, 'validate']);
 
             Route::post('/schools/{school}/classes/{schoolClass}/timetable', [TimetableController::class, 'store']);
             Route::delete('/schools/{school}/classes/{schoolClass}/timetable/{slot}', [TimetableController::class, 'destroy']);

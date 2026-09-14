@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\School;
 use App\Models\Season;
 use App\Models\SchoolClass;
+use App\Traits\Loggable;
 
 class SchoolYear extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $fillable = ['school_id', 'label', 'start_date', 'end_date', 'is_current'];
 

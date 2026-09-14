@@ -4,13 +4,14 @@ namespace App\Models;
 
 use App\Models\BusStop;
 use App\Models\BusTrip;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BusTripStopEvent extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $fillable = ['bus_trip_id', 'bus_stop_id', 'notified_at', 'reached_at'];
 

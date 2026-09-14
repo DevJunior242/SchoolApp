@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
-use App\Models\School;
 use App\Models\Level;
+use App\Models\School;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EnrollmentRequest extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const STATUS_PENDING = 0;
 
@@ -19,8 +20,17 @@ class EnrollmentRequest extends Model
     const STATUS_REJECTED = 2;
 
     protected $fillable = [
-        'school_id', 'child_fullname', 'child_birthdate', 'level_id', 'student_id',
-        'parent_fullname', 'parent_phone', 'parent_email', 'message', 'status', 'rejection_reason',
+        'school_id',
+        'child_fullname',
+        'child_birthdate',
+        'level_id',
+        'student_id',
+        'parent_fullname',
+        'parent_phone',
+        'parent_email',
+        'message',
+        'status',
+        'rejection_reason',
     ];
 
     protected function casts(): array

@@ -5,13 +5,14 @@ namespace App\Models;
 use App\Models\BusStop;
 use App\Models\School;
 use App\Models\Student;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SchoolStudent extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const STATUS_INACTIVE = 0;
 

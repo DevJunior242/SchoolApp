@@ -7,13 +7,14 @@ use App\Models\Student;
 use App\Models\FeeStructure;
 use App\Models\PaymentMethod;
 use App\Models\User;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const STATUS_PENDING = 0;
 
@@ -22,9 +23,18 @@ class Payment extends Model
     const STATUS_REJECTED = 2;
 
     protected $fillable = [
-        'school_id', 'student_id', 'fee_structure_id', 'payment_method_id',
-        'amount', 'sender_number', 'transaction_id', 'status', 'receipt_number',
-        'declared_by', 'confirmed_by', 'confirmed_at',
+        'school_id',
+        'student_id',
+        'fee_structure_id',
+        'payment_method_id',
+        'amount',
+        'sender_number',
+        'transaction_id',
+        'status',
+        'receipt_number',
+        'declared_by',
+        'confirmed_by',
+        'confirmed_at',
     ];
 
     protected function casts(): array

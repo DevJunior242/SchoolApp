@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SchoolStaffLeave extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     public const TYPE_ANNUAL = 'Congé annuel';
 

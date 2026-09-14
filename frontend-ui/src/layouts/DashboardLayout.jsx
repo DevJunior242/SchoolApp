@@ -112,6 +112,11 @@ const DIRECTEUR_NAV_GROUPS = [
         icon: <FamilyRestroomIcon />,
       },
       {
+        label: "Examens",
+        to: "/dashboard/exams",
+        icon: <FactCheckIcon />,
+      },
+      {
         label: "Bibliothèque",
         to: "/dashboard/library",
         icon: <LocalLibraryIcon />,

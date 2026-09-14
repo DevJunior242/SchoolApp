@@ -24,6 +24,7 @@ return new class extends Migration
 
             $table->index(['school_id', 'is_active']);
             $table->index(['school_id', 'section_id']);
+            $table->softDeletes();
         });
     }
 

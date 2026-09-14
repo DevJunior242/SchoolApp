@@ -6,13 +6,14 @@ use App\Models\BookCopy;
 use App\Models\School;
 use App\Models\Student;
 use App\Models\User;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BookLoan extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     const STATUS_ACTIVE = 1;
 
@@ -21,8 +22,17 @@ class BookLoan extends Model
     const STATUS_LOST = 3;
 
     protected $fillable = [
-        'school_id', 'book_copy_id', 'student_id', 'status', 'borrowed_at', 'due_at',
-        'returned_at', 'issued_by', 'returned_to', 'due_soon_notified', 'overdue_notified',
+        'school_id',
+        'book_copy_id',
+        'student_id',
+        'status',
+        'borrowed_at',
+        'due_at',
+        'returned_at',
+        'issued_by',
+        'returned_to',
+        'due_soon_notified',
+        'overdue_notified',
     ];
 
     protected function casts(): array

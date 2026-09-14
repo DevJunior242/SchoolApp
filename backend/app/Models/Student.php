@@ -19,6 +19,7 @@ use App\Models\StudentWallet;
 use App\Models\CafeteriaMealService;
 use App\Models\BookLoan;
 use App\Models\BookReservation;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,11 +29,18 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Student extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $fillable = [
-        'user_id', 'fullname', 'date_of_birth', 'gender',
-        'birth_place', 'blood_type', 'medical_notes', 'photo', 'matricule',
+        'user_id',
+        'fullname',
+        'date_of_birth',
+        'gender',
+        'birth_place',
+        'blood_type',
+        'medical_notes',
+        'photo',
+        'matricule',
     ];
 
     protected function casts(): array
