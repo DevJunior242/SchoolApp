@@ -11,7 +11,7 @@ return new class extends Migration
     {
         foreach (['student_medications', 'student_health_documents'] as $tableName) {
             Schema::table($tableName, function (Blueprint $table): void {
-                $table->foreignUuid('school_id')->nullable()->after('id')->constrained()->nullOnDelete();
+                $table->foreignUuid('school_id')->nullable()->constrained()->nullOnDelete();
                 $table->index(['school_id', 'student_id']);
             });
 

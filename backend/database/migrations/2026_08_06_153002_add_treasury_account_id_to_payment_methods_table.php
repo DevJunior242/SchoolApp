@@ -12,7 +12,7 @@ return new class extends Migration
             // Nullable : un moyen de paiement pas encore rattaché à un
             // compte de trésorerie (ou un moyen plateforme, sans école) ne
             // doit pas bloquer les paiements déjà en place.
-            $table->foreignUuid('treasury_account_id')->nullable()->after('school_id')
+            $table->foreignUuid('treasury_account_id')->nullable()
                 ->constrained()->nullOnDelete();
         });
     }

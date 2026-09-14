@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('school_students', function (Blueprint $table) {
-            $table->foreignUuid('bus_stop_id')->nullable()->after('student_id')->constrained()->nullOnDelete();
+            $table->foreignUuid('bus_stop_id')->nullable()->constrained()->nullOnDelete();
         });
     }
 

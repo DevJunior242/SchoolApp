@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('enrollment_requests', function (Blueprint $table) {
-            $table->foreignUuid('level_id')->nullable()->after('child_birthdate')
+            $table->foreignUuid('level_id')->nullable()
                 ->constrained('levels')->nullOnDelete();
-            $table->foreignUuid('student_id')->nullable()->after('level_id')
+            $table->foreignUuid('student_id')->nullable()
                 ->constrained('students')->nullOnDelete();
-            $table->text('rejection_reason')->nullable()->after('status');
+            $table->text('rejection_reason')->nullable();
         });
     }
 

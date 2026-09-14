@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('exams', function (Blueprint $table) {
-            $table->string('exam_mode')->default('passage')->after('exam_type_id');
+            $table->string('exam_mode')->default('passage');
         });
     }
 

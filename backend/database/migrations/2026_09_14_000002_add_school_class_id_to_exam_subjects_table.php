@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::table('exam_subjects', function (Blueprint $table) {
             if (! Schema::hasColumn('exam_subjects', 'school_class_id')) {
-                $table->foreignUuid('school_class_id')->nullable()->after('exam_id')->constrained('classes')->nullOnDelete();
+                $table->foreignUuid('school_class_id')->nullable()->constrained('classes')->nullOnDelete();
             }
         });
 
