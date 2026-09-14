@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
+use App\Http\Controllers\Api\Concerns\EnforcesStaffQuota;
+use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
+use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\School;
 use App\Models\SchoolUser;
+use App\Models\User;
+use App\Services\BrevoService;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use App\Http\Controllers\Api\Concerns\EnforcesStaffQuota;
-use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
-use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
 class SchoolMemberController extends Controller
 {
@@ -36,134 +40,165 @@ class SchoolMemberController extends Controller
         return response()->json(
             SchoolUser::query()
                 ->where('school_id', $school->id)
-                ->whereHas('role', fn ($query) => $query->whereNotIn('slug', self::HIDDEN_FROM_LIST_ROLE_SLUGS))
+                ->whereHas('role', fn($query) => $query->whereNotIn('slug', self::HIDDEN_FROM_LIST_ROLE_SLUGS))
                 ->when(
                     $actor->role->slug !== 'fondateur' && $actor->sections->isNotEmpty(),
-                    fn ($query) => $query->whereHas('sections', fn ($q) => $q->whereIn('sections.id', $actor->sections->pluck('id')))
+                    fn($query) => $query->whereHas('sections', fn($q) => $q->whereIn('sections.id', $actor->sections->pluck('id')))
                 )
                 ->when(
                     $request->query('search'),
-                    fn ($query, $search) => $query->whereHas('user', fn ($q) => $q->where('fullname', 'like', "%{$search}%"))
+                    fn($query, $search) => $query->whereHas('user', fn($q) => $q->where('fullname', 'like', "%{$search}%"))
                 )
                 ->with(['user', 'role', 'sections']) // Chargement des sections affectées
                 ->paginate($request->integer('per_page', 10))
         );
     }
 
-  public function store(Request $request, School $school)
-{
-    $this->authorizeDirecteur($request, $school);
-    $actor = $this->actingMember($request, $school);
+    public function store(Request $request, School $school)
+    {
+        $this->authorizeDirecteur($request, $school);
+        $actor = $this->actingMember($request, $school);
 
-    $validated = $request->validate([
-        'fullname' => ['nullable', 'string', 'max:255'],
-        'email' => ['nullable', 'required_without:phone', 'email'],
-        'phone' => ['nullable', 'required_without:email', 'string', 'max:30'],
-        'role_id' => ['required', 'uuid', 'exists:roles,id'],
-        'section_ids' => ['nullable', 'array'],
-        'section_ids.*' => ['uuid', 'distinct', 'exists:sections,id'],
-    ]);
-
-    $role = Role::findOrFail($validated['role_id']);
-
-    // 1. Refus catégorique du rôle Fondateur ou rôles système restreints
-    if ($role->slug === 'fondateur' || in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
-        throw ValidationException::withMessages([
-            'role_id' => ["Le rôle Fondateur ne peut pas être attribué."],
+        $validated = $request->validate([
+            'fullname' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'required_without:phone', 'email'],
+            'phone' => ['nullable', 'required_without:email', 'string', 'max:30'],
+            'role_id' => ['required', 'uuid', 'exists:roles,id'],
+            'section_ids' => ['nullable', 'array'],
+            'section_ids.*' => ['uuid', 'distinct', 'exists:sections,id'],
         ]);
+
+        $role = Role::findOrFail($validated['role_id']);
+
+        // 1. Refus catégorique du rôle Fondateur ou rôles système restreints
+        if ($role->slug === 'fondateur' || in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
+            throw ValidationException::withMessages([
+                'role_id' => ["Le rôle Fondateur ne peut pas être attribué."],
+            ]);
+        }
+
+        // 2. Seul un Fondateur a le droit d'attribuer le rôle Directeur
+        if ($role->slug === 'directeur' && $actor->role->slug !== 'fondateur') {
+            throw ValidationException::withMessages([
+                'role_id' => ["Seul le fondateur de l'établissement est autorisé à nommer un Directeur."],
+            ]);
+        }
+
+        $this->authorizeSectionAssignment($school, $actor, $role, $validated['section_ids'] ?? []);
+
+        $user = $this->resolveUser($validated);
+        $this->guardAgainstRoleConflict($school, $user, $validated['role_id']);
+
+        $temporaryPassword = null;
+
+        if ($user->wasRecentlyCreated) {
+            $temporaryPassword = Str::password(16, letters: true, numbers: true, symbols: false, spaces: false);
+            $user->forceFill([
+                'password' => Hash::make($temporaryPassword),
+            ]);
+            $user->save();
+
+            $this->sendTemporaryPasswordEmail($school, $user, $temporaryPassword);
+        }
+
+        $schoolUser = SchoolUser::query()->updateOrCreate(
+            [
+                'school_id' => $school->id,
+                'user_id' => $user->id,
+            ],
+            [
+                'role_id' => $validated['role_id'],
+                'status' => SchoolUser::STATUS_ACTIVE,
+            ]
+        );
+
+        // Synchronisation des sections attribuées dans school_user_sections
+        if (array_key_exists('section_ids', $validated)) {
+            $schoolUser->sections()->sync($validated['section_ids'] ?? []);
+        }
+
+        $this->syncStaffQuota($school->fresh());
+
+        if (! $user->current_school_id) {
+            $user->update(['current_school_id' => $school->id]);
+        }
+
+        return response()->json($schoolUser->load('user', 'role', 'sections'), 201);
     }
 
-    // 2. Seul un Fondateur a le droit d'attribuer le rôle Directeur
-    if ($role->slug === 'directeur' && $actor->role->slug !== 'fondateur') {
-        throw ValidationException::withMessages([
-            'role_id' => ["Seul le fondateur de l'établissement est autorisé à nommer un Directeur."],
+    private function sendTemporaryPasswordEmail(School $school, User $user, string $temporaryPassword): void
+    {
+        $brevo = app(BrevoService::class);
+        $userDisplayName = $user->fullname ?: $user->email;
+
+        $brevo->send(
+            toEmail: $user->email,
+            toName: $userDisplayName,
+            subject: 'Bienvenue chez ' . $school->name . ' — veuillez modifier votre mot de passe',
+            htmlContent: <<<HTML
+                <p>Bonjour <strong>{$userDisplayName}</strong>,</p>
+                <p>Votre compte a été créé sur <strong>{$school->name}</strong>.</p>
+                <p>Votre mot de passe temporaire est : <strong>{$temporaryPassword}</strong></p>
+                <p>Veuillez vous connecter puis modifier votre mot de passe dès votre première connexion.</p>
+                <p>Merci.</p>
+            HTML,
+        );
+    }
+
+    public function update(Request $request, School $school, SchoolUser $member)
+    {
+        $this->authorizeDirecteur($request, $school);
+        $actor = $this->actingMember($request, $school);
+        $this->ensureMemberBelongsToSchool($school, $member);
+        $this->ensureMemberIsWithinActorSections($actor, $member);
+
+        // Protection du compte Fondateur principal
+        if ($member->role?->slug === 'fondateur') {
+            abort(422, 'Le compte fondateur ne peut pas être modifié depuis cette interface.');
+        }
+
+        $validated = $request->validate([
+            'fullname' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $member->user_id],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'role_id' => ['required', 'uuid', 'exists:roles,id'],
+            'section_ids' => ['nullable', 'array'],
+            'section_ids.*' => ['uuid', 'distinct', 'exists:sections,id'],
         ]);
+
+        $role = Role::findOrFail($validated['role_id']);
+
+        // 1. Refus catégorique du rôle Fondateur ou rôles système restreints
+        if ($role->slug === 'fondateur' || in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
+            throw ValidationException::withMessages([
+                'role_id' => ["Le rôle Fondateur ne peut pas être attribué."],
+            ]);
+        }
+
+        // 2. Seul un Fondateur a le droit de promouvoir un membre au rôle Directeur
+        if ($role->slug === 'directeur' && $actor->role->slug !== 'fondateur') {
+            throw ValidationException::withMessages([
+                'role_id' => ["Seul le fondateur de l'établissement est autorisé à attribuer le rôle Directeur."],
+            ]);
+        }
+
+        $this->authorizeSectionAssignment($school, $actor, $role, $validated['section_ids'] ?? []);
+
+        $this->guardAgainstRoleConflict($school, $member->user, $validated['role_id']);
+
+        // Mise à jour des infos utilisateur et du rôle
+        $member->user->update(collect($validated)->except(['role_id', 'section_ids'])->all());
+        $member->update(['role_id' => $validated['role_id']]);
+
+        // Mise à jour des sections restreintes
+        if (array_key_exists('section_ids', $validated)) {
+            $member->sections()->sync($validated['section_ids'] ?? []);
+        }
+
+        $this->syncStaffQuota($school->fresh());
+
+        return response()->json($member->fresh()->load('user', 'role', 'sections'));
     }
-
-    $this->authorizeSectionAssignment($school, $actor, $role, $validated['section_ids'] ?? []);
-
-    $user = $this->resolveUser($validated);
-    $this->guardAgainstRoleConflict($school, $user, $validated['role_id']);
-
-    $schoolUser = SchoolUser::query()->updateOrCreate(
-        [
-            'school_id' => $school->id,
-            'user_id' => $user->id,
-        ],
-        [
-            'role_id' => $validated['role_id'],
-            'status' => SchoolUser::STATUS_ACTIVE,
-        ]
-    );
-
-    // Synchronisation des sections attribuées dans school_user_sections
-    if (array_key_exists('section_ids', $validated)) {
-        $schoolUser->sections()->sync($validated['section_ids'] ?? []);
-    }
-
-    $this->syncStaffQuota($school->fresh());
-
-    if (! $user->current_school_id) {
-        $user->update(['current_school_id' => $school->id]);
-    }
-
-    return response()->json($schoolUser->load('user', 'role', 'sections'), 201);
-}
-
-public function update(Request $request, School $school, SchoolUser $member)
-{
-    $this->authorizeDirecteur($request, $school);
-    $actor = $this->actingMember($request, $school);
-    $this->ensureMemberBelongsToSchool($school, $member);
-    $this->ensureMemberIsWithinActorSections($actor, $member);
-
-    // Protection du compte Fondateur principal
-    if ($member->role?->slug === 'fondateur') {
-        abort(422, 'Le compte fondateur ne peut pas être modifié depuis cette interface.');
-    }
-
-    $validated = $request->validate([
-        'fullname' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$member->user_id],
-        'phone' => ['nullable', 'string', 'max:30'],
-        'role_id' => ['required', 'uuid', 'exists:roles,id'],
-        'section_ids' => ['nullable', 'array'],
-        'section_ids.*' => ['uuid', 'distinct', 'exists:sections,id'],
-    ]);
-
-    $role = Role::findOrFail($validated['role_id']);
-
-    // 1. Refus catégorique du rôle Fondateur ou rôles système restreints
-    if ($role->slug === 'fondateur' || in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
-        throw ValidationException::withMessages([
-            'role_id' => ["Le rôle Fondateur ne peut pas être attribué."],
-        ]);
-    }
-
-    // 2. Seul un Fondateur a le droit de promouvoir un membre au rôle Directeur
-    if ($role->slug === 'directeur' && $actor->role->slug !== 'fondateur') {
-        throw ValidationException::withMessages([
-            'role_id' => ["Seul le fondateur de l'établissement est autorisé à attribuer le rôle Directeur."],
-        ]);
-    }
-
-    $this->authorizeSectionAssignment($school, $actor, $role, $validated['section_ids'] ?? []);
-
-    $this->guardAgainstRoleConflict($school, $member->user, $validated['role_id']);
-
-    // Mise à jour des infos utilisateur et du rôle
-    $member->user->update(collect($validated)->except(['role_id', 'section_ids'])->all());
-    $member->update(['role_id' => $validated['role_id']]);
-
-    // Mise à jour des sections restreintes
-    if (array_key_exists('section_ids', $validated)) {
-        $member->sections()->sync($validated['section_ids'] ?? []);
-    }
-
-    $this->syncStaffQuota($school->fresh());
-
-    return response()->json($member->fresh()->load('user', 'role', 'sections'));
-}
 
     public function destroy(Request $request, School $school, SchoolUser $member)
     {

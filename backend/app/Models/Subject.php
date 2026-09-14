@@ -11,7 +11,12 @@ class Subject extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['name', 'code'];
+    protected $fillable = ['school_id', 'name', 'code'];
+
+    public function school()
+    {
+        return $this->belongsTo(School::class);
+    }
 
     public function classSubjectTeachers(): HasMany
     {

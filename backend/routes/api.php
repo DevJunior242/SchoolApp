@@ -241,6 +241,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/hr/leaves', [SchoolStaffLeaveController::class, 'index']);
         Route::get('/schools/{school}/students', [StudentController::class, 'index']);
         Route::get('/schools/{school}/exam-types', [ExamTypeController::class, 'index']);
+        Route::get('/schools/{school}/subjects', [SubjectController::class, 'index']);
         Route::get('/schools/{school}/exams', [ExamController::class, 'index']);
         Route::get('/schools/{school}/exams/{exam}', [ExamController::class, 'show']);
         Route::get('/schools/{school}/exams/{exam}/targets', [ExamTargetController::class, 'index']);
@@ -357,6 +358,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/students', [StudentController::class, 'store']);
 
             Route::post('/schools/{school}/exam-types', [ExamTypeController::class, 'store']);
+            Route::post('/schools/{school}/subjects', [SubjectController::class, 'store']);
             Route::put('/schools/{school}/exam-types/{examType}', [ExamTypeController::class, 'update']);
             Route::delete('/schools/{school}/exam-types/{examType}', [ExamTypeController::class, 'destroy']);
 

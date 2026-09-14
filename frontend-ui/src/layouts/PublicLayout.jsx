@@ -1,16 +1,18 @@
-import { Box } from '@mui/material';
-import { Outlet } from 'react-router-dom';
-import Navbar from '../components/Navbar.jsx';
-import Footer from '../components/Footer.jsx';
+import { Box } from "@mui/material";
+import { Outlet } from "react-router-dom";
+import Navbar from "../components/Navbar.jsx";
+import Footer from "../components/Footer.jsx";
+import CookieConsent from "../components/CookieConsent.jsx";
 
 export default function PublicLayout() {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Navbar />
       <Box sx={{ flexGrow: 1, minHeight: 0 }}>
         <Outlet />
       </Box>
       <Footer />
+      <CookieConsent />
     </Box>
   );
 }

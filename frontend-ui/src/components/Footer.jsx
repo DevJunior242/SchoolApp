@@ -1,12 +1,28 @@
-import { Box, Container, IconButton, Link as MuiLink, Stack, Typography } from '@mui/material';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import FacebookIcon from '@mui/icons-material/Facebook';
-import { Link as RouterLink } from 'react-router-dom';
-import intellinoMark from '../assets/intellino-mark.svg';
+import {
+  Box,
+  Container,
+  IconButton,
+  Link as MuiLink,
+  Stack,
+  Typography,
+} from "@mui/material";
+import LinkedInIcon from "@mui/icons-material/LinkedIn";
+import FacebookIcon from "@mui/icons-material/Facebook";
+import { Link as RouterLink } from "react-router-dom";
+import intellinoMark from "../assets/intellino-mark.svg";
+import { CookieConsentButton } from "./CookieConsent.jsx";
 
 const SOCIAL_LINKS = [
-  { label: 'LinkedIn', icon: <LinkedInIcon />, href: 'https://www.linkedin.com/company/intellino-sarl/' },
-  { label: 'Facebook', icon: <FacebookIcon />, href: 'https://web.facebook.com/people/IntellIno/61581055343593/' },
+  {
+    label: "LinkedIn",
+    icon: <LinkedInIcon />,
+    href: "https://www.linkedin.com/company/intellino-sarl/",
+  },
+  {
+    label: "Facebook",
+    icon: <FacebookIcon />,
+    href: "https://web.facebook.com/people/IntellIno/61581055343593/",
+  },
 ];
 
 export default function Footer() {
@@ -14,55 +30,78 @@ export default function Footer() {
     <Box
       component="footer"
       sx={{
-        flex: '0 0 auto',
-        height: 'auto',
-        borderTop: '1px solid',
-        borderColor: 'divider',
+        flex: "0 0 auto",
+        height: "auto",
+        borderTop: "1px solid",
+        borderColor: "divider",
         mt: 4,
         py: 3,
       }}
     >
       <Container maxWidth="lg">
         <Stack
-          direction={{ xs: 'column', sm: 'row' }}
+          direction={{ xs: "column", sm: "row" }}
           spacing={2}
-          sx={{ justifyContent: 'space-between', alignItems: 'center' }}
+          sx={{ justifyContent: "space-between", alignItems: "center" }}
         >
-          <Stack direction="row" spacing={1.2} sx={{ alignItems: 'center' }}>
+          <Stack direction="row" spacing={1.2} sx={{ alignItems: "center" }}>
             <Box
               component="img"
               src={intellinoMark}
               alt="Intellino"
-              sx={{ height: 26, width: 26, borderRadius: '7px' }}
+              sx={{ height: 26, width: 26, borderRadius: "7px" }}
             />
             <Box>
-              <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', lineHeight: 1.1 }}>
+              <Typography
+                sx={{ fontWeight: 800, fontSize: "0.95rem", lineHeight: 1.1 }}
+              >
                 Intell
-                <Box component="span" sx={{ color: 'primary.main' }}>
+                <Box component="span" sx={{ color: "primary.main" }}>
                   i
                 </Box>
                 no
-                  <Box component="span" sx={{ml:1 }}>
+                <Box component="span" sx={{ ml: 1 }}>
                   Edu
                 </Box>
               </Typography>
 
-
-                            <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary">
                 © {new Date().getFullYear()} — Tous droits réservés.
               </Typography>
             </Box>
           </Stack>
-          <Stack direction="row" spacing={2}>
-            <MuiLink component={RouterLink} to="/devenir-prestataire" variant="body2" color="text.secondary">
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ flexWrap: "wrap", justifyContent: "center" }}
+          >
+            <MuiLink
+              component={RouterLink}
+              to="/devenir-prestataire"
+              variant="body2"
+              color="text.secondary"
+            >
               Devenir prestataire
             </MuiLink>
-            <MuiLink component={RouterLink} to="/terms" variant="body2" color="text.secondary">
+            <MuiLink
+              component={RouterLink}
+              to="/terms"
+              variant="body2"
+              color="text.secondary"
+            >
               CGU
             </MuiLink>
-            <MuiLink component={RouterLink} to="/privacy" variant="body2" color="text.secondary">
+            <MuiLink
+              component={RouterLink}
+              to="/privacy"
+              variant="body2"
+              color="text.secondary"
+            >
               Confidentialité
             </MuiLink>
+            <CookieConsentButton
+              sx={{ fontSize: "0.875rem", color: "text.secondary" }}
+            />
           </Stack>
           <Stack direction="row" spacing={1}>
             {SOCIAL_LINKS.map((link) => (
@@ -74,7 +113,7 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 aria-label={link.label}
                 size="small"
-                sx={{ color: 'text.secondary' }}
+                sx={{ color: "text.secondary" }}
               >
                 {link.icon}
               </IconButton>
