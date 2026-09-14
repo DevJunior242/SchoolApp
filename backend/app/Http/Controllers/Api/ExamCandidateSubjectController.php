@@ -114,17 +114,6 @@ class ExamCandidateSubjectController extends Controller
             return;
         }
 
-        if ($exam->exam_mode === 'blanc') {
-            $isTeacherForSubject = ClassSubjectTeacher::query()
-                ->where('user_id', $userId)
-                ->where('subject_id', $examSubject->subject_id)
-                ->exists();
-
-            abort_unless($isTeacherForSubject, 403, 'Vous n’êtes pas autorisé à noter cette matière pour un examen blanc.');
-
-            return;
-        }
-
         if (! $candidate->school_class_id) {
             abort(403, 'Aucune classe n’est associée à ce candidat.');
         }
@@ -148,10 +137,6 @@ class ExamCandidateSubjectController extends Controller
         }
 
         if ($this->isDirectorOrFounder($request, $school)) {
-            return;
-        }
-
-        if ($exam->exam_mode === 'blanc') {
             return;
         }
 

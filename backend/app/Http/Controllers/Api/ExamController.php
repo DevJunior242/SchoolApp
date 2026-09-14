@@ -53,10 +53,6 @@ class ExamController extends Controller
 
         if ($teacherClassIds !== null) {
             $exams->each(function (Exam $exam) use ($teacherClassIds) {
-                if ($exam->exam_mode === 'blanc') {
-                    return;
-                }
-
                 $filteredCandidates = $exam->examCandidates
                     ->filter(fn($candidate) => in_array($candidate->school_class_id, $teacherClassIds, true))
                     ->values();
@@ -104,7 +100,7 @@ class ExamController extends Controller
             $exam->setRelation('examCandidates', $filteredCandidates);
         }
 
-        if ($teacherClassIds !== null && $exam->exam_mode !== 'blanc') {
+        if ($teacherClassIds !== null) {
             $filteredCandidates = $exam->examCandidates
                 ->filter(fn($candidate) => in_array($candidate->school_class_id, $teacherClassIds, true))
                 ->values();

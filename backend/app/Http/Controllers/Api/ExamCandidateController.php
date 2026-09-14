@@ -27,7 +27,7 @@ class ExamCandidateController extends Controller
 
         $teacherClassIds = $this->teacherClassIds($request, $school);
 
-        if ($teacherClassIds !== null && $exam->exam_mode !== 'blanc') {
+        if ($teacherClassIds !== null) {
             $candidateQuery->whereIn('school_class_id', $teacherClassIds);
         }
 
