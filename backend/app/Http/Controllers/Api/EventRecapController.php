@@ -108,7 +108,7 @@ class EventRecapController extends Controller
         return SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $request->user()->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'censeur', 'secretaire']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'censeur', 'secretaire']))
             ->exists();
     }
 

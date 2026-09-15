@@ -17,20 +17,18 @@ import {
   TextField,
   Typography,
   IconButton,
-  Tooltip,
   Menu,
 } from "@mui/material";
 import { motion } from "motion/react";
 import { Link as RouterLink } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import api from "../api/axios.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useAuth } from "../context/AuthContext";
+import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 
 export default function DashboardClassesPage() {
   const { user } = useAuth();
@@ -42,8 +40,9 @@ export default function DashboardClassesPage() {
     () => (memberships ?? []).find((item) => item.school_id === schoolId),
     [memberships, schoolId],
   );
-  const roleSlug = membership?.role?.slug;
-  const canManageClasses = ["fondateur", "directeur"].includes(roleSlug);
+  const { isAdmin, isPrincipalAdmin, isGeneralAdmin, assignedSectionIds } =
+    getSchoolAdminAccess(membership);
+  const canManageClasses = isAdmin;
 
   const activeSections = useMemo(
     () =>
@@ -77,19 +76,26 @@ export default function DashboardClassesPage() {
   );
   const availableLevels = useMemo(() => {
     const activeSectionIds = activeSections.map((section) => section.id);
-    const assignedSectionIds =
-      membership?.sections?.map((section) => section.id) ?? [];
     const allowedSectionIds =
-      roleSlug !== "fondateur" && assignedSectionIds.length > 0
-        ? assignedSectionIds
-        : activeSectionIds;
+      isPrincipalAdmin || isGeneralAdmin
+        ? activeSectionIds
+        : assignedSectionIds.length > 0
+          ? assignedSectionIds
+          : activeSectionIds;
 
     return (levels ?? []).filter(
       (level) =>
         activeSectionIds.includes(level.section_id) &&
         allowedSectionIds.includes(level.section_id),
     );
-  }, [activeSections, levels, membership, roleSlug]);
+  }, [
+    activeSections,
+    assignedSectionIds,
+    isGeneralAdmin,
+    isPrincipalAdmin,
+    levels,
+    membership,
+  ]);
 
   const { data: teachersData, error: teachersError } = useApiGet(
     canManageClasses && schoolId ? `/schools/${schoolId}/teachers` : null,
@@ -121,7 +127,6 @@ export default function DashboardClassesPage() {
   });
   const [assignError, setAssignError] = useState(null);
   const [assignSubmitting, setAssignSubmitting] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   function closeClassModal() {
     setClassModalOpen(false);
@@ -211,19 +216,6 @@ export default function DashboardClassesPage() {
       );
     } finally {
       setAssignSubmitting(false);
-    }
-  }
-
-  async function handleDeleteTeacher(assignmentId) {
-    if (!window.confirm("Supprimer ce professeur?")) return;
-
-    try {
-      await api.delete(`/schools/${schoolId}/teachers/${assignmentId}`);
-      reload();
-    } catch (err) {
-      listError(
-        err.response?.data?.message || "Impossible de supprimer ce professeur.",
-      );
     }
   }
 

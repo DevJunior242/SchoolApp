@@ -88,12 +88,12 @@ class NotifyLibraryLoanDueDates extends Command
 
         $userIds = SchoolUser::query()
             ->whereIn('school_id', $schoolIds)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'bibliothecaire']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'bibliothecaire']))
             ->pluck('user_id')
             ->unique();
 
         User::query()->whereIn('id', $userIds)->get()->each(
-            fn ($user) => $user->notify(new BookLoanOverdueNotification($loan))
+            fn($user) => $user->notify(new BookLoanOverdueNotification($loan))
         );
     }
 }

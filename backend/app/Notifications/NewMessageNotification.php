@@ -47,7 +47,7 @@ class NewMessageNotification extends Notification
         $isStaff = SchoolUser::query()
             ->where('school_id', $this->message->school_id)
             ->where('user_id', $notifiable->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'secretaire']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'secretaire']))
             ->exists();
 
         return $isStaff ? '/dashboard/messages' : '/dashboard';

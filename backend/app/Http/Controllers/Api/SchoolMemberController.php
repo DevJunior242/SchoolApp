@@ -11,6 +11,7 @@ use App\Models\School;
 use App\Models\SchoolUser;
 use App\Models\User;
 use App\Services\BrevoService;
+use App\Services\SchoolAdminPermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -19,6 +20,13 @@ use Illuminate\Validation\ValidationException;
 class SchoolMemberController extends Controller
 {
     use AuthorizesSchoolDirecteur, EnforcesStaffQuota, ResolvesMemberUser;
+
+    private SchoolAdminPermissionService $schoolAdminPermissionService;
+
+    public function __construct()
+    {
+        $this->schoolAdminPermissionService = app(SchoolAdminPermissionService::class);
+    }
 
     /**
      * Les rôles gérés par d'autres modules spécifiques.
@@ -42,14 +50,14 @@ class SchoolMemberController extends Controller
                 ->where('school_id', $school->id)
                 ->whereHas('role', fn($query) => $query->whereNotIn('slug', self::HIDDEN_FROM_LIST_ROLE_SLUGS))
                 ->when(
-                    $actor->role->slug !== 'fondateur' && $actor->sections->isNotEmpty(),
+                    ! $this->schoolAdminPermissionService->isOwner($actor) && $actor->sections->isNotEmpty(),
                     fn($query) => $query->whereHas('sections', fn($q) => $q->whereIn('sections.id', $actor->sections->pluck('id')))
                 )
                 ->when(
                     $request->query('search'),
                     fn($query, $search) => $query->whereHas('user', fn($q) => $q->where('fullname', 'like', "%{$search}%"))
                 )
-                ->with(['user', 'role', 'sections']) // Chargement des sections affectées
+                ->with(['user', 'role', 'sections'])
                 ->paginate($request->integer('per_page', 10))
         );
     }
@@ -62,7 +70,7 @@ class SchoolMemberController extends Controller
         $validated = $request->validate([
             'fullname' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'required_without:phone', 'email'],
-            'phone' => ['nullable', 'required_without:email', 'string', 'max:30'],
+            'phone' => ['nullable', 'required_without:email', 'phone:INTERNATIONAL'],
             'role_id' => ['required', 'uuid', 'exists:roles,id'],
             'section_ids' => ['nullable', 'array'],
             'section_ids.*' => ['uuid', 'distinct', 'exists:sections,id'],
@@ -70,17 +78,15 @@ class SchoolMemberController extends Controller
 
         $role = Role::findOrFail($validated['role_id']);
 
-        // 1. Refus catégorique du rôle Fondateur ou rôles système restreints
-        if ($role->slug === 'fondateur' || in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
+        if (in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
             throw ValidationException::withMessages([
-                'role_id' => ["Le rôle Fondateur ne peut pas être attribué."],
+                'role_id' => ['Ce rôle ne peut pas être attribué depuis cette interface.'],
             ]);
         }
 
-        // 2. Seul un Fondateur a le droit d'attribuer le rôle Directeur
-        if ($role->slug === 'directeur' && $actor->role->slug !== 'fondateur') {
+        if ($role->slug === 'admin' && ! $this->schoolAdminPermissionService->canCreateAdmin($actor, $validated['section_ids'] ?? [])) {
             throw ValidationException::withMessages([
-                'role_id' => ["Seul le fondateur de l'établissement est autorisé à nommer un Directeur."],
+                'role_id' => ['Seul l’administrateur principal ou un administrateur global peut créer un compte admin.'],
             ]);
         }
 
@@ -130,6 +136,7 @@ class SchoolMemberController extends Controller
     {
         $brevo = app(BrevoService::class);
         $userDisplayName = $user->fullname ?: $user->email;
+        $loginUrl = rtrim(config('app.frontend_url', config('app.url')), '/') . '/login';
 
         $brevo->send(
             toEmail: $user->email,
@@ -139,6 +146,7 @@ class SchoolMemberController extends Controller
                 <p>Bonjour <strong>{$userDisplayName}</strong>,</p>
                 <p>Votre compte a été créé sur <strong>{$school->name}</strong>.</p>
                 <p>Votre mot de passe temporaire est : <strong>{$temporaryPassword}</strong></p>
+                <p>Pour vous connecter, cliquez sur le lien suivant : <a href="{$loginUrl}">Se connecter</a></p>
                 <p>Veuillez vous connecter puis modifier votre mot de passe dès votre première connexion.</p>
                 <p>Merci.</p>
             HTML,
@@ -152,15 +160,14 @@ class SchoolMemberController extends Controller
         $this->ensureMemberBelongsToSchool($school, $member);
         $this->ensureMemberIsWithinActorSections($actor, $member);
 
-        // Protection du compte Fondateur principal
-        if ($member->role?->slug === 'fondateur') {
-            abort(422, 'Le compte fondateur ne peut pas être modifié depuis cette interface.');
+        if ($member->role?->slug === 'admin' && $this->schoolAdminPermissionService->isOwner($member)) {
+            abort(422, 'Le compte administrateur principal ne peut pas être modifié depuis cette interface.');
         }
 
         $validated = $request->validate([
             'fullname' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $member->user_id],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'phone:INTERNATIONAL'],
             'role_id' => ['required', 'uuid', 'exists:roles,id'],
             'section_ids' => ['nullable', 'array'],
             'section_ids.*' => ['uuid', 'distinct', 'exists:sections,id'],
@@ -168,17 +175,15 @@ class SchoolMemberController extends Controller
 
         $role = Role::findOrFail($validated['role_id']);
 
-        // 1. Refus catégorique du rôle Fondateur ou rôles système restreints
-        if ($role->slug === 'fondateur' || in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
+        if (in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
             throw ValidationException::withMessages([
-                'role_id' => ["Le rôle Fondateur ne peut pas être attribué."],
+                'role_id' => ['Ce rôle ne peut pas être attribué depuis cette interface.'],
             ]);
         }
 
-        // 2. Seul un Fondateur a le droit de promouvoir un membre au rôle Directeur
-        if ($role->slug === 'directeur' && $actor->role->slug !== 'fondateur') {
+        if ($role->slug === 'admin' && ! $this->schoolAdminPermissionService->canCreateAdmin($actor, $validated['section_ids'] ?? [])) {
             throw ValidationException::withMessages([
-                'role_id' => ["Seul le fondateur de l'établissement est autorisé à attribuer le rôle Directeur."],
+                'role_id' => ['Seul l’administrateur principal ou un administrateur global peut affecter le rôle admin.'],
             ]);
         }
 
@@ -207,8 +212,8 @@ class SchoolMemberController extends Controller
         $this->ensureMemberBelongsToSchool($school, $member);
         $this->ensureMemberIsWithinActorSections($actor, $member);
 
-        if ($member->role?->slug === 'fondateur' || $member->user_id === $request->user()->id) {
-            abort(422, "Le fondateur et votre propre compte ne peuvent pas être retirés de l'école.");
+        if ($this->schoolAdminPermissionService->isOwner($member) || $member->user_id === $request->user()->id) {
+            abort(422, "L’administrateur principal et votre propre compte ne peuvent pas être retirés de l'école.");
         }
 
         // Les entrées dans school_user_sections seront supprimées automatiquement via cascadeOnDelete()
@@ -246,33 +251,26 @@ class SchoolMemberController extends Controller
             ]);
         }
 
-        if ($actor->role->slug === 'fondateur') {
+        if ($this->schoolAdminPermissionService->isOwner($actor)) {
             return;
         }
 
-        if ($role->slug === 'directeur') {
-            abort(403, 'Seul le fondateur peut attribuer le rôle directeur.');
+        if (! $this->schoolAdminPermissionService->isAdmin($actor)) {
+            abort(403, 'Seuls les administrateurs de l’école peuvent gérer les affectations de sections.');
         }
 
-        // Un directeur sans section est un directeur général : accès global.
-        if ($actor->sections->isEmpty()) {
-            return;
-        }
-
-        if (empty($sectionIds) || array_diff($sectionIds, $actor->sections->pluck('id')->all())) {
-            abort(403, 'Vous pouvez attribuer uniquement vos propres sections.');
+        if (! $this->schoolAdminPermissionService->canAssignSections($actor, $sectionIds)) {
+            abort(403, 'Vous ne pouvez pas affecter des sections hors de votre périmètre.');
         }
     }
 
     private function ensureMemberIsWithinActorSections(SchoolUser $actor, SchoolUser $member): void
     {
-        if ($actor->role->slug === 'fondateur' || $actor->sections()->doesntExist()) {
+        if ($this->schoolAdminPermissionService->isOwner($actor) || $actor->sections->isEmpty()) {
             return;
         }
 
-        $memberSectionIds = $member->sections()->pluck('sections.id')->all();
-
-        if (empty($memberSectionIds) || array_diff($memberSectionIds, $actor->sections->pluck('id')->all())) {
+        if (! $this->schoolAdminPermissionService->canManageMember($actor, $member)) {
             abort(403, 'Vous ne pouvez gérer que les membres de vos sections.');
         }
     }

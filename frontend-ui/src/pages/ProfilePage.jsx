@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState } from "react";
 import {
   Alert,
   Avatar,
@@ -9,28 +9,24 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
-import { PhoneInput } from 'react-international-phone';
-import 'react-international-phone/style.css';
-import '../components/InternationalPhoneInput.css';
-import api from '../api/axios.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useThemeMode } from '../context/ThemeModeContext.jsx';
+} from "@mui/material";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
+import api from "../api/axios.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const LANGUAGE_OPTIONS = [
-  { value: 'fr', label: 'Français' },
-  { value: 'en', label: 'English' },
+  { value: "fr", label: "Français" },
+  { value: "en", label: "English" },
 ];
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
-  const { mode } = useThemeMode();
 
   const [form, setForm] = useState({
-    fullname: user.fullname ?? '',
-    phone: user.phone ?? '',
-    language: user.language ?? 'fr',
+    fullname: user.fullname ?? "",
+    phone: user.phone ?? "",
+    language: user.language ?? "fr",
   });
   const [formError, setFormError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -53,18 +49,22 @@ export default function ProfilePage() {
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append('fullname', form.fullname);
-      formData.append('phone', form.phone ?? '');
-      formData.append('language', form.language);
-      if (avatarFile) formData.append('avatar', avatarFile);
+      formData.append("fullname", form.fullname);
+      formData.append("phone", form.phone ?? "");
+      formData.append("language", form.language);
+      if (avatarFile) formData.append("avatar", avatarFile);
 
-      await api.post('/profile', formData);
+      await api.post("/profile", formData);
       setAvatarFile(null);
       await refreshUser();
-      setSuccess('Profil mis à jour.');
+      setSuccess("Profil mis à jour.");
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setFormError(messages ? Object.values(messages).flat().join(' ') : 'Impossible de mettre à jour le profil.');
+      setFormError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Impossible de mettre à jour le profil.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -72,9 +72,9 @@ export default function ProfilePage() {
 
   // --- Changement de mot de passe ---
   const [passwordForm, setPasswordForm] = useState({
-    current_password: '',
-    password: '',
-    password_confirmation: '',
+    current_password: "",
+    password: "",
+    password_confirmation: "",
   });
   const [passwordError, setPasswordError] = useState(null);
   const [passwordSuccess, setPasswordSuccess] = useState(null);
@@ -86,12 +86,20 @@ export default function ProfilePage() {
     setPasswordSuccess(null);
     setChangingPassword(true);
     try {
-      await api.post('/profile/password', passwordForm);
-      setPasswordForm({ current_password: '', password: '', password_confirmation: '' });
-      setPasswordSuccess('Mot de passe mis à jour.');
+      await api.post("/profile/password", passwordForm);
+      setPasswordForm({
+        current_password: "",
+        password: "",
+        password_confirmation: "",
+      });
+      setPasswordSuccess("Mot de passe mis à jour.");
     } catch (err) {
       const messages = err.response?.data?.errors;
-      setPasswordError(messages ? Object.values(messages).flat().join(' ') : 'Impossible de changer le mot de passe.');
+      setPasswordError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : "Impossible de changer le mot de passe.",
+      );
     } finally {
       setChangingPassword(false);
     }
@@ -117,11 +125,25 @@ export default function ProfilePage() {
             {success}
           </Alert>
         )}
-        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 1 }}>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+        >
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ alignItems: "center", mb: 1 }}
+          >
             <Avatar
               src={avatarPreview ?? user.avatar_url ?? undefined}
-              sx={{ width: 72, height: 72, bgcolor: 'primary.main', fontSize: '1.5rem', fontWeight: 700 }}
+              sx={{
+                width: 72,
+                height: 72,
+                bgcolor: "primary.main",
+                fontSize: "1.5rem",
+                fontWeight: 700,
+              }}
             >
               {user.fullname?.charAt(0).toUpperCase()}
             </Avatar>
@@ -141,7 +163,11 @@ export default function ProfilePage() {
               >
                 Changer la photo
               </Button>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mt: 0.5 }}
+              >
                 PNG ou JPG, 2 Mo maximum.
               </Typography>
             </Box>
@@ -150,27 +176,30 @@ export default function ProfilePage() {
           <TextField
             label="Nom complet"
             value={form.fullname}
-            onChange={(e) => setForm((prev) => ({ ...prev, fullname: e.target.value }))}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, fullname: e.target.value }))
+            }
             required
             fullWidth
           />
-          <TextField label="Email" value={user.email} disabled fullWidth helperText="L'email ne peut pas être modifié ici." />
-          <Box className={`international-phone-input international-phone-input--${mode}`}>
-            <Box component="label" className="international-phone-input__label" htmlFor="phone">
-              Téléphone
-            </Box>
-            <PhoneInput
-              defaultCountry="bf"
-              value={form.phone}
-              onChange={(phone) => setForm((prev) => ({ ...prev, phone }))}
-              inputProps={{ id: 'phone', name: 'phone' }}
-            />
-          </Box>
+          <TextField
+            label="Email"
+            value={user.email}
+            disabled
+            fullWidth
+            helperText="L'email ne peut pas être modifié ici."
+          />
+          <InternationalPhoneField
+            value={form.phone}
+            onChange={(phone) => setForm((prev) => ({ ...prev, phone }))}
+          />
           <TextField
             select
             label="Langue"
             value={form.language}
-            onChange={(e) => setForm((prev) => ({ ...prev, language: e.target.value }))}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, language: e.target.value }))
+            }
             required
             fullWidth
           >
@@ -181,8 +210,13 @@ export default function ProfilePage() {
             ))}
           </TextField>
 
-          <Button type="submit" variant="contained" disabled={submitting} sx={{ alignSelf: 'flex-start' }}>
-            {submitting ? 'Enregistrement...' : 'Enregistrer'}
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={submitting}
+            sx={{ alignSelf: "flex-start" }}
+          >
+            {submitting ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </Box>
       </Paper>
@@ -201,12 +235,21 @@ export default function ProfilePage() {
             {passwordSuccess}
           </Alert>
         )}
-        <Box component="form" onSubmit={handlePasswordSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box
+          component="form"
+          onSubmit={handlePasswordSubmit}
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+        >
           <TextField
             label="Mot de passe actuel"
             type="password"
             value={passwordForm.current_password}
-            onChange={(e) => setPasswordForm((prev) => ({ ...prev, current_password: e.target.value }))}
+            onChange={(e) =>
+              setPasswordForm((prev) => ({
+                ...prev,
+                current_password: e.target.value,
+              }))
+            }
             required
             fullWidth
           />
@@ -214,7 +257,9 @@ export default function ProfilePage() {
             label="Nouveau mot de passe"
             type="password"
             value={passwordForm.password}
-            onChange={(e) => setPasswordForm((prev) => ({ ...prev, password: e.target.value }))}
+            onChange={(e) =>
+              setPasswordForm((prev) => ({ ...prev, password: e.target.value }))
+            }
             required
             fullWidth
           />
@@ -222,12 +267,22 @@ export default function ProfilePage() {
             label="Confirmer le nouveau mot de passe"
             type="password"
             value={passwordForm.password_confirmation}
-            onChange={(e) => setPasswordForm((prev) => ({ ...prev, password_confirmation: e.target.value }))}
+            onChange={(e) =>
+              setPasswordForm((prev) => ({
+                ...prev,
+                password_confirmation: e.target.value,
+              }))
+            }
             required
             fullWidth
           />
-          <Button type="submit" variant="contained" disabled={changingPassword} sx={{ alignSelf: 'flex-start' }}>
-            {changingPassword ? 'Modification...' : 'Changer le mot de passe'}
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={changingPassword}
+            sx={{ alignSelf: "flex-start" }}
+          >
+            {changingPassword ? "Modification..." : "Changer le mot de passe"}
           </Button>
         </Box>
       </Paper>

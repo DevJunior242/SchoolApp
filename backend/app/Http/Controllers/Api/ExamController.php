@@ -11,6 +11,7 @@ use App\Models\School;
 use App\Models\SchoolUser;
 use App\Models\SchoolYear;
 use App\Models\Student;
+use App\Services\SchoolAdminPermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -113,6 +114,7 @@ class ExamController extends Controller
 
     public function store(Request $request, School $school)
     {
+        $this->authorizeExamForm($request, $school);
         $validated = $request->validate([
             'school_year_id' => ['nullable', 'uuid', 'exists:school_years,id'],
             'exam_type_id' => ['required', 'uuid', 'exists:exam_types,id'],
@@ -156,6 +158,7 @@ class ExamController extends Controller
     public function update(Request $request, School $school, Exam $exam)
     {
         abort_unless($exam->school_id === $school->id, 404);
+        $this->authorizeExamForm($request, $school);
 
         $validated = $request->validate([
             'school_year_id' => ['nullable', 'uuid', 'exists:school_years,id'],
@@ -190,10 +193,26 @@ class ExamController extends Controller
     public function destroy(School $school, Exam $exam)
     {
         abort_unless($exam->school_id === $school->id, 404);
+        $this->authorizeExamForm(request(), $school);
 
         $exam->delete();
 
         return response()->json(['message' => 'Examen supprimé.']);
+    }
+
+    private function authorizeExamForm(Request $request, School $school): void
+    {
+        $actor = SchoolUser::query()
+            ->with(['role', 'sections'])
+            ->where('school_id', $school->id)
+            ->where('user_id', $request->user()?->id)
+            ->first();
+
+        abort_unless(
+            app(SchoolAdminPermissionService::class)->isAdmin($actor),
+            403,
+            'Seuls les administrateurs de l’école peuvent gérer les examens.',
+        );
     }
 
     private function teacherClassIds(Request $request, School $school): ?array
@@ -238,7 +257,7 @@ class ExamController extends Controller
         return SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $user->id)
-            ->whereHas('role', fn($query) => $query->whereIn('slug', ['directeur', 'fondateur']))
+            ->whereHas('role', fn($query) => $query->where('slug', 'admin'))
             ->exists();
     }
 

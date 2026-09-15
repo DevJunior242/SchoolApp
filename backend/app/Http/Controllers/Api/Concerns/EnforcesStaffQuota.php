@@ -52,11 +52,11 @@ trait EnforcesStaffQuota
     {
         $userIds = SchoolUser::query()
             ->where('school_id', $school->id)
-            ->whereHas('role', fn ($query) => $query->where('slug', 'directeur'))
+            ->whereHas('role', fn($query) => $query->where('slug', 'admin'))
             ->pluck('user_id');
 
         User::query()->whereIn('id', $userIds)->get()->each(
-            fn (User $user) => $user->notify($notification)
+            fn(User $user) => $user->notify($notification)
         );
     }
 }

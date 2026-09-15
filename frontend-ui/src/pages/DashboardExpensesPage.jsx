@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -32,6 +32,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
+import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 
 const STATUS_LABELS = {
   0: { label: "En attente", color: "warning" },
@@ -71,13 +72,18 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
   const currentMembership = schoolUsers.find(
     (su) => su?.school?.id === schoolId,
   );
-  const currentRole = currentMembership?.role?.slug;
-  const allowedSections = currentMembership?.school?.sections ?? [];
+  const { roleSlug, hasGlobalAdminAccess } =
+    getSchoolAdminAccess(currentMembership);
+  const allowedSections = useMemo(
+    () =>
+      hasGlobalAdminAccess
+        ? (currentMembership?.school?.sections ?? [])
+        : (currentMembership?.sections ?? []),
+    [currentMembership, hasGlobalAdminAccess],
+  );
   const isSectionRestricted = allowedSections.length > 0;
 
-  const canManage = ["directeur", "comptable", "fondateur"].includes(
-    currentRole ?? "",
-  );
+  const canManage = ["admin", "comptable"].includes(roleSlug ?? "");
 
   const { data: categoriesData, reload: reloadCategories } = useApiGet(
     schoolId ? `/schools/${schoolId}/expense-categories` : null,
@@ -178,7 +184,7 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
   }
 
   function resetExpenseForm() {
-    setExpenseForm((prev) => ({
+    setExpenseForm(() => ({
       ...emptyExpenseForm(),
       section_id: allowedSections.length === 1 ? allowedSections[0].id : "",
     }));

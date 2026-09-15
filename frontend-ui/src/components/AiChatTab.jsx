@@ -1,18 +1,32 @@
 import { useState } from "react";
-import { Alert, Chip, CircularProgress, Paper, Stack, TextField, Typography, Button } from "@mui/material";
+import {
+  Alert,
+  Chip,
+  CircularProgress,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+  Button,
+} from "@mui/material";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import PersonIcon from "@mui/icons-material/Person";
 import SendIcon from "@mui/icons-material/Send";
 import api from "../api/axios.jsx";
 
 /**
- * Onglet de chat de l'assistant IA, partagé entre la page directeur
+ * Onglet de chat de l'assistant IA, partagé entre la page administrateur
  * (DashboardAiAssistantPage, endpoint /ai/ask) et la page parent
  * (ParentAiAssistantPage, endpoint /ai/ask-parent) : même UI, seule la
  * route appelée et les suggestions affichées diffèrent — les garde-fous
  * (anonymisation, périmètre des données) sont gérés côté backend, pas ici.
  */
-export default function AiChatTab({ endpoint, suggestions, placeholder, caption }) {
+export default function AiChatTab({
+  endpoint,
+  suggestions,
+  placeholder,
+  caption,
+}) {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,9 +43,13 @@ export default function AiChatTab({ endpoint, suggestions, placeholder, caption 
 
     try {
       const response = await api.post(endpoint, { question: trimmed });
-      setMessages((prev) => [...prev, { role: "assistant", text: response.data?.answer }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: response.data?.answer },
+      ]);
     } catch (err) {
-      const message = err.response?.data?.message || "Une erreur est survenue. Réessayez.";
+      const message =
+        err.response?.data?.message || "Une erreur est survenue. Réessayez.";
       setError(message);
     } finally {
       setLoading(false);
@@ -45,7 +63,13 @@ export default function AiChatTab({ endpoint, suggestions, placeholder, caption 
           <Typography variant="body2" color="text.secondary">
             Exemples de questions :
           </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ maxWidth: "100%" }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            flexWrap="wrap"
+            useFlexGap
+            sx={{ maxWidth: "100%" }}
+          >
             {suggestions.map((s) => (
               <Chip
                 key={s}
@@ -68,11 +92,23 @@ export default function AiChatTab({ endpoint, suggestions, placeholder, caption 
       )}
 
       {messages.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2, maxHeight: 420, overflowY: "auto" }}>
+        <Paper
+          variant="outlined"
+          sx={{ p: 2, maxHeight: 420, overflowY: "auto" }}
+        >
           <Stack spacing={2}>
             {messages.map((m, i) => (
-              <Stack key={i} direction="row" spacing={1} alignItems="flex-start">
-                {m.role === "assistant" ? <SmartToyIcon color="primary" fontSize="small" /> : <PersonIcon fontSize="small" />}
+              <Stack
+                key={i}
+                direction="row"
+                spacing={1}
+                alignItems="flex-start"
+              >
+                {m.role === "assistant" ? (
+                  <SmartToyIcon color="primary" fontSize="small" />
+                ) : (
+                  <PersonIcon fontSize="small" />
+                )}
                 <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
                   {m.text}
                 </Typography>
@@ -104,7 +140,12 @@ export default function AiChatTab({ endpoint, suggestions, placeholder, caption 
           }}
           disabled={loading}
         />
-        <Button variant="contained" endIcon={<SendIcon />} onClick={() => ask(question)} disabled={loading}>
+        <Button
+          variant="contained"
+          endIcon={<SendIcon />}
+          onClick={() => ask(question)}
+          disabled={loading}
+        >
           Envoyer
         </Button>
       </Stack>

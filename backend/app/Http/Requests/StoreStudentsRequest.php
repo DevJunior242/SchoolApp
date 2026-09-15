@@ -30,7 +30,7 @@ class StoreStudentsRequest extends FormRequest
 
             'students.*.parent_fullname' => ['nullable', 'string', 'max:255', "regex:/^[\p{L}\p{M}0-9 .,_'’()\/-]+$/u"],
             'students.*.parent_email' => ['nullable', 'required_without:students.*.parent_phone', 'email'],
-            'students.*.parent_phone' => ['nullable', 'required_without:students.*.parent_email', 'string', 'max:30', 'regex:/^[0-9+().\/ -]+$/'],
+            'students.*.parent_phone' => ['nullable', 'required_without:students.*.parent_email', 'phone:INTERNATIONAL'],
             'students.*.parent_relationship' => ['required', 'string', 'max:30', "regex:/^[\p{L}\p{M} .,_'’()\/-]+$/u"],
         ];
     }
@@ -43,7 +43,7 @@ class StoreStudentsRequest extends FormRequest
             'students.*.parent_phone.required_without' => 'Renseignez le téléphone ou l’email du parent.',
             'students.*.parent_relationship.required' => 'Indiquez le lien entre le parent et l’élève.',
             'students.*.fullname.regex' => 'Le nom de l’élève contient des caractères non autorisés.',
-            'students.*.parent_phone.regex' => 'Le numéro de téléphone contient des caractères non autorisés.',
+            'students.*.parent_phone.phone' => 'Le numéro de téléphone doit être international et valide.',
         ];
     }
 }

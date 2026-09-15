@@ -40,8 +40,7 @@ import SuperAdminOverviewPage from "./SuperAdminOverviewPage.jsx";
 import ProviderProfilePage from "./ProviderProfilePage.jsx";
 
 const STAFF_ROLE_SLUGS = [
-  "fondateur",
-  "directeur",
+  "admin",
   "censeur",
   "surveillant",
   "secretaire",
@@ -65,29 +64,7 @@ function timeAgo(dateString) {
 }
 
 const QUICK_ACTIONS_BY_ROLE = {
-    fondateur: [
-    {
-      label: "Ajouter un membre",
-      to: "/dashboard/members",
-      icon: <GroupsIcon />,
-    },
-    {
-      label: "Ajouter une classe",
-      to: "/dashboard/classes",
-      icon: <MenuBookIcon />,
-    },
-    {
-      label: "Inscrire des élèves",
-      to: "/dashboard/students",
-      icon: <School2Icon />,
-    },
-    {
-      label: "Créer un événement",
-      to: "/dashboard/events",
-      icon: <EventIcon />,
-    },
-  ],
-  directeur: [
+  admin: [
     {
       label: "Ajouter un membre",
       to: "/dashboard/members",
@@ -324,27 +301,23 @@ export default function DashboardOverviewPage() {
   }
 
   if (isRh) {
-    const staff = Array.isArray(hrStaff)
-    ? hrStaff
-    : hrStaff?.data ?? [];
+    const staff = Array.isArray(hrStaff) ? hrStaff : (hrStaff?.data ?? []);
 
-  const leaves = Array.isArray(hrLeaves)
-    ? hrLeaves
-    : hrLeaves?.data ?? [];
+    const leaves = Array.isArray(hrLeaves) ? hrLeaves : (hrLeaves?.data ?? []);
 
-  const departmentCounts = staff.reduce((counts, member) => {
-    const department = member.department || "Non renseigné";
-    counts[department] = (counts[department] ?? 0) + 1;
+    const departmentCounts = staff.reduce((counts, member) => {
+      const department = member.department || "Non renseigné";
+      counts[department] = (counts[department] ?? 0) + 1;
 
-    return counts;
-  }, {});
+      return counts;
+    }, {});
 
-  const leaveCounts = leaves.reduce((counts, leave) => {
-    const status = leave.status_label || "En attente";
-    counts[status] = (counts[status] ?? 0) + 1;
+    const leaveCounts = leaves.reduce((counts, leave) => {
+      const status = leave.status_label || "En attente";
+      counts[status] = (counts[status] ?? 0) + 1;
 
-    return counts;
-  }, {});
+      return counts;
+    }, {});
 
     return (
       <Box>
@@ -357,9 +330,23 @@ export default function DashboardOverviewPage() {
         <Grid container spacing={3}>
           {[
             { label: "Personnel", value: staff.length },
-            { label: "Départements", value: Object.keys(departmentCounts).filter((name) => name !== "Non renseigné").length },
-            { label: "Contrats CDI", value: staff.filter((member) => Number(member.contract_type) === 1).length },
-            { label: "Congés en attente", value: leaves.filter((leave) => Number(leave.status) === 1).length },
+            {
+              label: "Départements",
+              value: Object.keys(departmentCounts).filter(
+                (name) => name !== "Non renseigné",
+              ).length,
+            },
+            {
+              label: "Contrats CDI",
+              value: staff.filter(
+                (member) => Number(member.contract_type) === 1,
+              ).length,
+            },
+            {
+              label: "Congés en attente",
+              value: leaves.filter((leave) => Number(leave.status) === 1)
+                .length,
+            },
           ].map((stat) => (
             <Grid key={stat.label} size={{ xs: 12, sm: 6, md: 3 }}>
               <Card variant="outlined" sx={{ height: "100%" }}>
@@ -381,8 +368,12 @@ export default function DashboardOverviewPage() {
               <Typography variant="h6">Personnel par département</Typography>
               <BarChart
                 height={240}
-                xAxis={[{ scaleType: "band", data: Object.keys(departmentCounts) }]}
-                series={[{ data: Object.values(departmentCounts), label: "Personnel" }]}
+                xAxis={[
+                  { scaleType: "band", data: Object.keys(departmentCounts) },
+                ]}
+                series={[
+                  { data: Object.values(departmentCounts), label: "Personnel" },
+                ]}
               />
             </Paper>
           </Grid>
@@ -392,7 +383,9 @@ export default function DashboardOverviewPage() {
               <BarChart
                 height={240}
                 xAxis={[{ scaleType: "band", data: Object.keys(leaveCounts) }]}
-                series={[{ data: Object.values(leaveCounts), label: "Demandes" }]}
+                series={[
+                  { data: Object.values(leaveCounts), label: "Demandes" },
+                ]}
               />
             </Paper>
           </Grid>
@@ -407,7 +400,7 @@ export default function DashboardOverviewPage() {
         Vue d'ensemble
       </Typography>
 
-      {current.role?.slug === "directeur" && (
+      {current.role?.slug === "admin" && (
         <Paper
           variant="outlined"
           sx={(theme) => ({

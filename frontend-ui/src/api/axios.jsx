@@ -36,13 +36,22 @@ const BLOCKED_ACCESS_CODES = ["school_read_only", "plan_upgrade_required"];
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (BLOCKED_ACCESS_CODES.includes(error.response?.data?.code)) {
+    const data = error.response?.data;
+
+    // Certaines pages affichent uniquement data.errors, alors qu’une API
+    // 403/422 peut renvoyer un message lisible dans data.message.
+    if (data?.message && !data?.errors) {
+      data.errors = { message: [data.message] };
+    }
+
+    if (BLOCKED_ACCESS_CODES.includes(data?.code)) {
       window.dispatchEvent(
         new CustomEvent("school-access-blocked", {
-          detail: error.response.data.message,
+          detail: data.message,
         }),
       );
     }
+
     return Promise.reject(error);
   },
 );

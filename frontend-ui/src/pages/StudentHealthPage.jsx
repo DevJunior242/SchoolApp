@@ -30,8 +30,10 @@ import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
+import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
+import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 
-const MANAGER_ROLE_SLUGS = ["directeur", "infirmier", "fondateur"];
+const MANAGER_ROLE_SLUGS = ["admin", "infirmier"];
 
 const DOCUMENT_TYPE_OPTIONS = [
   { value: 1, label: "Certificat médical" },
@@ -96,10 +98,12 @@ export default function StudentHealthPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
   const { schoolUsers } = useSchools();
-  const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role
-    ?.slug;
-  const canManage = MANAGER_ROLE_SLUGS.includes(currentRole);
-  const isTeacherOnly = currentRole === "professeur";
+  const currentMembership = schoolUsers.find(
+    (membership) => membership.school.id === schoolId,
+  );
+  const { roleSlug } = getSchoolAdminAccess(currentMembership);
+  const canManage = MANAGER_ROLE_SLUGS.includes(roleSlug);
+  const isTeacherOnly = roleSlug === "professeur";
 
   const base = schoolId
     ? `/schools/${schoolId}/students/${studentId}/health`
@@ -441,14 +445,14 @@ export default function StudentHealthPage() {
               disabled={!canManage}
               fullWidth
             />
-            <TextField
+            <InternationalPhoneField
               label="Téléphone du médecin"
               value={profileForm.doctor_phone}
-              onChange={(e) =>
-                setProfileForm((p) => ({ ...p, doctor_phone: e.target.value }))
+              onChange={(phone) =>
+                setProfileForm((p) => ({ ...p, doctor_phone: phone }))
               }
               disabled={!canManage}
-              fullWidth
+              name="doctor_phone"
             />
             <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 1 }}>
               Urgence
@@ -465,29 +469,29 @@ export default function StudentHealthPage() {
               disabled={!canManage}
               fullWidth
             />
-            <TextField
+            <InternationalPhoneField
               label="Téléphone 1"
               value={profileForm.emergency_contact_phone}
-              onChange={(e) =>
+              onChange={(phone) =>
                 setProfileForm((p) => ({
                   ...p,
-                  emergency_contact_phone: e.target.value,
+                  emergency_contact_phone: phone,
                 }))
               }
               disabled={!canManage}
-              fullWidth
+              name="emergency_contact_phone"
             />
-            <TextField
+            <InternationalPhoneField
               label="Téléphone 2 (optionnel)"
               value={profileForm.emergency_contact_phone2}
-              onChange={(e) =>
+              onChange={(phone) =>
                 setProfileForm((p) => ({
                   ...p,
-                  emergency_contact_phone2: e.target.value,
+                  emergency_contact_phone2: phone,
                 }))
               }
               disabled={!canManage}
-              fullWidth
+              name="emergency_contact_phone2"
             />
             <TextField
               label="Lien de parenté"

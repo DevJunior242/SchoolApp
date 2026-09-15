@@ -10,7 +10,7 @@ trait AuthorizesSchoolDirecteur
 {
     private function authorizeDirecteur(Request $request, School $school): void
     {
-        $this->authorizeRoles($request, $school, ['fondateur', 'directeur'], "Seuls le fondateur et les directeurs de l'école peuvent gérer les membres.");
+        $this->authorizeRoles($request, $school, ['admin'], "Seuls les administrateurs de l'école peuvent gérer les membres.");
     }
 
     /**
@@ -22,8 +22,8 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['fondateur', 'directeur', 'secretaire'],
-            'Seuls le directeur et le secrétariat peuvent inscrire des élèves.'
+            ['admin', 'secretaire'],
+            'Seuls l’administrateur et le secrétariat peuvent inscrire des élèves.'
         );
     }
 
@@ -39,7 +39,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'secretaire', 'comptable', 'infirmier', 'bibliothecaire','fondateur'],
+            ['admin', 'secretaire', 'comptable', 'infirmier', 'bibliothecaire'],
             "Vous n'avez pas accès à la liste des élèves."
         );
     }
@@ -53,7 +53,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'censeur', 'surveillant','fondateur'],
+            ['admin', 'censeur', 'surveillant'],
             "Vous n'avez pas accès à la validation des absences."
         );
     }
@@ -67,7 +67,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'censeur', 'secretaire','fondateur'],
+            ['admin', 'censeur', 'secretaire'],
             "Vous n'êtes pas autorisé à gérer les événements de cette école."
         );
     }
@@ -81,7 +81,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'secretaire','fondateur'],
+            ['admin', 'secretaire'],
             "Vous n'avez pas accès à la messagerie de l'école."
         );
     }
@@ -95,7 +95,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'bibliothecaire','fondateur'],
+            ['admin', 'bibliothecaire'],
             "Vous n'avez pas accès à la gestion de la bibliothèque."
         );
     }
@@ -109,7 +109,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'comptable', 'secretaire','fondateur'],
+            ['admin', 'comptable', 'secretaire'],
             "Vous n'avez pas accès aux finances de cette école."
         );
     }
@@ -124,8 +124,8 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'comptable','fondateur'],
-            'Seuls le directeur et le comptable peuvent gérer la trésorerie.'
+            ['admin', 'comptable'],
+            'Seuls l’administrateur et le comptable peuvent gérer la trésorerie.'
         );
     }
 
@@ -134,7 +134,7 @@ trait AuthorizesSchoolDirecteur
         $this->authorizeRoles(
             $request,
             $school,
-            ['directeur', 'rh','fondateur'],
+            ['admin', 'rh'],
             'Vous n\'avez pas accès à la gestion RH de cette école.'
         );
     }

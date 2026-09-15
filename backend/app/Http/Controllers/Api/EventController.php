@@ -20,7 +20,7 @@ class EventController extends Controller
 {
     use AuthorizesSchoolDirecteur, ResolvesEventAudience, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire', 'comptable', 'fondateur'];
+    private const STAFF_ROLE_SLUGS = ['admin', 'censeur', 'surveillant', 'secretaire', 'comptable'];
 
     /**
      * Le staff voit tous les événements de l'école. Les autres ne voient

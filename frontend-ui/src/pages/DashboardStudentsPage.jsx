@@ -27,11 +27,13 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SearchIcon from "@mui/icons-material/Search";
+import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useSchools } from "../hooks/useSchools.js";
+import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 
 const RELATIONSHIPS = [
   { value: "pere", label: "Père" },
@@ -79,28 +81,20 @@ export default function DashboardStudentsPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
   const { schoolUsers } = useSchools();
-  const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role
-    ?.slug;
-  const canRegister = ["fondateur", "directeur", "secretaire"].includes(
-    currentRole,
+  const currentMembership = schoolUsers.find(
+    (membership) => membership.school.id === schoolId,
   );
-  const canSeeHealth = ["directeur", "infirmier", "fondateur"].includes(
-    currentRole,
+  const { roleSlug, isPrincipalAdmin } =
+    getSchoolAdminAccess(currentMembership);
+  const canRegister = ["admin", "secretaire"].includes(roleSlug);
+  const canSeeHealth = ["admin", "infirmier"].includes(roleSlug);
+  // Seul l’admin principal peut consulter le bulletin depuis cette liste ;
+  // le parent y accède via sa propre page.
+  const canSeeBulletin = isPrincipalAdmin;
+  const canSeeCafeteria = ["admin", "comptable", "secretaire"].includes(
+    roleSlug,
   );
-  // Seul le directeur peut consulter le bulletin depuis cette liste (le
-  // parent y accède via sa propre page) : secrétaire/comptable/infirmier
-  // recevaient un 403 silencieux en cliquant, le bouton ne doit pas leur
-  // être montré.
-  const canSeeBulletin = currentRole === "directeur";
-  const canSeeCafeteria = [
-    "directeur",
-    "comptable",
-    "secretaire",
-    "fondateur",
-  ].includes(currentRole);
-  const canAssignBus = ["directeur", "secretaire", "fondateur"].includes(
-    currentRole,
-  );
+  const canAssignBus = ["admin", "secretaire"].includes(roleSlug);
 
   const [classFilter, setClassFilter] = useState("");
   const {
@@ -641,13 +635,14 @@ export default function DashboardStudentsPage() {
                             }
                             fullWidth
                           />
-                          <TextField
+                          <InternationalPhoneField
                             label="Téléphone du parent"
                             value={row.parent_phone}
-                            onChange={(e) =>
-                              updateRow(index, "parent_phone", e.target.value)
+                            onChange={(phone) =>
+                              updateRow(index, "parent_phone", phone)
                             }
-                            fullWidth
+                            id={`parent-phone-${index}`}
+                            name={`parent_phone_${index}`}
                           />
                         </Stack>
                       </Stack>

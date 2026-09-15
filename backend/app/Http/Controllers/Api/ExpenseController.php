@@ -24,10 +24,10 @@ class ExpenseController extends Controller
         return response()->json(
             Expense::query()
                 ->where('school_id', $school->id)
-                ->when($request->query('status') !== null, fn ($query) => $query->where('status', $request->query('status')))
+                ->when($request->query('status') !== null, fn($query) => $query->where('status', $request->query('status')))
                 // Les dépenses communes (section_id null) sont réservées à
                 // la direction/comptabilité globale, jamais à une section.
-                ->when($sectionIds, fn ($query, $ids) => $query->whereIn('section_id', $ids))
+                ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
                 ->with(['section', 'expenseCategory', 'treasuryAccount', 'paymentMethod', 'declaredBy'])
                 ->latest('expense_date')
                 ->paginate($request->integer('per_page', 10))
@@ -83,7 +83,7 @@ class ExpenseController extends Controller
         $canAutoConfirm = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $request->user()->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'comptable']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'comptable']))
             ->exists();
 
         $expense = Expense::query()->create([

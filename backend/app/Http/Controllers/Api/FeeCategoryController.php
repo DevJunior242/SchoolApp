@@ -28,7 +28,7 @@ class FeeCategoryController extends Controller
 
     public function store(Request $request, School $school)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable','fondateur'], 'Seuls le directeur et le comptable peuvent gérer les catégories de frais.');
+        $this->authorizeRoles($request, $school, ['admin', 'comptable'], 'Seuls l’administrateur et le comptable peuvent gérer les catégories de frais.');
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -41,7 +41,7 @@ class FeeCategoryController extends Controller
 
     public function update(Request $request, School $school, FeeCategory $feeCategory)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les catégories de frais.');
+        $this->authorizeRoles($request, $school, ['admin', 'comptable'], 'Seuls l’administrateur et le comptable peuvent gérer les catégories de frais.');
         abort_if($feeCategory->school_id !== $school->id, 404);
 
         $validated = $request->validate([
@@ -56,7 +56,7 @@ class FeeCategoryController extends Controller
 
     public function destroy(Request $request, School $school, FeeCategory $feeCategory)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les catégories de frais.');
+        $this->authorizeRoles($request, $school, ['admin', 'comptable'], 'Seuls l’administrateur et le comptable peuvent gérer les catégories de frais.');
         abort_if($feeCategory->school_id !== $school->id, 404);
 
         $feeCategory->delete();

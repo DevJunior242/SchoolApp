@@ -39,7 +39,7 @@ class TeacherController extends Controller
         $validated = $request->validate([
             'fullname' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'required_without:phone', 'email'],
-            'phone' => ['nullable', 'required_without:email', 'string', 'max:30'],
+            'phone' => ['nullable', 'required_without:email', 'phone:INTERNATIONAL'],
         ]);
 
         $professeurRole = Role::query()->where('slug', 'professeur')->firstOrFail();
@@ -80,7 +80,7 @@ class TeacherController extends Controller
         $validated = $request->validate([
             'fullname' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'phone:INTERNATIONAL'],
         ]);
 
         // Update l'utilisateur associé

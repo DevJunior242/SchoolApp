@@ -26,16 +26,16 @@ class MessageController extends Controller
 
         $count = $this->isMessageStaff($request, $school)
             ? Message::query()
-                ->where('school_id', $school->id)
-                ->whereColumn('sender_id', 'user_id')
-                ->whereNull('read_at')
-                ->count()
+            ->where('school_id', $school->id)
+            ->whereColumn('sender_id', 'user_id')
+            ->whereNull('read_at')
+            ->count()
             : Message::query()
-                ->where('school_id', $school->id)
-                ->where('user_id', $userId)
-                ->where('sender_id', '!=', $userId)
-                ->whereNull('read_at')
-                ->count();
+            ->where('school_id', $school->id)
+            ->where('user_id', $userId)
+            ->where('sender_id', '!=', $userId)
+            ->whereNull('read_at')
+            ->count();
 
         return response()->json(['count' => $count]);
     }
@@ -193,7 +193,7 @@ class MessageController extends Controller
         return SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $request->user()->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'secretaire']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'secretaire']))
             ->exists();
     }
 
@@ -209,7 +209,7 @@ class MessageController extends Controller
     {
         $staffIds = SchoolUser::query()
             ->where('school_id', $school->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'secretaire']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'secretaire']))
             ->pluck('user_id');
 
         $recipients = User::query()->whereIn('id', $staffIds)->where('id', '!=', $message->user_id)->get();

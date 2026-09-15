@@ -9,34 +9,32 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-      $roles = [
-    ['name' => 'Super Administrateur SaaS', 'slug' => 'superadmin'],
+        $roles = [
+            ['name' => 'Super Administrateur SaaS', 'slug' => 'superadmin'],
 
-    ['name' => 'Fondateur / Promoteur', 'slug' => 'fondateur'],
+            ['name' => 'Administrateur de l’école', 'slug' => 'admin'],
 
-    ['name' => 'Directeur Général', 'slug' => 'directeur'],
+            ['name' => 'Censeur / Proviseur', 'slug' => 'censeur'],
 
-    ['name' => 'Censeur / Proviseur', 'slug' => 'censeur'],
+            ['name' => 'Surveillant général', 'slug' => 'surveillant'],
 
-    ['name' => 'Surveillant général', 'slug' => 'surveillant'],
+            ['name' => 'Professeur', 'slug' => 'professeur'],
 
-    ['name' => 'Professeur', 'slug' => 'professeur'],
+            ['name' => 'Élève', 'slug' => 'eleve'],
+            ['name' => 'Parent', 'slug' => 'parent'],
 
-    ['name' => 'Élève', 'slug' => 'eleve'],
-    ['name' => 'Parent', 'slug' => 'parent'],
+            ['name' => 'Secrétaire', 'slug' => 'secretaire'],
 
-    ['name' => 'Secrétaire', 'slug' => 'secretaire'],
+            ['name' => 'Responsable RH', 'slug' => 'rh'],
+            ['name' => 'Comptable', 'slug' => 'comptable'],
 
-    ['name' => 'Responsable RH', 'slug' => 'rh'],
-    ['name' => 'Comptable', 'slug' => 'comptable'],
+            ['name' => 'Infirmier', 'slug' => 'infirmier'],
+            ['name' => 'Chauffeur', 'slug' => 'chauffeur'],
+            ['name' => 'Bibliothécaire', 'slug' => 'bibliothecaire'],
+            ['name' => 'Personnel de cantine', 'slug' => 'cantine'],
 
-    ['name' => 'Infirmier', 'slug' => 'infirmier'],
-    ['name' => 'Chauffeur', 'slug' => 'chauffeur'],
-    ['name' => 'Bibliothécaire', 'slug' => 'bibliothecaire'],
-    ['name' => 'Personnel de cantine', 'slug' => 'cantine'],
-
-    ['name' => 'Prestataire', 'slug' => 'prestataire'],
-];
+            ['name' => 'Prestataire', 'slug' => 'prestataire'],
+        ];
 
         foreach ($roles as $role) {
             Role::query()->firstOrCreate(['slug' => $role['slug']], $role);

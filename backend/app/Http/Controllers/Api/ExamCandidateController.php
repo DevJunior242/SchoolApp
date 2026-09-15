@@ -265,7 +265,7 @@ class ExamCandidateController extends Controller
         return SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $user->id)
-            ->whereHas('role', fn($query) => $query->whereIn('slug', ['directeur', 'fondateur']))
+            ->whereHas('role', fn($query) => $query->where('slug', 'admin'))
             ->exists();
     }
 }

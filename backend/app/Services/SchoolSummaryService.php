@@ -25,46 +25,50 @@ class SchoolSummaryService
         $studentsCount = SchoolStudent::query()
             ->where('school_id', $school->id)
             ->where('status', SchoolStudent::STATUS_ACTIVE)
-            ->when($sectionIds, fn ($query, $ids) => $query->whereHas('schoolClass', fn ($q) => $q->whereIn('section_id', $ids)))
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('student.classStudents.schoolClass.level', fn($q) => $q->whereIn('section_id', $ids)))
             ->count();
 
         $teachersCount = SchoolUser::query()
             ->where('school_id', $school->id)
-            ->whereHas('role', fn ($query) => $query->where('slug', 'professeur'))
-            ->when($sectionIds, fn ($query, $ids) => $query->whereHas('sections', fn ($q) => $q->whereIn('sections.id', $ids)))
+            ->whereHas('role', fn($query) => $query->where('slug', 'professeur'))
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('sections', fn($q) => $q->whereIn('sections.id', $ids)))
             ->count();
 
         $classesCount = SchoolClass::query()
             ->where('school_id', $school->id)
-            ->whereHas('schoolYear', fn ($query) => $query->where('is_current', true))
-            ->when($sectionIds, fn ($query, $ids) => $query->whereIn('section_id', $ids))
+            ->whereHas('schoolYear', fn($query) => $query->where('is_current', true))
+            ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
             ->count();
 
         $pendingPayments = Payment::query()
             ->where('school_id', $school->id)
             ->where('status', Payment::STATUS_PENDING)
-            ->when($sectionIds, fn ($query, $ids) => $query->whereHas('student.schoolClass', fn ($q) => $q->whereIn('section_id', $ids)));
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('student.classStudents.schoolClass.level', fn($q) => $q->whereIn('section_id', $ids)));
 
         $confirmedAmount = Payment::query()
             ->where('school_id', $school->id)
             ->where('status', Payment::STATUS_CONFIRMED)
-            ->when($sectionIds, fn ($query, $ids) => $query->whereHas('student.schoolClass', fn ($q) => $q->whereIn('section_id', $ids)))
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('student.classStudents.schoolClass.level', fn($q) => $q->whereIn('section_id', $ids)))
             ->sum('amount');
 
         $pendingJustifications = Attendance::query()
             ->where('justification_status', Attendance::JUSTIFICATION_EN_ATTENTE)
-            ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query
-                ->where('school_id', $school->id)
-                ->when($sectionIds, fn ($q, $ids) => $q->whereIn('section_id', $ids))
+            ->whereHas(
+                'classSubjectTeacher.schoolClass',
+                fn($query) => $query
+                    ->where('school_id', $school->id)
+                    ->when($sectionIds, fn($q, $ids) => $q->whereIn('section_id', $ids))
             )
             ->count();
 
         $todayAbsent = Attendance::query()
             ->where('status', Attendance::STATUS_ABSENT)
             ->where('date', now()->toDateString())
-            ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query
-                ->where('school_id', $school->id)
-                ->when($sectionIds, fn ($q, $ids) => $q->whereIn('section_id', $ids))
+            ->whereHas(
+                'classSubjectTeacher.schoolClass',
+                fn($query) => $query
+                    ->where('school_id', $school->id)
+                    ->when($sectionIds, fn($q, $ids) => $q->whereIn('section_id', $ids))
             )
             ->count();
 
@@ -73,12 +77,12 @@ class SchoolSummaryService
         $pendingExpenses = Expense::query()
             ->where('school_id', $school->id)
             ->where('status', Expense::STATUS_PENDING)
-            ->when($sectionIds, fn ($query, $ids) => $query->whereIn('section_id', $ids));
+            ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids));
 
         $confirmedExpensesAmount = Expense::query()
             ->where('school_id', $school->id)
             ->where('status', Expense::STATUS_CONFIRMED)
-            ->when($sectionIds, fn ($query, $ids) => $query->whereIn('section_id', $ids))
+            ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
             ->sum('amount');
 
         $thisMonthAttendanceRate = $this->attendanceRateFor($school, now(), $sectionIds);
@@ -88,31 +92,32 @@ class SchoolSummaryService
             ->where('school_id', $school->id)
             ->where('status', Payment::STATUS_CONFIRMED)
             ->whereDate('confirmed_at', now()->toDateString())
-            ->when($sectionIds, fn ($query, $ids) => $query->whereHas('student.schoolClass', fn ($q) => $q->whereIn('section_id', $ids)))
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('student.classStudents.schoolClass.level', fn($q) => $q->whereIn('section_id', $ids)))
             ->sum('amount');
 
         $expensesTodayAmount = Expense::query()
             ->where('school_id', $school->id)
             ->where('status', Expense::STATUS_CONFIRMED)
             ->whereDate('confirmed_at', now()->toDateString())
-            ->when($sectionIds, fn ($query, $ids) => $query->whereIn('section_id', $ids))
+            ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
             ->sum('amount');
 
         $paymentsMonthAmount = Payment::query()
             ->where('school_id', $school->id)
             ->where('status', Payment::STATUS_CONFIRMED)
             ->whereBetween('confirmed_at', [now()->startOfMonth(), now()->endOfMonth()])
-            ->when($sectionIds, fn ($query, $ids) => $query->whereHas('student.schoolClass', fn ($q) => $q->whereIn('section_id', $ids)))
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('student.classStudents.schoolClass.level', fn($q) => $q->whereIn('section_id', $ids)))
             ->sum('amount');
 
         $expensesMonthAmount = Expense::query()
             ->where('school_id', $school->id)
             ->where('status', Expense::STATUS_CONFIRMED)
             ->whereBetween('confirmed_at', [now()->startOfMonth(), now()->endOfMonth()])
-            ->when($sectionIds, fn ($query, $ids) => $query->whereIn('section_id', $ids))
+            ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
             ->sum('amount');
 
         return [
+            'currency' => $school->currency ?: $school->country?->currency ?: 'XOF',
             'students_count' => $studentsCount,
             'students_growth_pct' => $this->studentsGrowthPct($school, $studentsCount, $sectionIds),
             'teachers_count' => $teachersCount,
@@ -150,14 +155,14 @@ class SchoolSummaryService
                 ->where('school_id', $school->id)
                 ->where('status', Payment::STATUS_CONFIRMED)
                 ->whereBetween('confirmed_at', [$monthStart, $monthEnd])
-                ->when($sectionIds, fn ($query, $ids) => $query->whereHas('student.schoolClass', fn ($q) => $q->whereIn('section_id', $ids)))
+                ->when($sectionIds, fn($query, $ids) => $query->whereHas('student.classStudents.schoolClass.level', fn($q) => $q->whereIn('section_id', $ids)))
                 ->sum('amount');
 
             $expenses = Expense::query()
                 ->where('school_id', $school->id)
                 ->where('status', Expense::STATUS_CONFIRMED)
                 ->whereBetween('confirmed_at', [$monthStart, $monthEnd])
-                ->when($sectionIds, fn ($query, $ids) => $query->whereIn('section_id', $ids))
+                ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
                 ->sum('amount');
 
             $result[] = [
@@ -177,7 +182,7 @@ class SchoolSummaryService
             ->where('school_id', $school->id)
             ->where('status', SchoolStudent::STATUS_ACTIVE)
             ->whereBetween('admission_date', [now()->startOfMonth(), now()->endOfMonth()])
-            ->when($sectionIds, fn ($query, $ids) => $query->whereHas('schoolClass', fn ($q) => $q->whereIn('section_id', $ids)))
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('student.classStudents.schoolClass.level', fn($q) => $q->whereIn('section_id', $ids)))
             ->count();
 
         $previousCount = $currentCount - $admittedThisMonth;
@@ -188,9 +193,11 @@ class SchoolSummaryService
     private function attendanceRateFor(School $school, Carbon $month, ?array $sectionIds = null): ?float
     {
         $records = Attendance::query()
-            ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query
-                ->where('school_id', $school->id)
-                ->when($sectionIds, fn ($q, $ids) => $q->whereIn('section_id', $ids))
+            ->whereHas(
+                'classSubjectTeacher.schoolClass',
+                fn($query) => $query
+                    ->where('school_id', $school->id)
+                    ->when($sectionIds, fn($q, $ids) => $q->whereIn('section_id', $ids))
             )
             ->whereBetween('date', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
             ->get(['status']);
@@ -219,12 +226,12 @@ class SchoolSummaryService
             ->where('school_id', $school->id)
             ->where('status', Payment::STATUS_CONFIRMED)
             ->whereNotNull('confirmed_at')
-            ->when($sectionIds, fn ($query, $ids) => $query->whereHas('student.schoolClass', fn ($q) => $q->whereIn('section_id', $ids)))
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('student.classStudents.schoolClass.level', fn($q) => $q->whereIn('section_id', $ids)))
             ->with(['student', 'paymentMethod'])
             ->latest('confirmed_at')
             ->limit($limit)
             ->get()
-            ->map(fn (Payment $payment) => [
+            ->map(fn(Payment $payment) => [
                 'type' => 'payment',
                 'label' => sprintf(
                     'Paiement %s reçu — %s',
@@ -238,12 +245,12 @@ class SchoolSummaryService
             ->where('school_id', $school->id)
             ->where('status', Expense::STATUS_CONFIRMED)
             ->whereNotNull('confirmed_at')
-            ->when($sectionIds, fn ($query, $ids) => $query->whereIn('section_id', $ids))
+            ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
             ->with('expenseCategory')
             ->latest('confirmed_at')
             ->limit($limit)
             ->get()
-            ->map(fn (Expense $expense) => [
+            ->map(fn(Expense $expense) => [
                 'type' => 'expense',
                 'label' => sprintf(
                     'Dépense confirmée — %s (%s)',
@@ -255,11 +262,11 @@ class SchoolSummaryService
 
         $enrollments = EnrollmentRequest::query()
             ->where('school_id', $school->id)
-            ->when($sectionIds, fn ($query, $ids) => $query->whereIn('section_id', $ids))
+            ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
             ->latest('created_at')
             ->limit($limit)
             ->get()
-            ->map(fn (EnrollmentRequest $request) => [
+            ->map(fn(EnrollmentRequest $request) => [
                 'type' => 'enrollment',
                 'label' => "Nouvelle demande d'inscription — {$request->child_fullname}",
                 'at' => $request->created_at,
@@ -268,17 +275,19 @@ class SchoolSummaryService
         $justifications = Attendance::query()
             ->where('justification_status', Attendance::JUSTIFICATION_JUSTIFIEE)
             ->whereNotNull('justified_at')
-            ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query
-                ->where('school_id', $school->id)
-                ->when($sectionIds, fn ($q, $ids) => $q->whereIn('section_id', $ids))
+            ->whereHas(
+                'classSubjectTeacher.schoolClass',
+                fn($query) => $query
+                    ->where('school_id', $school->id)
+                    ->when($sectionIds, fn($q, $ids) => $q->whereIn('section_id', $ids))
             )
             ->with('student')
             ->latest('justified_at')
             ->limit($limit)
             ->get()
-            ->map(fn (Attendance $attendance) => [
+            ->map(fn(Attendance $attendance) => [
                 'type' => 'justification',
-                'label' => 'Absence justifiée — '.($attendance->student?->fullname ?? 'élève'),
+                'label' => 'Absence justifiée — ' . ($attendance->student?->fullname ?? 'élève'),
                 'at' => $attendance->justified_at,
             ]);
 

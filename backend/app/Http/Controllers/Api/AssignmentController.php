@@ -31,10 +31,10 @@ class AssignmentController extends Controller
         return response()->json(
             ClassSubjectTeacher::query()
                 ->where('user_id', $request->user()->id)
-                ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
-                ->when($sectionIds, fn ($query, $ids) => $query->whereHas(
+                ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
+                ->when($sectionIds, fn($query, $ids) => $query->whereHas(
                     'schoolClass.level',
-                    fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids)
+                    fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)
                 ))
                 ->with(['subject', 'schoolClass.level'])
                 ->get()
@@ -53,13 +53,13 @@ class AssignmentController extends Controller
         $userId = $request->user()->id;
 
         if ($assignment->user_id !== $userId) {
-            $isDirecteur = SchoolUser::query()
+            $isAdmin = SchoolUser::query()
                 ->where('school_id', $assignment->schoolClass->school_id)
                 ->where('user_id', $userId)
-                ->whereHas('role', fn ($query) => $query->where('slug', 'directeur'))
+                ->whereHas('role', fn($query) => $query->where('slug', 'admin'))
                 ->exists();
 
-            abort_unless($isDirecteur, 403, "Vous n'êtes pas autorisé à consulter ce cours.");
+            abort_unless($isAdmin, 403, "Vous n'êtes pas autorisé à consulter ce cours.");
         }
 
         return response()->json($assignment->load('subject', 'schoolClass.level'));

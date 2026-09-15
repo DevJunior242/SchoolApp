@@ -46,7 +46,7 @@ class EnrollmentRequestController extends Controller
             'child_birthdate' => ['nullable', 'date'],
             'level_id' => ['nullable', 'uuid', 'exists:levels,id'],
             'parent_fullname' => ['required', 'string', 'max:255'],
-            'parent_phone' => ['nullable', 'string', 'max:30'],
+            'parent_phone' => ['nullable', 'phone:INTERNATIONAL'],
             'parent_email' => ['nullable', 'email', 'max:255'],
             'message' => ['nullable', 'string', 'max:1000'],
             'turnstile_token' => [new ValidTurnstileToken],
@@ -106,7 +106,7 @@ class EnrollmentRequestController extends Controller
             'child_birthdate' => ['required', 'date', 'before:today'],
             'gender' => ['required', 'in:M,F'],
             'parent_email' => ['nullable', 'email', 'max:255'],
-            'parent_relationship' => ['required', 'in:'.implode(',', [
+            'parent_relationship' => ['required', 'in:' . implode(',', [
                 ParentStudent::RELATIONSHIP_PERE,
                 ParentStudent::RELATIONSHIP_MERE,
                 ParentStudent::RELATIONSHIP_TUTEUR,
@@ -149,8 +149,7 @@ class EnrollmentRequestController extends Controller
             ]);
 
             $parentRole = Role::query()->where('slug', 'parent')->firstOrFail();
-            $this->guardAgainstRoleConflict($school, $parent, $parentRole->id);
-            SchoolUser::query()->updateOrCreate(
+            SchoolUser::query()->firstOrCreate(
                 ['school_id' => $school->id, 'user_id' => $parent->id],
                 ['role_id' => $parentRole->id, 'status' => SchoolUser::STATUS_ACTIVE],
             );
@@ -206,7 +205,7 @@ class EnrollmentRequestController extends Controller
     {
         $userIds = SchoolUser::query()
             ->where('school_id', $school->id)
-            ->whereHas('role', fn($query) => $query->whereIn('slug', ['directeur', 'secretaire']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'secretaire']))
             ->pluck('user_id');
 
         $recipients = User::query()->whereIn('id', $userIds)->get();

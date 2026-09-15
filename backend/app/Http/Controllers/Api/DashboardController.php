@@ -18,7 +18,7 @@ class DashboardController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['fondateur', 'directeur', 'censeur', 'surveillant', 'secretaire', 'comptable'];
+    private const STAFF_ROLE_SLUGS = ['admin', 'censeur', 'surveillant', 'secretaire', 'comptable'];
 
     /**
      * Chiffres clés + actions en attente pour le tableau de bord du
@@ -73,10 +73,10 @@ class DashboardController extends Controller
         $sectionIds = $this->restrictedSectionIds($request, $school);
 
         $assignments = $request->user()->teachingAssignments()
-            ->whereHas('schoolClass', fn ($query) => $query
+            ->whereHas('schoolClass', fn($query) => $query
                 ->where('school_id', $school->id)
-                ->whereHas('schoolYear', fn ($q) => $q->where('is_current', true))
-                ->when($sectionIds, fn ($classQuery, $ids) => $classQuery->whereIn('section_id', $ids)))
+                ->whereHas('schoolYear', fn($q) => $q->where('is_current', true))
+                ->when($sectionIds, fn($classQuery, $ids) => $classQuery->whereIn('section_id', $ids)))
             ->with(['subject', 'schoolClass'])
             ->get();
 
@@ -96,29 +96,29 @@ class DashboardController extends Controller
         $classNameByAssignment = $assignments->pluck('schoolClass.name', 'id');
 
         $averageByClass = $grades
-            ->groupBy(fn (Grade $grade) => $classNameByAssignment[$grade->class_subject_teacher_id] ?? 'Classe inconnue')
+            ->groupBy(fn(Grade $grade) => $classNameByAssignment[$grade->class_subject_teacher_id] ?? 'Classe inconnue')
             ->map(function (Collection $group, string $className) {
                 $totalWeight = $group->sum('coefficient');
 
                 return [
                     'classe' => $className,
                     'moyenne' => $totalWeight > 0
-                        ? round($group->sum(fn (Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight, 2)
+                        ? round($group->sum(fn(Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight, 2)
                         : null,
                 ];
             })
-            ->filter(fn ($row) => $row['moyenne'] !== null)
+            ->filter(fn($row) => $row['moyenne'] !== null)
             ->values();
 
         $todaySlots = TimetableSlot::query()
-            ->whereHas('classSubjectTeacher', fn ($query) => $query
+            ->whereHas('classSubjectTeacher', fn($query) => $query
                 ->where('user_id', $userId)
-                ->whereHas('schoolClass', fn ($q) => $q->where('school_id', $school->id)))
+                ->whereHas('schoolClass', fn($q) => $q->where('school_id', $school->id)))
             ->where('day_of_week', now()->dayOfWeekIso)
             ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.schoolClass'])
             ->orderBy('start_time')
             ->get()
-            ->map(fn (TimetableSlot $slot) => [
+            ->map(fn(TimetableSlot $slot) => [
                 'start_time' => substr($slot->start_time, 0, 5),
                 'end_time' => substr($slot->end_time, 0, 5),
                 'subject' => $slot->classSubjectTeacher->subject?->name,

@@ -64,6 +64,7 @@ import {
 } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useThemeMode } from "../context/ThemeModeContext.jsx";
+import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
 import NotificationCenter from "../components/NotificationCenter.jsx";
 import MessagingIcon from "../components/MessagingIcon.jsx";
@@ -83,12 +84,12 @@ const OVERVIEW_ITEM = {
 
 // Enveloppe une liste plate dans un unique groupe sans titre, pour que le
 // rendu (groupé par section) ait toujours la même forme quel que soit le
-// rôle — seul le directeur a assez de liens pour justifier des sections.
+// rôle — seul l'administrateur a assez de liens pour justifier des sections.
 function singleGroup(items) {
   return [{ title: null, items }];
 }
 
-const DIRECTEUR_NAV_GROUPS = [
+const ADMIN_NAV_GROUPS = [
   {
     title: "Navigation",
     items: [
@@ -269,6 +270,11 @@ const PARENT_NAV_GROUPS = singleGroup([
     icon: <DescriptionIcon />,
   },
   {
+    label: "Examens",
+    to: "/dashboard/exams",
+    icon: <FactCheckIcon />,
+  },
+  {
     label: "Cantine",
     to: "/dashboard/my-children-cafeteria",
     icon: <RestaurantIcon />,
@@ -299,7 +305,7 @@ const PARENT_NAV_GROUPS = singleGroup([
 // L'élève majeur (compte propre) a le même accès qu'un parent à ses propres
 // données (cantine, bulletin), en plus de son badge/bibliothèque/cours.
 // Rôle précédemment sans menu dédié : il héritait par défaut du menu complet
-// du directeur, inutilisable pour lui (tout 403).
+// de l'administrateur, inutilisable pour lui (tout 403).
 const ELEVE_NAV_GROUPS = singleGroup([
   OVERVIEW_ITEM,
   {
@@ -312,6 +318,11 @@ const ELEVE_NAV_GROUPS = singleGroup([
     label: "Mon bulletin",
     to: "/dashboard/my-bulletin",
     icon: <DescriptionIcon />,
+  },
+  {
+    label: "Examens",
+    to: "/dashboard/exams",
+    icon: <FactCheckIcon />,
   },
   {
     label: "Ma bibliothèque",
@@ -463,7 +474,12 @@ const SECRETAIRE_NAV_GROUPS = singleGroup([
 // Le comptable consulte les élèves et gère intégralement les paiements
 // (moyens, tranches, confirmation), mais ne gère pas membres/profs/classes.
 const COMPTABLE_NAV_GROUPS = singleGroup([
-  OVERVIEW_ITEM,
+  {
+    label: "Tableau de bord comptable",
+    to: "/dashboard/comptable",
+    icon: <DashboardIcon />,
+    exact: true,
+  },
   { label: "Élèves", to: "/dashboard/students", icon: <School2Icon /> },
   {
     label: "Comptabilité",
@@ -472,6 +488,12 @@ const COMPTABLE_NAV_GROUPS = singleGroup([
   },
   { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
   { label: "Cantine", to: "/dashboard/cafeteria", icon: <RestaurantIcon /> },
+  {
+    label: "Assistant IA",
+    to: "/dashboard/ai-assistant",
+    icon: <SmartToyIcon />,
+    badge: "IA",
+  },
   {
     label: "Marketplace",
     to: "/dashboard/marketplace",
@@ -530,7 +552,13 @@ export default function DashboardLayout() {
   const currentRole = schoolUsers.find(
     (su) => su.school.id === user.current_school_id,
   )?.role?.slug;
+  const { data: children } = useApiGet(
+    currentSchool?.id ? `/schools/${currentSchool.id}/my-children` : null,
+    { enabled: Boolean(currentSchool?.id) },
+  );
+  const hasChildren = Array.isArray(children) && children.length > 0;
   const NAV_GROUPS_BY_ROLE = {
+    admin: ADMIN_NAV_GROUPS,
     professeur: PROFESSEUR_NAV_GROUPS,
     parent: PARENT_NAV_GROUPS,
     secretaire: SECRETAIRE_NAV_GROUPS,
@@ -550,15 +578,19 @@ export default function DashboardLayout() {
   // global (users.role_id), indépendant des écoles auxquelles ils
   // pourraient appartenir. Un utilisateur qui n'appartient à aucune école
   // (schoolUsers vide) n'a droit à rien de plus non plus : le menu complet
-  // du directeur ne doit être qu'un filet de secours pour un rôle
+  // de l'administrateur ne doit être qu'un filet de secours pour un rôle
   // école-spécifique inconnu, jamais l'absence totale d'école.
-  const navGroups = isSuperAdmin
+  const baseNavGroups = isSuperAdmin
     ? SUPERADMIN_NAV_GROUPS
     : isPrestataire
       ? PRESTATAIRE_NAV_GROUPS
       : schoolUsersLoading || schoolUsers.length === 0
         ? singleGroup([OVERVIEW_ITEM])
-        : (NAV_GROUPS_BY_ROLE[currentRole] ?? DIRECTEUR_NAV_GROUPS);
+        : (NAV_GROUPS_BY_ROLE[currentRole] ?? ADMIN_NAV_GROUPS);
+  const navGroups =
+    hasChildren && currentRole !== "parent"
+      ? [...baseNavGroups, ...PARENT_NAV_GROUPS]
+      : baseNavGroups;
 
   async function handleLogout() {
     setAnchorEl(null);
@@ -953,9 +985,7 @@ export default function DashboardLayout() {
           {!isSuperAdmin && !schoolUsersLoading && (
             <MessagingIcon
               schoolId={user.current_school_id}
-              isStaff={
-                currentRole === "directeur" || currentRole === "secretaire"
-              }
+              isStaff={currentRole === "admin" || currentRole === "secretaire"}
             />
           )}
 

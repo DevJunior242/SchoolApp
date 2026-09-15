@@ -31,7 +31,7 @@ class SchoolController extends Controller
         return response()->json(Cache::remember(
             'public.active-schools',
             now()->addMinutes(10),
-            fn () => School::query()
+            fn() => School::query()
                 ->where('status', School::STATUS_ACTIVE)
                 ->with('country')
                 ->get()
@@ -53,94 +53,95 @@ class SchoolController extends Controller
     // (une clé valide saute directement le trial, cf. store()).
     private const TRIAL_DAYS = 30;
 
-    
-public function store(Request $request)
-{
-    if ($request->user()?->role?->slug === 'superadmin') {
-        abort(403, 'Le superadmin de la plateforme ne peut pas créer une école.');
-    }
 
-    $validated = $request->validate([
-        'name' => ['required', 'string', 'max:255'],
-        'country_id' => ['required', 'uuid', 'exists:countries,id'],
-        'address' => ['nullable', 'string', 'max:255'],
-        'phone' => ['nullable', 'string', 'max:30'],
-        'email' => ['nullable', 'email', 'max:255'],
-        'activation_key' => ['nullable', 'string', 'max:80'],
-        'pricing_plan_id' => ['required', 'uuid', 'exists:school_pricing_plans,id'],
-        // Optionnel : sélection des sections lors de la création
-        'section_ids' => ['nullable', 'array'],
-        'section_ids.*' => ['uuid', 'exists:sections,id'],
-    ]);
+    public function store(Request $request)
+    {
+        if ($request->user()?->role?->slug === 'superadmin') {
+            abort(403, 'Le superadmin de la plateforme ne peut pas créer une école.');
+        }
 
-    $pricingPlan = SchoolPricingPlan::query()
-        ->where('active', true)
-        ->find($validated['pricing_plan_id']);
-
-    if (! $pricingPlan) {
-        throw ValidationException::withMessages([
-            'pricing_plan_id' => ['Le tarif sélectionné n’est pas disponible.'],
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'country_id' => ['required', 'uuid', 'exists:countries,id'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'phone:INTERNATIONAL'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'activation_key' => ['nullable', 'string', 'max:80'],
+            'pricing_plan_id' => ['required', 'uuid', 'exists:school_pricing_plans,id'],
+            // Optionnel : sélection des sections lors de la création
+            'section_ids' => ['nullable', 'array'],
+            'section_ids.*' => ['uuid', 'exists:sections,id'],
         ]);
-    }
 
-    $validated['pricing_plan_id'] = $pricingPlan->id;
-    $rawKey = trim((string) ($validated['activation_key'] ?? ''));
+        $pricingPlan = SchoolPricingPlan::query()
+            ->where('active', true)
+            ->find($validated['pricing_plan_id']);
 
-    $user = $request->user();
-    // Le créateur reçoit le rôle Fondateur
-    $fondateurRole = Role::query()->where('slug', 'fondateur')->firstOrFail();
-    $school = DB::transaction(function () use ($validated, $rawKey, $user, $fondateurRole) {
-        $activationKey = $rawKey !== ''
-            ? ActivationKey::query()->where('key', $rawKey)->lockForUpdate()->first()
-            : null;
-
-        if ($rawKey !== '' && (! $activationKey || $activationKey->status !== ActivationKey::STATUS_DISPONIBLE)) {
+        if (! $pricingPlan) {
             throw ValidationException::withMessages([
-                'activation_key' => ["Cette clé d'activation est invalide ou déjà utilisée."],
+                'pricing_plan_id' => ['Le tarif sélectionné n’est pas disponible.'],
             ]);
         }
 
-        // 1. Création de l'école
-        $school = School::query()->create([
-            ...collect($validated)->except(['activation_key', 'section_ids'])->all(),
-            'status' => School::STATUS_ACTIVE,
-            'academic_period_type' => Season::TYPE_TRIMESTRE,
-            'trial_ends_at' => $activationKey ? null : now()->addDays(self::TRIAL_DAYS),
-        ]);
+        $validated['pricing_plan_id'] = $pricingPlan->id;
+        $rawKey = trim((string) ($validated['activation_key'] ?? ''));
 
-        // 2. Attachement des sections actives (Sélectionnées ou TOUTES par défaut)
-        $sectionIds = !empty($validated['section_ids'])
-            ? $validated['section_ids']
-            : Section::pluck('id')->toArray();
+        $user = $request->user();
+        // Le créateur devient l’admin principal de l’école.
+        $adminRole = Role::query()->where('slug', 'admin')->firstOrFail();
+        $school = DB::transaction(function () use ($validated, $rawKey, $user, $adminRole) {
+            $activationKey = $rawKey !== ''
+                ? ActivationKey::query()->where('key', $rawKey)->lockForUpdate()->first()
+                : null;
 
-        $school->sections()->sync($sectionIds, ['active' => true]);
+            if ($rawKey !== '' && (! $activationKey || $activationKey->status !== ActivationKey::STATUS_DISPONIBLE)) {
+                throw ValidationException::withMessages([
+                    'activation_key' => ["Cette clé d'activation est invalide ou déjà utilisée."],
+                ]);
+            }
 
-        // 3. Attribution du rôle Fondateur au créateur
-        // Note : Aucune entrée dans school_user_sections = Accès global à toutes les sections de l'école
-        SchoolUser::query()->create([
-            'school_id' => $school->id,
-            'user_id' => $user->id,
-            'role_id' => $fondateurRole->id,
-            'status' => SchoolUser::STATUS_ACTIVE,
-        ]);
+            // 1. Création de l'école
+            $school = School::query()->create([
+                ...collect($validated)->except(['activation_key', 'section_ids'])->all(),
+                'status' => School::STATUS_ACTIVE,
+                'academic_period_type' => Season::TYPE_TRIMESTRE,
+                'trial_ends_at' => $activationKey ? null : now()->addDays(self::TRIAL_DAYS),
+            ]);
 
-        $user->update(['current_school_id' => $school->id]);
+            // 2. Attachement des sections actives (Sélectionnées ou TOUTES par défaut)
+            $sectionIds = !empty($validated['section_ids'])
+                ? $validated['section_ids']
+                : Section::pluck('id')->toArray();
 
-        $this->createDefaultSchoolYear($school);
+            $school->sections()->sync($sectionIds, ['active' => true]);
 
-        if ($activationKey) {
-            $activationKey->update([
-                'status' => ActivationKey::STATUS_UTILISEE,
+            // 3. Attribution du rôle admin principal au créateur
+            // Note : Aucune entrée dans school_user_sections = accès global à toutes les sections de l'école
+            SchoolUser::query()->create([
                 'school_id' => $school->id,
-                'used_at' => now(),
+                'user_id' => $user->id,
+                'role_id' => $adminRole->id,
+                'status' => SchoolUser::STATUS_ACTIVE,
+                'is_owner' => true,
             ]);
-        }
 
-        return $school;
-    });
+            $user->update(['current_school_id' => $school->id]);
 
-    return response()->json($school->load(['country', 'sections']), 201);
-}
+            $this->createDefaultSchoolYear($school);
+
+            if ($activationKey) {
+                $activationKey->update([
+                    'status' => ActivationKey::STATUS_UTILISEE,
+                    'school_id' => $school->id,
+                    'used_at' => now(),
+                ]);
+            }
+
+            return $school;
+        });
+
+        return response()->json($school->load(['country', 'sections']), 201);
+    }
     /**
      * Détail complet d'une école pour l'écran de paramètres (le directeur
      * uniquement, les autres rôles n'ont pas à modifier ces informations).
@@ -162,12 +163,12 @@ public function store(Request $request)
             'slogan' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'phone:INTERNATIONAL'],
             'email' => ['nullable', 'email', 'max:255'],
             'website' => ['nullable', 'url', 'max:255'],
-            'language' => ['required', 'in:'.School::LANGUAGE_FR.','.School::LANGUAGE_EN],
+            'language' => ['required', 'in:' . School::LANGUAGE_FR . ',' . School::LANGUAGE_EN],
             'currency' => ['nullable', 'string', 'max:10'],
-            'academic_period_type' => ['nullable', 'in:'.Season::TYPE_TRIMESTRE.','.Season::TYPE_SEMESTRE],
+            'academic_period_type' => ['nullable', 'in:' . Season::TYPE_TRIMESTRE . ',' . Season::TYPE_SEMESTRE],
         ]);
 
         if ($request->hasFile('logo')) {
@@ -260,7 +261,7 @@ public function store(Request $request)
 
         $schoolYear = SchoolYear::query()->create([
             'school_id' => $school->id,
-            'label' => "{$startYear}-".($startYear + 1),
+            'label' => "{$startYear}-" . ($startYear + 1),
             'start_date' => Carbon::create($startYear, 9, 1),
             'end_date' => Carbon::create($startYear + 1, 6, 30),
             'is_current' => true,

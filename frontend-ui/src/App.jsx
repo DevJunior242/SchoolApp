@@ -71,6 +71,9 @@ const DashboardTreasuryPage = lazy(
 const DashboardAccountingPage = lazy(
   () => import("./pages/DashboardAccountingPage.jsx"),
 );
+const DashboardComptablePage = lazy(
+  () => import("./pages/DashboardComptablePage.jsx"),
+);
 const ParentPaymentsPage = lazy(() => import("./pages/ParentPaymentsPage.jsx"));
 const AttendanceEntryPage = lazy(
   () => import("./pages/AttendanceEntryPage.jsx"),
@@ -224,6 +227,7 @@ function App() {
         >
           <Route index element={<DashboardOverviewPage />} />
           <Route path="schools" element={<DashboardSchoolsPage />} />
+          <Route path="comptable" element={<DashboardComptablePage />} />
           <Route path="members" element={<DashboardMembersPage />} />
           <Route path="teachers" element={<DashboardTeachersPage />} />
           <Route path="hr" element={<DashboardHrPage />} />

@@ -30,7 +30,12 @@ class AiAssistantController extends Controller
 
     public function ask(Request $request, School $school, SchoolAssistantService $assistant)
     {
-        $this->authorizeDirecteur($request, $school);
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['admin', 'comptable'],
+            "Seuls les administrateurs et comptables de l'école peuvent utiliser cet assistant."
+        );
 
         $validated = $request->validate([
             'question' => ['required', 'string', 'max:500'],

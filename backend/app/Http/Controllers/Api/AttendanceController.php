@@ -21,7 +21,7 @@ class AttendanceController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'censeur', 'surveillant', 'secretaire','fondateur'];
+    private const STAFF_ROLE_SLUGS = ['admin', 'censeur', 'surveillant', 'secretaire'];
 
     /**
      * Liste des absences déjà saisies par le professeur pour un cours et
@@ -55,8 +55,10 @@ class AttendanceController extends Controller
             'date' => ['required', 'date'],
             'records' => ['required', 'array', 'min:1'],
             'records.*.student_id' => ['required', 'uuid'],
-            'records.*.status' => ['required', 'in:'.implode(',', [
-                Attendance::STATUS_ABSENT, Attendance::STATUS_PRESENT, Attendance::STATUS_RETARD,
+            'records.*.status' => ['required', 'in:' . implode(',', [
+                Attendance::STATUS_ABSENT,
+                Attendance::STATUS_PRESENT,
+                Attendance::STATUS_RETARD,
             ])],
         ]);
 
@@ -133,7 +135,7 @@ class AttendanceController extends Controller
 
         $attendances = Attendance::query()
             ->where('student_id', $student->id)
-            ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('classSubjectTeacher.schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.schoolClass', 'recordedBy', 'justifiedBy'])
             ->latest('date')
             ->get();
@@ -181,7 +183,7 @@ class AttendanceController extends Controller
         return response()->json(
             Attendance::query()
                 ->where('justification_status', Attendance::JUSTIFICATION_EN_ATTENTE)
-                ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query->where('school_id', $school->id))
+                ->whereHas('classSubjectTeacher.schoolClass', fn($query) => $query->where('school_id', $school->id))
                 ->with(['student', 'classSubjectTeacher.subject', 'classSubjectTeacher.schoolClass'])
                 ->oldest('date')
                 ->get()
@@ -227,13 +229,13 @@ class AttendanceController extends Controller
             return;
         }
 
-        $isDirecteur = SchoolUser::query()
+        $isAdmin = SchoolUser::query()
             ->where('school_id', $assignment->schoolClass->school_id)
             ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->where('slug', 'directeur'))
+            ->whereHas('role', fn($query) => $query->where('slug', 'admin'))
             ->exists();
 
-        abort_unless($isDirecteur, 403, "Vous n'êtes pas autorisé à gérer les absences de cette classe.");
+        abort_unless($isAdmin, 403, "Vous n'êtes pas autorisé à gérer les absences de cette classe.");
     }
 
     private function authorizeStaffOrParent(Request $request, School $school, Student $student): void
@@ -243,7 +245,7 @@ class AttendanceController extends Controller
         $isStaff = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', self::STAFF_ROLE_SLUGS))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', self::STAFF_ROLE_SLUGS))
             ->exists();
 
         if ($isStaff) {

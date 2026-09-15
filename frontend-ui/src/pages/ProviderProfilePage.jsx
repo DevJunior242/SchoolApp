@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import api from "../api/axios.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
+import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 
 const CATEGORY_LABELS = {
   1: "Enseignant",
@@ -47,7 +48,9 @@ export default function ProviderProfilePage() {
     reload,
   } = useApiGet("/marketplace/my-provider");
   const { data: plans } = useApiGet("/marketplace/plans");
-  const { data: boostPlans } = useApiGet("/marketplace/plans", { params: { type: PLAN_TYPE_BOOST } });
+  const { data: boostPlans } = useApiGet("/marketplace/plans", {
+    params: { type: PLAN_TYPE_BOOST },
+  });
   const { data: methods } = useApiGet("/marketplace/payment-methods");
 
   const [form, setForm] = useState(null);
@@ -200,7 +203,11 @@ export default function ProviderProfilePage() {
           size="small"
         />
         {isBoosted && (
-          <Chip label="Boosté — en tête de l'annuaire" color="primary" size="small" />
+          <Chip
+            label="Boosté — en tête de l'annuaire"
+            color="primary"
+            size="small"
+          />
         )}
       </Stack>
 
@@ -243,13 +250,9 @@ export default function ProviderProfilePage() {
                 />
               </Stack>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <TextField
-                  label="Téléphone"
+                <InternationalPhoneField
                   value={form.phone}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, phone: e.target.value }))
-                  }
-                  fullWidth
+                  onChange={(phone) => setForm((p) => ({ ...p, phone }))}
                 />
                 <TextField
                   label="Email"
@@ -424,8 +427,8 @@ export default function ProviderProfilePage() {
             Booster mes produits
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Pendant la durée payée, votre fiche remonte en tête de l'annuaire consulté par les
-            écoles — indépendamment de votre abonnement.
+            Pendant la durée payée, votre fiche remonte en tête de l'annuaire
+            consulté par les écoles — indépendamment de votre abonnement.
           </Typography>
 
           {isBoosted ? (
@@ -435,7 +438,8 @@ export default function ProviderProfilePage() {
             </Typography>
           ) : (
             <Typography color="text.secondary" sx={{ mb: 2 }}>
-              Aucun boost actif — votre fiche est classée par ordre alphabétique.
+              Aucun boost actif — votre fiche est classée par ordre
+              alphabétique.
             </Typography>
           )}
 
@@ -461,13 +465,15 @@ export default function ProviderProfilePage() {
                 >
                   {(boostPlans ?? []).map((plan) => (
                     <MenuItem key={plan.id} value={plan.id}>
-                      {plan.duration_days} jours — {Number(plan.amount).toLocaleString()} {plan.currency}
+                      {plan.duration_days} jours —{" "}
+                      {Number(plan.amount).toLocaleString()} {plan.currency}
                     </MenuItem>
                   ))}
                 </TextField>
                 {(boostPlans ?? []).length === 0 && (
                   <Alert severity="warning">
-                    Aucune formule de boost disponible pour l'instant, revenez plus tard.
+                    Aucune formule de boost disponible pour l'instant, revenez
+                    plus tard.
                   </Alert>
                 )}
 
@@ -487,8 +493,13 @@ export default function ProviderProfilePage() {
                 </TextField>
                 {selectedBoostMethod && (
                   <Alert severity="info">
-                    {selectedBoostMethod.number && <>{selectedBoostMethod.number}</>}
-                    {selectedBoostMethod.number && selectedBoostMethod.instructions ? " — " : ""}
+                    {selectedBoostMethod.number && (
+                      <>{selectedBoostMethod.number}</>
+                    )}
+                    {selectedBoostMethod.number &&
+                    selectedBoostMethod.instructions
+                      ? " — "
+                      : ""}
                     {selectedBoostMethod.instructions}
                   </Alert>
                 )}

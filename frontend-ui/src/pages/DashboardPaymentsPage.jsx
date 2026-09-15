@@ -27,7 +27,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import SchoolIcon from "@mui/icons-material/School";
 import DescriptionIcon from "@mui/icons-material/Description";
 import SettingsIcon from "@mui/icons-material/Settings";
-import PrintIcon from "@mui/icons-material/Print";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { Navigate } from "react-router-dom";
 import api from "../api/axios.jsx";
@@ -35,6 +34,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
+import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -100,11 +100,11 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   console.log("user", user);
   const schoolId = user.current_school_id;
   const { schoolUsers, loading: roleLoading } = useSchools();
-  const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role
-    ?.slug;
-  const canManageConfig = ["directeur", "comptable", "fondateur"].includes(
-    currentRole,
+  const currentMembership = schoolUsers.find(
+    (membership) => membership.school.id === schoolId,
   );
+  const { roleSlug } = getSchoolAdminAccess(currentMembership);
+  const canManageConfig = ["admin", "comptable"].includes(roleSlug);
 
   const [methods, setMethods] = useState([]);
   const { data: treasuryAccountsData } = useApiGet(
@@ -411,7 +411,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-    } catch (e) {
+    } catch {
       return null; // Si l'image échoue, on retourne null (nullable)
     }
   }
@@ -475,7 +475,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     );
   }
 
-  if (!roleLoading && currentRole === "parent") {
+  if (!roleLoading && roleSlug === "parent") {
     return <Navigate to="/dashboard/my-children-payments" replace />;
   }
 
@@ -804,7 +804,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
                       >
                         {collectSubmitting
                           ? "Enregistrement..."
-                          : ["directeur", "comptable"].includes(currentRole)
+                          : ["admin", "comptable"].includes(roleSlug)
                             ? "Encaisser et générer le reçu"
                             : "Enregistrer (en attente de confirmation)"}
                       </Button>

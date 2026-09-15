@@ -15,7 +15,7 @@ trait AuthorizesStudentHealth
 {
     use ValidatesSchoolSection;
 
-    private const HEALTH_MANAGER_ROLE_SLUGS = ['directeur', 'infirmier','fondateur'];
+    private const HEALTH_MANAGER_ROLE_SLUGS = ['admin', 'infirmier'];
 
     /**
      * L'élève doit être actuellement inscrit (activement) dans cette école :
@@ -27,7 +27,7 @@ trait AuthorizesStudentHealth
         $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->with('schoolClass')
             ->first();
 
@@ -90,7 +90,7 @@ trait AuthorizesStudentHealth
         return SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', self::HEALTH_MANAGER_ROLE_SLUGS))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', self::HEALTH_MANAGER_ROLE_SLUGS))
             ->exists();
     }
 

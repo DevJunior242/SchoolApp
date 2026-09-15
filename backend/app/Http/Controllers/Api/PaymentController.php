@@ -19,8 +19,8 @@ class PaymentController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['fondateur', 'directeur', 'comptable', 'secretaire'];
-    private const AUTO_CONFIRM_ROLES = ['fondateur', 'directeur', 'comptable'];
+    private const STAFF_ROLE_SLUGS = ['admin', 'comptable', 'secretaire'];
+    private const AUTO_CONFIRM_ROLES = ['admin', 'comptable'];
 
     /**
      * Vue globale du comptable/directeur : tous les paiements de l'école,
@@ -128,7 +128,7 @@ class PaymentController extends Controller
             'transaction_id' => ['nullable', 'string', 'max:100'],
         ]);
 
-        // Un directeur/comptable/fondateur qui encaisse en direct (espèces au bureau,
+        // Un administrateur/comptable qui encaisse en direct (espèces au bureau,
         // vérification immédiate) confirme sur le coup. Le secrétariat et
         // les parents restent en attente de validation par le comptable.
         $canAutoConfirm = SchoolUser::query()
@@ -153,7 +153,7 @@ class PaymentController extends Controller
 
     public function confirm(Request $request, School $school, Payment $payment)
     {
-        $this->authorizeRoles($request, $school, self::AUTO_CONFIRM_ROLES, 'Seuls le directeur, le fondateur et le comptable peuvent confirmer un paiement.');
+        $this->authorizeRoles($request, $school, self::AUTO_CONFIRM_ROLES, 'Seuls l’administrateur et le comptable peuvent confirmer un paiement.');
         abort_if($payment->school_id !== $school->id, 404);
         $this->authorizeStudentSection($request, $school, $payment->student);
 
@@ -169,7 +169,7 @@ class PaymentController extends Controller
 
     public function reject(Request $request, School $school, Payment $payment)
     {
-        $this->authorizeRoles($request, $school, self::AUTO_CONFIRM_ROLES, 'Seuls le directeur, le fondateur et le comptable peuvent rejeter un paiement.');
+        $this->authorizeRoles($request, $school, self::AUTO_CONFIRM_ROLES, 'Seuls l’administrateur et le comptable peuvent rejeter un paiement.');
         abort_if($payment->school_id !== $school->id, 404);
         $this->authorizeStudentSection($request, $school, $payment->student);
 

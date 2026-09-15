@@ -25,7 +25,7 @@ class CafeteriaMealServiceController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire', 'cantine'];
+    private const STAFF_ROLE_SLUGS = ['admin', 'comptable', 'secretaire', 'cantine'];
 
     /**
      * Étape 1 du service, après scan du QR badge (qui résout {student} via
@@ -154,7 +154,7 @@ class CafeteriaMealServiceController extends Controller
         $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->with('schoolClass')
             ->first();
 
@@ -190,7 +190,7 @@ class CafeteriaMealServiceController extends Controller
 
         return Season::query()
             ->where('school_id', $school->id)
-            ->whereHas('schoolYear', fn ($query) => $query->where('is_current', true))
+            ->whereHas('schoolYear', fn($query) => $query->where('is_current', true))
             ->where('start_date', '<=', $today)
             ->where('end_date', '>=', $today)
             ->first();

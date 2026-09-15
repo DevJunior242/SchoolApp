@@ -35,7 +35,7 @@ class ServiceProviderController extends Controller
         );
 
         $validated = $request->validate([
-            'category' => ['required', 'integer', 'in:'.implode(',', [
+            'category' => ['required', 'integer', 'in:' . implode(',', [
                 ServiceProvider::CATEGORY_ENSEIGNANT,
                 ServiceProvider::CATEGORY_FORMATEUR,
                 ServiceProvider::CATEGORY_CHAUFFEUR,
@@ -47,7 +47,7 @@ class ServiceProviderController extends Controller
             'description' => ['nullable', 'string', 'max:1000'],
             'country_id' => ['required', 'uuid', 'exists:countries,id'],
             'city' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'phone:INTERNATIONAL'],
             'email' => ['nullable', 'email', 'max:255'],
         ]);
 
@@ -90,7 +90,7 @@ class ServiceProviderController extends Controller
             'business_name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'city' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'phone:INTERNATIONAL'],
             'email' => ['nullable', 'email', 'max:255'],
             'whatsapp_number' => ['nullable', 'string', 'max:30'],
         ]);
@@ -153,10 +153,10 @@ class ServiceProviderController extends Controller
                 ->whereNotNull('subscription_expires_at')
                 ->whereDate('subscription_expires_at', '>=', now()->toDateString())
                 ->where('country_id', $request->query('country_id', $school->country_id))
-                ->when($request->query('category'), fn ($query, $category) => $query->where('category', $category))
+                ->when($request->query('category'), fn($query, $category) => $query->where('category', $category))
                 ->when(
                     $request->query('city'),
-                    fn ($query, $city) => $query->where('city', 'like', "%{$city}%")
+                    fn($query, $city) => $query->where('city', 'like', "%{$city}%")
                 )
                 ->with('items')
                 // Boosté (payé) en tête, puis ordre alphabétique — le boost

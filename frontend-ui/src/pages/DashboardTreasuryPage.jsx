@@ -32,6 +32,7 @@ import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
+import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 
 const CREDIT_TYPES = ["DEPOSIT", "TRANSFER_IN"];
 
@@ -155,11 +156,15 @@ function DepositWithdrawForm({ schoolId, accounts, onChanged }) {
       }));
       onChanged();
     } catch (err) {
-      const messages = err.response?.data?.errors;
+      const data = err.response?.data ?? {};
+      const messages = data.errors;
+      const message = data.message;
+
       setError(
-        messages
-          ? Object.values(messages).flat().join(" ")
-          : "Impossible d'enregistrer ce mouvement.",
+        message ||
+          (messages
+            ? Object.values(messages).flat().join(" ")
+            : "Impossible d'enregistrer ce mouvement."),
       );
     } finally {
       setSubmitting(false);
@@ -297,11 +302,15 @@ function AccountCard({
       reloadMovements();
       onChanged();
     } catch (err) {
-      const messages = err.response?.data?.errors;
+      const data = err.response?.data ?? {};
+      const messages = data.errors;
+      const message = data.message;
+
       setMvtError(
-        messages
-          ? Object.values(messages).flat().join(" ")
-          : "Impossible d'enregistrer ce mouvement.",
+        message ||
+          (messages
+            ? Object.values(messages).flat().join(" ")
+            : "Impossible d'enregistrer ce mouvement."),
       );
     } finally {
       setSubmitting(false);
@@ -601,11 +610,11 @@ export default function DashboardTreasuryPage({
   const schoolId = user?.current_school_id;
 
   const { schoolUsers } = useSchools();
-  const currentRole = schoolUsers.find((su) => su?.school?.id === schoolId)
-    ?.role?.slug;
-  const canManage = ["directeur", "comptable", "fondateur"].includes(
-    currentRole ?? "",
+  const currentMembership = schoolUsers.find(
+    (membership) => membership?.school?.id === schoolId,
   );
+  const { roleSlug } = getSchoolAdminAccess(currentMembership);
+  const canManage = ["admin", "comptable"].includes(roleSlug ?? "");
 
   // Récupération des sections de l'école
   const { data: sectionsData } = useApiGet(

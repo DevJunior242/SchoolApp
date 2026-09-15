@@ -22,8 +22,9 @@ import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
+import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 
-const MANAGER_ROLE_SLUGS = ["directeur", "censeur", "secretaire"];
+const MANAGER_ROLE_SLUGS = ["admin", "censeur", "secretaire"];
 
 function formatDate(d) {
   return new Date(d).toLocaleString("fr-FR", {
@@ -38,9 +39,11 @@ export default function EventRecapPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
   const { schoolUsers } = useSchools();
-  const currentRole = schoolUsers.find((su) => su.school.id === schoolId)?.role
-    ?.slug;
-  const canManage = MANAGER_ROLE_SLUGS.includes(currentRole);
+  const currentMembership = schoolUsers.find(
+    (membership) => membership.school.id === schoolId,
+  );
+  const { roleSlug } = getSchoolAdminAccess(currentMembership);
+  const canManage = MANAGER_ROLE_SLUGS.includes(roleSlug);
 
   const {
     data: recap,

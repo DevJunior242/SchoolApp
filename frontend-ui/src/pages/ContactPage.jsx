@@ -15,6 +15,7 @@ import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import { alpha } from "@mui/material/styles";
 import api from "../api/axios.jsx";
+import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 
 export default function ContactPage() {
   const [demoSubmitted, setDemoSubmitted] = useState(false);
@@ -266,12 +267,14 @@ export default function ContactPage() {
                           direction={{ xs: "column", sm: "row" }}
                           spacing={2}
                         >
-                          <TextField
-                            label="Téléphone"
-                            placeholder="+226 70 00 00 00"
+                          <InternationalPhoneField
                             value={demoForm.phone}
-                            onChange={handleDemoChange("phone")}
-                            fullWidth
+                            onChange={(phone) =>
+                              setDemoForm((previous) => ({
+                                ...previous,
+                                phone,
+                              }))
+                            }
                           />
                           <TextField
                             label="Email"

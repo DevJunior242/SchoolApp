@@ -18,37 +18,39 @@ class FeeStructureController extends Controller
 
     public function index(Request $request, School $school)
     {
-      $this->authorizeMember($request, $school);
-$sectionIds = $this->restrictedSectionIds($request, $school);
+        $this->authorizeMember($request, $school);
+        $sectionIds = $this->restrictedSectionIds($request, $school);
 
-$currentYear = $school->schoolYears()->where('is_current', true)->first();
+        $currentYear = $school->schoolYears()->where('is_current', true)->first();
 
-$query = FeeStructure::query()
-    ->select('fee_structures.*')
-    ->where('fee_structures.school_id', $school->id)
-    ->when($currentYear, fn($q) => $q->where('fee_structures.school_year_id', $currentYear->id))
-    ->leftJoin('levels', 'levels.id', '=', 'fee_structures.level_id')
-    ->leftJoin('school_sections', function ($join) use ($school) {
-        $join->on('school_sections.section_id', '=', 'levels.section_id')
-             ->where('school_sections.school_id', $school->id)
-             ->where('school_sections.active', true);
-    })
-    ->where(fn($q) => $q
-        ->whereNull('fee_structures.level_id')
-        ->orWhereNotNull('school_sections.school_id')
-    )
-    ->when($request->query('level_id'), fn($q, $levelId) => $q->where('fee_structures.level_id', $levelId))
-    ->when($request->query('category'), fn($q, $category) => $q->where('fee_structures.category', $category))
-    ->when($request->query('fee_category_id'), fn($q, $feeCategoryId) => $q->where('fee_structures.fee_category_id', $feeCategoryId))
-    ->when($sectionIds, fn($q, $ids) => $q->where(fn($sq) => $sq
-        ->whereNull('fee_structures.level_id')
-        ->orWhereIn('levels.section_id', $ids)
-    ))
-    ->with('level', 'season', 'feeCategory')
-    ->orderBy('fee_structures.order')
-    ->distinct();
+        $query = FeeStructure::query()
+            ->select('fee_structures.*')
+            ->where('fee_structures.school_id', $school->id)
+            ->when($currentYear, fn($q) => $q->where('fee_structures.school_year_id', $currentYear->id))
+            ->leftJoin('levels', 'levels.id', '=', 'fee_structures.level_id')
+            ->leftJoin('school_sections', function ($join) use ($school) {
+                $join->on('school_sections.section_id', '=', 'levels.section_id')
+                    ->where('school_sections.school_id', $school->id)
+                    ->where('school_sections.active', true);
+            })
+            ->where(
+                fn($q) => $q
+                    ->whereNull('fee_structures.level_id')
+                    ->orWhereNotNull('school_sections.school_id')
+            )
+            ->when($request->query('level_id'), fn($q, $levelId) => $q->where('fee_structures.level_id', $levelId))
+            ->when($request->query('category'), fn($q, $category) => $q->where('fee_structures.category', $category))
+            ->when($request->query('fee_category_id'), fn($q, $feeCategoryId) => $q->where('fee_structures.fee_category_id', $feeCategoryId))
+            ->when($sectionIds, fn($q, $ids) => $q->where(
+                fn($sq) => $sq
+                    ->whereNull('fee_structures.level_id')
+                    ->orWhereIn('levels.section_id', $ids)
+            ))
+            ->with('level', 'season', 'feeCategory')
+            ->orderBy('fee_structures.order')
+            ->distinct();
 
-return response()->json($query->get());
+        return response()->json($query->get());
     }
 
     /**
@@ -58,23 +60,23 @@ return response()->json($query->get());
      */
     public function store(Request $request, School $school)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable','fondateur'], 'Seuls le directeur et le comptable peuvent gérer les frais de scolarité.');
+        $this->authorizeRoles($request, $school, ['admin', 'comptable'], 'Seuls l’administrateur et le comptable peuvent gérer les frais de scolarité.');
 
         $validated = $request->validate([
-            'category' => ['nullable', 'in:'.implode(',', [
+            'category' => ['nullable', 'in:' . implode(',', [
                 FeeStructure::CATEGORY_TUITION,
                 FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION,
                 FeeStructure::CATEGORY_CUSTOM,
             ])],
             'fee_category_id' => [
-                'required_if:category,'.FeeStructure::CATEGORY_CUSTOM,
+                'required_if:category,' . FeeStructure::CATEGORY_CUSTOM,
                 'nullable',
                 'uuid',
                 Rule::exists('fee_categories', 'id')->where('school_id', $school->id),
             ],
-            'level_id' => ['required_if:category,'.FeeStructure::CATEGORY_TUITION, 'nullable', 'uuid', 'exists:levels,id'],
+            'level_id' => ['required_if:category,' . FeeStructure::CATEGORY_TUITION, 'nullable', 'uuid', 'exists:levels,id'],
             'season_id' => [
-                'required_if:category,'.FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION,
+                'required_if:category,' . FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION,
                 'nullable',
                 'uuid',
                 Rule::exists('seasons', 'id')->where('school_id', $school->id),
@@ -113,7 +115,7 @@ return response()->json($query->get());
 
     public function destroy(Request $request, School $school, FeeStructure $feeStructure)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable'], 'Seuls le directeur et le comptable peuvent gérer les frais de scolarité.');
+        $this->authorizeRoles($request, $school, ['admin', 'comptable'], 'Seuls l’administrateur et le comptable peuvent gérer les frais de scolarité.');
         abort_if($feeStructure->school_id !== $school->id, 404);
 
         $feeStructure->delete();

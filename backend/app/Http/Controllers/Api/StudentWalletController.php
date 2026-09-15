@@ -19,7 +19,7 @@ class StudentWalletController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    private const STAFF_ROLE_SLUGS = ['directeur', 'comptable', 'secretaire', 'cantine', 'fondateur'];
+    private const STAFF_ROLE_SLUGS = ['admin', 'comptable', 'secretaire', 'cantine'];
 
     /**
      * File d'attente du personnel autorisé (comptable/directeur/secrétariat
@@ -98,7 +98,7 @@ class StudentWalletController extends Controller
         $canAutoConfirm = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $request->user()->id)
-            ->whereHas('role', fn($query) => $query->whereIn('slug', ['directeur', 'comptable', 'cantine', 'fobdateur']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'comptable', 'cantine']))
             ->exists();
 
         $transaction = $wallet->transactions()->create([
@@ -122,7 +122,7 @@ class StudentWalletController extends Controller
 
     public function confirmRecharge(Request $request, School $school, WalletTransaction $walletTransaction)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable', 'cantine', 'fondateur'], 'Seuls le directeur, le comptable et le personnel de cantine peuvent confirmer une recharge.');
+        $this->authorizeRoles($request, $school, ['admin', 'comptable', 'cantine'], 'Seuls l’administrateur, le comptable et le personnel de cantine peuvent confirmer une recharge.');
         $wallet = $walletTransaction->wallet;
         abort_if($wallet->school_id !== $school->id, 404);
         $this->authorizeStudentSection($request, $school, $wallet->student);
@@ -141,8 +141,7 @@ class StudentWalletController extends Controller
 
     public function rejectRecharge(Request $request, School $school, WalletTransaction $walletTransaction)
     {
-        $this->authorizeRoles($request, $school, ['directeur', 'comptable', 'cantine', 'fondateur 
-         '], 'Seuls le directeur, le comptable et le personnel de cantine peuvent rejeter une recharge.');
+        $this->authorizeRoles($request, $school, ['admin', 'comptable', 'cantine'], 'Seuls l’administrateur, le comptable et le personnel de cantine peuvent rejeter une recharge.');
         abort_if($walletTransaction->wallet->school_id !== $school->id, 404);
         $this->authorizeStudentSection($request, $school, $walletTransaction->wallet->student);
         abort_unless($walletTransaction->status === WalletTransaction::STATUS_PENDING, 422);

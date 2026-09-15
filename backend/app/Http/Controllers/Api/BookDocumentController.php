@@ -106,7 +106,7 @@ class BookDocumentController extends Controller
         $isStaff = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $user->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'bibliothecaire']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'bibliothecaire']))
             ->exists();
         if ($isStaff) {
             return;
@@ -119,7 +119,7 @@ class BookDocumentController extends Controller
         $hasAccess = ClassStudent::query()
             ->whereIn('student_id', $studentIds)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query
+            ->whereHas('schoolClass', fn($query) => $query
                 ->where('school_id', $school->id)
                 ->where('level_id', $document->level_id))
             ->exists();

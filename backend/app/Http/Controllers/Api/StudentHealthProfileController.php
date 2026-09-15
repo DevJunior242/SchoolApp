@@ -33,10 +33,10 @@ class StudentHealthProfileController extends Controller
             'chronic_conditions' => ['nullable', 'string', 'max:5000'],
             'disability' => ['nullable', 'string', 'max:2000'],
             'doctor_name' => ['nullable', 'string', 'max:255'],
-            'doctor_phone' => ['nullable', 'string', 'max:30'],
+            'doctor_phone' => ['nullable', 'phone:INTERNATIONAL'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
-            'emergency_contact_phone' => ['nullable', 'string', 'max:30'],
-            'emergency_contact_phone2' => ['nullable', 'string', 'max:30'],
+            'emergency_contact_phone' => ['nullable', 'phone:INTERNATIONAL'],
+            'emergency_contact_phone2' => ['nullable', 'phone:INTERNATIONAL'],
             'emergency_contact_relationship' => ['nullable', 'string', 'max:100'],
             'preferred_hospital' => ['nullable', 'string', 'max:255'],
         ]);

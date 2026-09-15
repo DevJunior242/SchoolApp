@@ -25,10 +25,6 @@ class SchoolClass extends Model
     protected $fillable = ['school_id', 'level_id', 'school_year_id', 'name'];
 
 
-    public static function booted() // ✅ Ajoute ça
-    {
-        Log::info('SchoolClass model booted!');
-    }
 
     public function school(): BelongsTo
     {

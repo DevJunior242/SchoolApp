@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import { motion } from "motion/react";
 import AddIcon from "@mui/icons-material/Add";
+import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -281,13 +282,9 @@ export default function DashboardTeachersPage() {
               fullWidth
               autoFocus
             />
-            <TextField
-              label="Téléphone"
+            <InternationalPhoneField
               value={form.phone}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, phone: e.target.value }))
-              }
-              fullWidth
+              onChange={(phone) => setForm((prev) => ({ ...prev, phone }))}
             />
             <TextField
               label="Nom complet"

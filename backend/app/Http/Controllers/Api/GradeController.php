@@ -33,7 +33,7 @@ class GradeController extends Controller
 
         return response()->json(
             $assignment->grades()
-                ->when($request->query('season_id'), fn ($query, $seasonId) => $query->where('season_id', $seasonId))
+                ->when($request->query('season_id'), fn($query, $seasonId) => $query->where('season_id', $seasonId))
                 ->with(['student', 'season'])
                 ->orderByDesc('graded_at')
                 ->get()
@@ -47,7 +47,7 @@ class GradeController extends Controller
         $validated = $request->validate([
             'student_id' => ['required', 'uuid'],
             'season_id' => ['required', 'uuid', 'exists:seasons,id'],
-            'evaluation_type' => ['required', 'in:'.implode(',', [
+            'evaluation_type' => ['required', 'in:' . implode(',', [
                 Grade::TYPE_DEVOIR,
                 Grade::TYPE_INTERROGATION,
                 Grade::TYPE_COMPOSITION,
@@ -129,12 +129,12 @@ class GradeController extends Controller
             return;
         }
 
-        $isDirecteur = SchoolUser::query()
+        $isAdmin = SchoolUser::query()
             ->where('school_id', $assignment->schoolClass->school_id)
             ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->where('slug', 'directeur'))
+            ->whereHas('role', fn($query) => $query->where('slug', 'admin'))
             ->exists();
 
-        abort_unless($isDirecteur, 403, "Vous n'êtes pas autorisé à gérer les notes de cette classe.");
+        abort_unless($isAdmin, 403, "Vous n'êtes pas autorisé à gérer les notes de cette classe.");
     }
 }

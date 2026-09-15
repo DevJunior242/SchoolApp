@@ -38,7 +38,7 @@ class ClassController extends Controller
                     $sectionId,
                     fn($query) => $query->where('sections.id', $sectionId)
                 )
-                // Restriction pour non-fondateurs
+                // Restriction pour les administrateurs sectionnels
                 ->when(
                     $member->sections->isNotEmpty(),
                     fn($query) => $query->whereIn('sections.id', $member->sections->pluck('id'))
@@ -74,7 +74,7 @@ class ClassController extends Controller
         $level = $this->activeSchoolLevel($school, $validated['level_id']);
 
         if (
-            $member->role->slug !== 'fondateur'
+            $member->role->slug !== 'admin'
             && $member->sections->isNotEmpty()
             && ! $member->sections->pluck('id')->contains($level->section_id)
         ) {
@@ -126,7 +126,7 @@ class ClassController extends Controller
 
         // Vérifier que le nouveau level est dans une section accessible
         if (
-            $member->role->slug !== 'fondateur'
+            $member->role->slug !== 'admin'
             && $member->sections->isNotEmpty()
             && !$member->sections->pluck('id')->contains($level->section_id)
         ) {
@@ -189,16 +189,18 @@ class ClassController extends Controller
 
     private function canAccessClass(SchoolUser $member, SchoolClass $class): bool
     {
-        // Fondateur OU Directeur (DG sans section)
-        if (in_array($member->role->slug, ['fondateur', 'directeur'])) {
-            // Directeur doit avoir ZÉRO section (c'est un DG)
-            if ($member->role->slug === 'directeur' && $member->sections->isNotEmpty()) {
-                return false; //  C'est un directeur de section, pas DG
-            }
-            return true; // Fondateur ou DG
+        if ($member->role?->slug !== 'admin') {
+            return $member->sections->pluck('id')->contains($class->level->section_id);
         }
 
-        // Directeur de section - vérifier l'accès
+        if ((bool) ($member->is_owner ?? false)) {
+            return true;
+        }
+
+        if ($member->sections->isEmpty()) {
+            return true;
+        }
+
         return $member->sections->pluck('id')->contains($class->level->section_id);
     }
 }

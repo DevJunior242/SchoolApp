@@ -30,14 +30,14 @@ class BookReservationController extends Controller
         $reservations = BookReservation::query()
             ->where('school_id', $school->id)
             ->whereIn('status', [BookReservation::STATUS_WAITING, BookReservation::STATUS_READY])
-            ->when($request->query('book_id'), fn ($query, $bookId) => $query->where('book_id', $bookId))
-            ->when($sectionIds, fn ($query, $ids) => $query->whereHas(
+            ->when($request->query('book_id'), fn($query, $bookId) => $query->where('book_id', $bookId))
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas(
                 'student.classStudents',
-                fn ($classStudentQuery) => $classStudentQuery
+                fn($classStudentQuery) => $classStudentQuery
                     ->where('status', ClassStudent::STATUS_ACTIVE)
-                    ->whereHas('schoolClass', fn ($classQuery) => $classQuery
+                    ->whereHas('schoolClass', fn($classQuery) => $classQuery
                         ->where('school_id', $school->id)
-                        ->whereHas('level', fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
+                        ->whereHas('level', fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
             ))
             ->with('book', 'student')
             ->oldest('reserved_at')
@@ -116,7 +116,7 @@ class BookReservationController extends Controller
         $isStaff = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $user->id)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'bibliothecaire']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'bibliothecaire']))
             ->exists();
 
         abort_unless($isStaff, 403, "Vous n'avez pas accès à cette réservation.");
@@ -131,7 +131,7 @@ class BookReservationController extends Controller
         $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->with('schoolClass')
             ->first();
 

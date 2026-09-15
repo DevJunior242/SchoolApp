@@ -28,7 +28,7 @@ class DemoRequestController extends Controller
         $validated = $request->validate([
             'school_name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30', 'regex:/^[0-9+\s().-]{6,30}$/'],
+            'phone' => ['nullable', 'phone:INTERNATIONAL'],
             // Un message trop court n'aide pas le suivi commercial, et le
             // motif interdit les URLs — le vecteur de spam le plus courant
             // sur ce type de formulaire.
@@ -58,8 +58,8 @@ class DemoRequestController extends Controller
     {
         return response()->json(
             DemoRequest::query()
-                ->when($request->query('search'), fn ($query, $search) => $query
-                    ->where(fn ($q) => $q
+                ->when($request->query('search'), fn($query, $search) => $query
+                    ->where(fn($q) => $q
                         ->where('school_name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")))
@@ -71,7 +71,7 @@ class DemoRequestController extends Controller
     public function updateStatus(Request $request, DemoRequest $demoRequest)
     {
         $validated = $request->validate([
-            'status' => ['required', 'integer', 'in:'.DemoRequest::STATUS_PENDING.','.DemoRequest::STATUS_CONTACTED.','.DemoRequest::STATUS_CLOSED],
+            'status' => ['required', 'integer', 'in:' . DemoRequest::STATUS_PENDING . ',' . DemoRequest::STATUS_CONTACTED . ',' . DemoRequest::STATUS_CLOSED],
         ]);
 
         $demoRequest->update($validated);
@@ -84,7 +84,7 @@ class DemoRequestController extends Controller
         $superAdminRoleId = Role::query()->where('slug', 'superadmin')->value('id');
 
         User::query()->where('role_id', $superAdminRoleId)->get()->each(
-            fn (User $user) => $user->notify(new DemoRequestNotification($demoRequest))
+            fn(User $user) => $user->notify(new DemoRequestNotification($demoRequest))
         );
     }
 }

@@ -43,17 +43,20 @@ class CourseContentController extends Controller
         $this->abortUnlessOwner($request, $assignment);
 
         $validated = $request->validate([
-            'category' => ['required', 'integer', 'in:'.implode(',', [
+            'category' => ['required', 'integer', 'in:' . implode(',', [
                 CourseContent::CATEGORY_VIDEO,
                 CourseContent::CATEGORY_DEVOIR,
                 CourseContent::CATEGORY_EXAMEN,
             ])],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'video_url' => ['required_if:category,'.CourseContent::CATEGORY_VIDEO, 'nullable', 'url'],
+            'video_url' => ['required_if:category,' . CourseContent::CATEGORY_VIDEO, 'nullable', 'url'],
             'file' => [
-                'required_if:category,'.CourseContent::CATEGORY_DEVOIR.','.CourseContent::CATEGORY_EXAMEN,
-                'nullable', 'file', 'mimes:pdf', 'max:20480',
+                'required_if:category,' . CourseContent::CATEGORY_DEVOIR . ',' . CourseContent::CATEGORY_EXAMEN,
+                'nullable',
+                'file',
+                'mimes:pdf',
+                'max:20480',
             ],
         ]);
 
@@ -154,13 +157,13 @@ class CourseContentController extends Controller
 
         $children = Student::query()
             ->whereIn('id', $studentIds)
-            ->whereHas('classStudents', fn ($query) => $query
+            ->whereHas('classStudents', fn($query) => $query
                 ->where('status', ClassStudent::STATUS_ACTIVE)
-                ->whereHas('schoolClass', fn ($q) => $q->where('school_id', $school->id)))
+                ->whereHas('schoolClass', fn($q) => $q->where('school_id', $school->id)))
             ->get();
 
         return response()->json(
-            $children->map(fn ($student) => [
+            $children->map(fn($student) => [
                 'student' => $student,
                 'subjects' => $this->subjectsForStudent($school, $student),
             ])->values()
@@ -172,7 +175,7 @@ class CourseContentController extends Controller
         $classId = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->value('class_id');
 
         if (! $classId) {
@@ -220,12 +223,12 @@ class CourseContentController extends Controller
 
         $assignment->loadMissing('schoolClass');
 
-        $isDirecteur = SchoolUser::query()
+        $isAdmin = SchoolUser::query()
             ->where('school_id', $assignment->schoolClass->school_id)
             ->where('user_id', $user->id)
-            ->whereHas('role', fn ($query) => $query->where('slug', 'directeur'))
+            ->whereHas('role', fn($query) => $query->where('slug', 'admin'))
             ->exists();
-        if ($isDirecteur) {
+        if ($isAdmin) {
             return;
         }
 

@@ -33,7 +33,7 @@ class NotifyExpiringVaccinations extends Command
             $vaccination->update(['expiry_notified' => true]);
         }
 
-        $this->info(count($vaccinations).' vaccin(s) notifié(s).');
+        $this->info(count($vaccinations) . ' vaccin(s) notifié(s).');
 
         return self::SUCCESS;
     }
@@ -51,7 +51,7 @@ class NotifyExpiringVaccinations extends Command
 
         $userIds = SchoolUser::query()
             ->whereIn('school_id', $schoolIds)
-            ->whereHas('role', fn ($query) => $query->whereIn('slug', ['directeur', 'infirmier']))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['admin', 'infirmier']))
             ->pluck('user_id')
             ->unique();
 

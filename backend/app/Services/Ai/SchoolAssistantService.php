@@ -45,6 +45,11 @@ Tu es l'assistant de direction d'une école africaine. Tu ne dois JAMAIS
 inventer de chiffres : réponds uniquement à partir des données renvoyées
 par l'outil que tu as appelé. Réponds en français, en quelques phrases,
 sur un ton professionnel.
+        
+    Pour tous les montants, utilise exclusivement la devise fournie dans les
+    données de l'école (clé "currency"). N'invente jamais une autre devise et
+    n'utilise jamais le symbole euro (€) sauf si "currency" vaut explicitement
+    EUR. Pour XOF, écris "FCFA" ou "XOF".
 
 Important : une liste vide renvoyée par un outil (ex: "eleves_a_risque": [])
 signifie qu'il n'y a AUCUN élève/paiement concerné en ce moment, pas que
@@ -92,6 +97,7 @@ TXT;
         $arguments = json_decode($toolCall['function']['arguments'] ?? '{}', true) ?: [];
 
         [$result, $tokenMap] = $this->runTool($school, $toolCall['function']['name'], $arguments);
+        $result['currency'] = $school->currency ?: $school->country?->currency ?: 'XOF';
 
         $messages[] = $first;
         $messages[] = [
@@ -136,6 +142,7 @@ TXT;
             'premier_de_chaque_classe' => $this->toolPremierDeChaqueClasse($school),
             'eleves_faible_moyenne' => $this->toolElevesFaibleMoyenne($school),
             'matieres_difficiles' => $this->toolMatieresDifficiles($school),
+            'resultats_examens' => $this->toolResultatsExamens($school),
             'taux_presence' => $this->toolTauxPresence($school),
             'demandes_preinscription_en_attente' => $this->toolDemandesPreinscription($school),
             default => [['error' => 'Outil inconnu.'], []],
@@ -145,7 +152,7 @@ TXT;
     private function toolElevesARisque(School $school): array
     {
         $report = $this->riskService->reportForSchool($school)
-            ->filter(fn ($row) => $row['level'] !== StudentRiskService::RISK_LOW)
+            ->filter(fn($row) => $row['level'] !== StudentRiskService::RISK_LOW)
             ->take(10);
 
         [$anonymized, $tokenMap] = $this->anonymize($report);
@@ -161,7 +168,7 @@ TXT;
     private function toolMeilleursEleves(School $school): array
     {
         $report = $this->riskService->reportForSchool($school)
-            ->filter(fn ($row) => $row['average'] !== null)
+            ->filter(fn($row) => $row['average'] !== null)
             ->sortByDesc('average')
             ->take(10);
 
@@ -179,7 +186,7 @@ TXT;
     {
         $classes = SchoolClass::query()
             ->where('school_id', $school->id)
-            ->whereHas('schoolYear', fn ($query) => $query->where('is_current', true))
+            ->whereHas('schoolYear', fn($query) => $query->where('is_current', true))
             ->get(['id', 'name']);
 
         $rows = $classes
@@ -189,11 +196,11 @@ TXT;
                     ->where('status', ClassStudent::STATUS_ACTIVE)
                     ->with('student')
                     ->get()
-                    ->map(fn (ClassStudent $classStudent) => [
+                    ->map(fn(ClassStudent $classStudent) => [
                         'student' => $classStudent->student,
                         'average' => $this->riskService->scoreFor($school, $classStudent->student)['average'],
                     ])
-                    ->filter(fn ($row) => $row['average'] !== null)
+                    ->filter(fn($row) => $row['average'] !== null)
                     ->sortByDesc('average')
                     ->first();
 
@@ -223,7 +230,7 @@ TXT;
     private function toolElevesFaibleMoyenne(School $school): array
     {
         $report = $this->riskService->reportForSchool($school)
-            ->filter(fn ($row) => $row['average'] !== null && $row['average'] < 10)
+            ->filter(fn($row) => $row['average'] !== null && $row['average'] < 10)
             ->sortBy('average')
             ->take(10);
 
@@ -240,17 +247,17 @@ TXT;
     private function toolMatieresDifficiles(School $school): array
     {
         $grades = Grade::query()
-            ->whereHas('classSubjectTeacher.schoolClass', fn ($query) => $query
+            ->whereHas('classSubjectTeacher.schoolClass', fn($query) => $query
                 ->where('school_id', $school->id)
-                ->whereHas('schoolYear', fn ($q) => $q->where('is_current', true)))
+                ->whereHas('schoolYear', fn($q) => $q->where('is_current', true)))
             ->with('classSubjectTeacher.subject')
             ->get();
 
         $parMatiere = $grades
-            ->groupBy(fn (Grade $grade) => $grade->classSubjectTeacher?->subject?->name ?? 'Matière inconnue')
-            ->map(fn (Collection $group, string $matiere) => [
+            ->groupBy(fn(Grade $grade) => $grade->classSubjectTeacher?->subject?->name ?? 'Matière inconnue')
+            ->map(fn(Collection $group, string $matiere) => [
                 'matiere' => $matiere,
-                'moyenne_sur_20' => round($group->avg(fn (Grade $g) => ((float) $g->score / (float) $g->max_score) * 20), 2),
+                'moyenne_sur_20' => round($group->avg(fn(Grade $g) => ((float) $g->score / (float) $g->max_score) * 20), 2),
                 'nombre_notes' => $group->count(),
             ])
             ->sortBy('moyenne_sur_20')
@@ -259,10 +266,51 @@ TXT;
         return [['moyenne_par_matiere' => $parMatiere->all()], []];
     }
 
+    private function toolResultatsExamens(School $school): array
+    {
+        $grades = Grade::query()
+            ->where('evaluation_type', Grade::TYPE_EXAMEN)
+            ->whereHas('classSubjectTeacher.schoolClass', fn($query) => $query
+                ->where('school_id', $school->id)
+                ->whereHas('schoolYear', fn($yearQuery) => $yearQuery->where('is_current', true)))
+            ->with(['classSubjectTeacher.schoolClass', 'classSubjectTeacher.subject'])
+            ->get();
+
+        $byClass = $grades
+            ->groupBy(fn(Grade $grade) => $grade->classSubjectTeacher?->schoolClass?->name ?? 'Classe inconnue')
+            ->map(fn(Collection $group, string $classe) => [
+                'classe' => $classe,
+                'moyenne_sur_20' => round($group->avg(fn(Grade $grade) => ((float) $grade->score / max((float) $grade->max_score, 1)) * 20), 2),
+                'evaluations' => $group->count(),
+            ])
+            ->sortBy('moyenne_sur_20')
+            ->values()
+            ->all();
+
+        $bySubject = $grades
+            ->groupBy(fn(Grade $grade) => $grade->classSubjectTeacher?->subject?->name ?? 'Matière inconnue')
+            ->map(fn(Collection $group, string $matiere) => [
+                'matiere' => $matiere,
+                'moyenne_sur_20' => round($group->avg(fn(Grade $grade) => ((float) $grade->score / max((float) $grade->max_score, 1)) * 20), 2),
+                'evaluations' => $group->count(),
+            ])
+            ->sortBy('moyenne_sur_20')
+            ->values()
+            ->all();
+
+        return [[
+            'resultats_examens' => [
+                'classes' => $byClass,
+                'matieres' => $bySubject,
+                'evaluations_total' => $grades->count(),
+            ],
+        ], []];
+    }
+
     private function toolPaiementsEnRetard(School $school): array
     {
         $report = $this->riskService->reportForSchool($school)
-            ->filter(fn ($row) => $row['payment_delay'])
+            ->filter(fn($row) => $row['payment_delay'])
             ->take(10);
 
         [$anonymized, $tokenMap] = $this->anonymize($report);
@@ -286,7 +334,7 @@ TXT;
             ->latest('date')
             ->limit(20)
             ->pluck('date')
-            ->map(fn ($date) => $date->format('d/m/Y'))
+            ->map(fn($date) => $date->format('d/m/Y'))
             ->values();
 
         return [[
@@ -328,8 +376,8 @@ TXT;
             ->where('status', ClassStudent::STATUS_ACTIVE)
             ->with('student')
             ->get()
-            ->map(fn (ClassStudent $classStudent) => $this->riskService->scoreFor($school, $classStudent->student)['average'])
-            ->filter(fn ($average) => $average !== null);
+            ->map(fn(ClassStudent $classStudent) => $this->riskService->scoreFor($school, $classStudent->student)['average'])
+            ->filter(fn($average) => $average !== null);
 
         return [[
             'classe' => $schoolClass->name,
@@ -350,9 +398,9 @@ TXT;
         // directement, comme partout ailleurs dans le codebase.
         $classes = SchoolClass::query()
             ->where('school_id', $school->id)
-            ->whereHas('schoolYear', fn ($query) => $query->where('is_current', true))
+            ->whereHas('schoolYear', fn($query) => $query->where('is_current', true))
             ->get(['id', 'name'])
-            ->map(fn (SchoolClass $schoolClass) => [
+            ->map(fn(SchoolClass $schoolClass) => [
                 'classe' => $schoolClass->name,
                 'effectif' => ClassStudent::query()
                     ->where('class_id', $schoolClass->id)
@@ -371,7 +419,7 @@ TXT;
             ->orderBy('start_at')
             ->limit(5)
             ->get()
-            ->map(fn (Event $event) => [
+            ->map(fn(Event $event) => [
                 'titre' => $event->title,
                 'type' => self::EVENT_TYPE_LABELS[$event->type] ?? 'autre',
                 'date' => $event->start_at->format('d/m/Y H:i'),
@@ -388,7 +436,7 @@ TXT;
             ->where('is_active', true)
             ->get();
 
-        $comptes = $accounts->map(fn (TreasuryAccount $account) => [
+        $comptes = $accounts->map(fn(TreasuryAccount $account) => [
             'nom' => $account->name,
             'type' => $account->type === TreasuryAccount::TYPE_CASH ? 'caisse' : 'banque',
             'solde' => $this->treasuryService->balance($account),
@@ -415,8 +463,8 @@ TXT;
             ->get();
 
         $parCategorie = $expenses
-            ->groupBy(fn (Expense $expense) => $expense->expenseCategory?->name ?? 'Sans catégorie')
-            ->map(fn (Collection $group, string $categorie) => [
+            ->groupBy(fn(Expense $expense) => $expense->expenseCategory?->name ?? 'Sans catégorie')
+            ->map(fn(Collection $group, string $categorie) => [
                 'categorie' => $categorie,
                 'montant' => round((float) $group->sum('amount'), 2),
             ])
@@ -440,8 +488,8 @@ TXT;
             ->get();
 
         $parCategorie = $payments
-            ->groupBy(fn (Payment $payment) => $payment->feeStructure?->feeCategory?->name ?? 'Sans catégorie')
-            ->map(fn (Collection $group, string $categorie) => [
+            ->groupBy(fn(Payment $payment) => $payment->feeStructure?->feeCategory?->name ?? 'Sans catégorie')
+            ->map(fn(Collection $group, string $categorie) => [
                 'categorie' => $categorie,
                 'montant' => round((float) $group->sum('amount'), 2),
             ])
@@ -480,7 +528,7 @@ TXT;
             ->limit(15)
             ->get();
 
-        $rows = collect($loans->map(fn (BookLoan $loan) => [
+        $rows = collect($loans->map(fn(BookLoan $loan) => [
             'fullname' => $loan->student?->fullname ?? 'Élève inconnu',
             'livre' => $loan->copy?->book?->title ?? 'Titre inconnu',
             'jours_de_retard' => now()->diffInDays($loan->due_at),
@@ -499,15 +547,15 @@ TXT;
     private function toolChargeEnseignants(School $school): array
     {
         $assignments = ClassSubjectTeacher::query()
-            ->whereHas('schoolClass', fn ($query) => $query
+            ->whereHas('schoolClass', fn($query) => $query
                 ->where('school_id', $school->id)
-                ->whereHas('schoolYear', fn ($q) => $q->where('is_current', true)))
+                ->whereHas('schoolYear', fn($q) => $q->where('is_current', true)))
             ->with('teacher')
-            ->get(); 
+            ->get();
 
         $parEnseignant = $assignments
-            ->groupBy(fn (ClassSubjectTeacher $a) => $a->teacher?->fullname ?? 'Enseignant inconnu')
-            ->map(fn (Collection $group, string $nom) => [
+            ->groupBy(fn(ClassSubjectTeacher $a) => $a->teacher?->fullname ?? 'Enseignant inconnu')
+            ->map(fn(Collection $group, string $nom) => [
                 'enseignant' => $nom,
                 'nombre_de_cours' => $group->count(),
             ])
@@ -545,7 +593,7 @@ TXT;
     private function toolTauxPresence(School $school): array
     {
         $query = Attendance::query()
-            ->whereHas('classSubjectTeacher.schoolClass', fn ($q) => $q->where('school_id', $school->id))
+            ->whereHas('classSubjectTeacher.schoolClass', fn($q) => $q->where('school_id', $school->id))
             ->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()]);
 
         $total = (clone $query)->count();
@@ -579,8 +627,8 @@ TXT;
 
         $matches = SchoolClass::query()
             ->where('school_id', $school->id)
-            ->where('name', 'like', '%'.trim($nomClasse).'%')
-            ->whereHas('schoolYear', fn ($query) => $query->where('is_current', true))
+            ->where('name', 'like', '%' . trim($nomClasse) . '%')
+            ->whereHas('schoolYear', fn($query) => $query->where('is_current', true))
             ->limit(2)
             ->get();
 
@@ -594,8 +642,8 @@ TXT;
         }
 
         $matches = Student::query()
-            ->where('fullname', 'like', '%'.trim($nomEleve).'%')
-            ->whereHas('schoolStudents', fn ($query) => $query
+            ->where('fullname', 'like', '%' . trim($nomEleve) . '%')
+            ->whereHas('schoolStudents', fn($query) => $query
                 ->where('school_id', $school->id)
                 ->where('status', SchoolStudent::STATUS_ACTIVE))
             ->limit(2)
@@ -617,7 +665,7 @@ TXT;
         $letters = range('A', 'Z');
 
         $anonymized = $rows->values()->map(function (array $row, int $index) use ($letters, &$tokenMap) {
-            $token = 'Élève '.($letters[$index] ?? (string) ($index + 1));
+            $token = 'Élève ' . ($letters[$index] ?? (string) ($index + 1));
             $tokenMap[$token] = $row['fullname'];
 
             unset($row['matricule'], $row['student_id']);
@@ -645,6 +693,11 @@ TXT;
             $this->tool(
                 'matieres_difficiles',
                 "Utilise cet outil quand la question porte sur la/les MATIÈRE(S) où les élèves ont le plus de mal, ou sur la moyenne PAR MATIÈRE (ex: \"quelle matière pose problème aux élèves ?\", \"dans quelle matière les notes sont les plus faibles ?\"). Retourne la moyenne sur 20 de chaque matière, toutes classes confondues, triée de la plus faible à la plus haute.",
+                []
+            ),
+            $this->tool(
+                'resultats_examens',
+                "Utilise cet outil quand la question porte explicitement sur les RÉSULTATS DES EXAMENS, les moyennes aux examens, les classes les plus faibles aux examens ou les matières difficiles aux examens. Il ne prend en compte que les notes dont le type est examen et l'année scolaire courante. Retourne les moyennes sur 20 par classe et par matière, de la plus faible à la plus haute.",
                 []
             ),
             $this->tool(

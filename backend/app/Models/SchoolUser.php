@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SchoolUser extends Pivot
 {
@@ -24,7 +23,12 @@ class SchoolUser extends Pivot
 
     const STATUS_LEFT = 2;
 
-    protected $fillable = ['school_id', 'user_id', 'role_id', 'status'];
+    protected $fillable = ['school_id', 'user_id', 'role_id', 'status', 'is_owner'];
+
+    protected $casts = [
+        'is_owner' => 'boolean',
+        'status' => 'integer',
+    ];
 
     public function school(): BelongsTo
     {

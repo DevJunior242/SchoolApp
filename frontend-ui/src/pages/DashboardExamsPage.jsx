@@ -20,6 +20,7 @@ import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
+import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -49,14 +50,15 @@ export default function DashboardExamsPage() {
   const { user } = useAuth();
   const schoolId = user?.current_school_id;
   const { schoolUsers } = useSchools();
-  const currentRole = schoolUsers.find((su) => su.school?.id === schoolId)?.role
-    ?.slug;
-  const canManageExams = !["eleve", "parent"].includes(currentRole);
+  const currentMembership = schoolUsers.find(
+    (membership) => membership.school?.id === schoolId,
+  );
+  const { roleSlug, isAdmin } = getSchoolAdminAccess(currentMembership);
+  const canManageExamForm = isAdmin;
+  const canGradeExam = isAdmin || roleSlug === "professeur";
   const canDownloadCandidates =
-    currentRole === "professeur" ||
-    ["directeur", "fondateur", "secretaire", "censeur", "comptable"].includes(
-      currentRole,
-    );
+    roleSlug === "professeur" ||
+    ["admin", "secretaire", "censeur", "comptable"].includes(roleSlug);
 
   const examTypesQuery = useApiGet(
     schoolId ? `/schools/${schoolId}/exam-types` : null,
@@ -97,10 +99,6 @@ export default function DashboardExamsPage() {
   const [candidateSelections, setCandidateSelections] = useState({});
   const [candidateGeneratingId, setCandidateGeneratingId] = useState(null);
   const [candidateMessage, setCandidateMessage] = useState(null);
-  const [examActionMenu, setExamActionMenu] = useState({
-    examId: null,
-    anchorEl: null,
-  });
   const [editingExamId, setEditingExamId] = useState(null);
   const [deletingExamId, setDeletingExamId] = useState(null);
   const [examModeFilter, setExamModeFilter] = useState("all");
@@ -116,7 +114,6 @@ export default function DashboardExamsPage() {
   const [programForm, setProgramForm] = useState({});
   const [programMessage, setProgramMessage] = useState(null);
   const [programSavingId, setProgramSavingId] = useState(null);
-  const [programTargetSelection, setProgramTargetSelection] = useState({});
 
   const examTypes = examTypesQuery.data ?? [];
   const schoolYears = schoolYearsQuery.data ?? [];
@@ -163,20 +160,6 @@ export default function DashboardExamsPage() {
         ...current,
         [examId]: Array.from(next),
       };
-    });
-  }
-
-  function openExamMenu(event, examId) {
-    setExamActionMenu({
-      examId,
-      anchorEl: event.currentTarget,
-    });
-  }
-
-  function closeExamMenu() {
-    setExamActionMenu({
-      examId: null,
-      anchorEl: null,
     });
   }
 
@@ -760,206 +743,212 @@ export default function DashboardExamsPage() {
         </Box>
       </Stack>
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={3} sx={{ mb: 4 }}>
-        <Card sx={{ flex: 1 }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Nouveau type d’examen
-            </Typography>
-            <Box component="form" onSubmit={submitType} noValidate>
-              <Stack spacing={2}>
-                <TextField
-                  label="Nom"
-                  name="name"
-                  value={typeForm.name}
-                  onChange={onTypeFieldChange}
-                  required
-                  error={hasTypeNameError}
-                  helperText={
-                    hasTypeNameError
-                      ? "Le nom du type d’examen est requis."
-                      : ""
-                  }
-                  fullWidth
-                />
-                <TextField
-                  label="Code"
-                  name="code"
-                  value={typeForm.code}
-                  onChange={onTypeFieldChange}
-                  fullWidth
-                />
-                <TextField
-                  label="Description"
-                  name="description"
-                  value={typeForm.description}
-                  onChange={onTypeFieldChange}
-                  multiline
-                  minRows={3}
-                  fullWidth
-                />
-                <TextField
-                  select
-                  label="Statut"
-                  name="is_active"
-                  value={typeForm.is_active}
-                  onChange={onTypeFieldChange}
-                  fullWidth
-                >
-                  <MenuItem value={true}>Actif</MenuItem>
-                  <MenuItem value={false}>Inactif</MenuItem>
-                </TextField>
-                {typeError && <Alert severity="error">{typeError}</Alert>}
-                <Button
-                  type="submit"
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  disabled={typeSubmitting}
-                >
-                  Enregistrer le type
-                </Button>
-              </Stack>
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card sx={{ flex: 1 }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              {editingExamId ? "Modifier l’examen" : "Nouvel examen"}
-            </Typography>
-            <Box component="form" onSubmit={submitExam} noValidate>
-              <Stack spacing={2}>
-                <TextField
-                  select
-                  label="Type d’examen"
-                  name="exam_type_id"
-                  value={examForm.exam_type_id}
-                  onChange={onExamFieldChange}
-                  required
-                  error={hasExamTypeError}
-                  helperText={
-                    hasExamTypeError ? "Sélectionnez un type d’examen." : ""
-                  }
-                  fullWidth
-                >
-                  {examTypes.map((type) => (
-                    <MenuItem key={type.id} value={type.id}>
-                      {type.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  select
-                  label="Année scolaire"
-                  name="school_year_id"
-                  value={examForm.school_year_id}
-                  onChange={onExamFieldChange}
-                  fullWidth
-                >
-                  {schoolYears.map((year) => (
-                    <MenuItem key={year.id} value={year.id}>
-                      {year.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  select
-                  label="Mode"
-                  name="exam_mode"
-                  value={examForm.exam_mode}
-                  onChange={onExamFieldChange}
-                  fullWidth
-                >
-                  <MenuItem value="passage">Passage</MenuItem>
-                  <MenuItem value="blanc">Blanc</MenuItem>
-                </TextField>
-                <TextField
-                  label="Nom de l’examen"
-                  name="name"
-                  value={examForm.name}
-                  onChange={onExamFieldChange}
-                  required
-                  error={hasExamNameError}
-                  helperText={
-                    hasExamNameError ? "Le nom de l’examen est requis." : ""
-                  }
-                  fullWidth
-                />
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+      {canManageExamForm && (
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={3}
+          sx={{ mb: 4 }}
+        >
+          <Card sx={{ flex: 1 }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Nouveau type d’examen
+              </Typography>
+              <Box component="form" onSubmit={submitType} noValidate>
+                <Stack spacing={2}>
                   <TextField
-                    label="Date de début"
-                    name="start_date"
-                    type="date"
-                    value={examForm.start_date}
-                    onChange={onExamFieldChange}
-                    InputLabelProps={{ shrink: true }}
+                    label="Nom"
+                    name="name"
+                    value={typeForm.name}
+                    onChange={onTypeFieldChange}
+                    required
+                    error={hasTypeNameError}
+                    helperText={
+                      hasTypeNameError
+                        ? "Le nom du type d’examen est requis."
+                        : ""
+                    }
                     fullWidth
                   />
                   <TextField
-                    label="Date de fin"
-                    name="end_date"
-                    type="date"
-                    value={examForm.end_date}
-                    onChange={onExamFieldChange}
-                    InputLabelProps={{ shrink: true }}
+                    label="Code"
+                    name="code"
+                    value={typeForm.code}
+                    onChange={onTypeFieldChange}
                     fullWidth
                   />
-                </Stack>
-                <TextField
-                  select
-                  label="Statut"
-                  name="status"
-                  value={examForm.status}
-                  onChange={onExamFieldChange}
-                  fullWidth
-                >
-                  <MenuItem value="draft">Brouillon</MenuItem>
-                  <MenuItem value="scheduled">Planifié</MenuItem>
-                  <MenuItem value="ongoing">En cours</MenuItem>
-                  <MenuItem value="closed">Clos</MenuItem>
-                </TextField>
-                <TextField
-                  label="Remarques"
-                  name="remarks"
-                  value={examForm.remarks}
-                  onChange={onExamFieldChange}
-                  multiline
-                  minRows={2}
-                  fullWidth
-                />
-                {examError && <Alert severity="error">{examError}</Alert>}
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                  <TextField
+                    label="Description"
+                    name="description"
+                    value={typeForm.description}
+                    onChange={onTypeFieldChange}
+                    multiline
+                    minRows={3}
+                    fullWidth
+                  />
+                  <TextField
+                    select
+                    label="Statut"
+                    name="is_active"
+                    value={typeForm.is_active}
+                    onChange={onTypeFieldChange}
+                    fullWidth
+                  >
+                    <MenuItem value={true}>Actif</MenuItem>
+                    <MenuItem value={false}>Inactif</MenuItem>
+                  </TextField>
+                  {typeError && <Alert severity="error">{typeError}</Alert>}
                   <Button
                     type="submit"
                     variant="contained"
-                    color="secondary"
                     startIcon={<AddIcon />}
-                    disabled={examSubmitting}
+                    disabled={typeSubmitting}
                   >
-                    {examSubmitting
-                      ? editingExamId
-                        ? "Enregistrement..."
-                        : "Création..."
-                      : editingExamId
-                        ? "Enregistrer les modifications"
-                        : "Créer l’examen"}
+                    Enregistrer le type
                   </Button>
-                  {editingExamId && (
+                </Stack>
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card sx={{ flex: 1 }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                {editingExamId ? "Modifier l’examen" : "Nouvel examen"}
+              </Typography>
+              <Box component="form" onSubmit={submitExam} noValidate>
+                <Stack spacing={2}>
+                  <TextField
+                    select
+                    label="Type d’examen"
+                    name="exam_type_id"
+                    value={examForm.exam_type_id}
+                    onChange={onExamFieldChange}
+                    required
+                    error={hasExamTypeError}
+                    helperText={
+                      hasExamTypeError ? "Sélectionnez un type d’examen." : ""
+                    }
+                    fullWidth
+                  >
+                    {examTypes.map((type) => (
+                      <MenuItem key={type.id} value={type.id}>
+                        {type.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    select
+                    label="Année scolaire"
+                    name="school_year_id"
+                    value={examForm.school_year_id}
+                    onChange={onExamFieldChange}
+                    fullWidth
+                  >
+                    {schoolYears.map((year) => (
+                      <MenuItem key={year.id} value={year.id}>
+                        {year.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    select
+                    label="Mode"
+                    name="exam_mode"
+                    value={examForm.exam_mode}
+                    onChange={onExamFieldChange}
+                    fullWidth
+                  >
+                    <MenuItem value="passage">Passage</MenuItem>
+                    <MenuItem value="blanc">Blanc</MenuItem>
+                  </TextField>
+                  <TextField
+                    label="Nom de l’examen"
+                    name="name"
+                    value={examForm.name}
+                    onChange={onExamFieldChange}
+                    required
+                    error={hasExamNameError}
+                    helperText={
+                      hasExamNameError ? "Le nom de l’examen est requis." : ""
+                    }
+                    fullWidth
+                  />
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                    <TextField
+                      label="Date de début"
+                      name="start_date"
+                      type="date"
+                      value={examForm.start_date}
+                      onChange={onExamFieldChange}
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Date de fin"
+                      name="end_date"
+                      type="date"
+                      value={examForm.end_date}
+                      onChange={onExamFieldChange}
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Stack>
+                  <TextField
+                    select
+                    label="Statut"
+                    name="status"
+                    value={examForm.status}
+                    onChange={onExamFieldChange}
+                    fullWidth
+                  >
+                    <MenuItem value="draft">Brouillon</MenuItem>
+                    <MenuItem value="scheduled">Planifié</MenuItem>
+                    <MenuItem value="ongoing">En cours</MenuItem>
+                    <MenuItem value="closed">Clos</MenuItem>
+                  </TextField>
+                  <TextField
+                    label="Remarques"
+                    name="remarks"
+                    value={examForm.remarks}
+                    onChange={onExamFieldChange}
+                    multiline
+                    minRows={2}
+                    fullWidth
+                  />
+                  {examError && <Alert severity="error">{examError}</Alert>}
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                     <Button
-                      variant="outlined"
-                      onClick={resetExamForm}
+                      type="submit"
+                      variant="contained"
+                      color="secondary"
+                      startIcon={<AddIcon />}
                       disabled={examSubmitting}
                     >
-                      Annuler
+                      {examSubmitting
+                        ? editingExamId
+                          ? "Enregistrement..."
+                          : "Création..."
+                        : editingExamId
+                          ? "Enregistrer les modifications"
+                          : "Créer l’examen"}
                     </Button>
-                  )}
+                    {editingExamId && (
+                      <Button
+                        variant="outlined"
+                        onClick={resetExamForm}
+                        disabled={examSubmitting}
+                      >
+                        Annuler
+                      </Button>
+                    )}
+                  </Stack>
                 </Stack>
-              </Stack>
-            </Box>
-          </CardContent>
-        </Card>
-      </Stack>
+              </Box>
+            </CardContent>
+          </Card>
+        </Stack>
+      )}
 
       <Box>
         <Stack
@@ -1159,56 +1148,60 @@ export default function DashboardExamsPage() {
                     spacing={1}
                     sx={{ mt: 2, flexWrap: "wrap", alignItems: "center" }}
                   >
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        setCandidatePanelExamId((current) =>
-                          current === exam.id ? null : exam.id,
-                        );
-                        setCandidateMessage((current) =>
-                          current?.examId === exam.id ? null : current,
-                        );
-                      }}
-                    >
-                      {candidatePanelExamId === exam.id
-                        ? "Masquer les classes"
-                        : "Générer candidats"}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        setProgramPanelExamId((current) =>
-                          current === exam.id ? null : exam.id,
-                        );
-                        setProgramMessage((current) =>
-                          current?.examId === exam.id ? null : current,
-                        );
-                      }}
-                    >
-                      {programPanelExamId === exam.id
-                        ? "Fermer le programme"
-                        : "Gérer le programme"}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => startEditExam(exam)}
-                    >
-                      Modifier
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      color="error"
-                      onClick={() => deleteExam(exam)}
-                      disabled={deletingExamId === exam.id}
-                    >
-                      {deletingExamId === exam.id
-                        ? "Suppression..."
-                        : "Supprimer"}
-                    </Button>
+                    {canManageExamForm && (
+                      <>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            setCandidatePanelExamId((current) =>
+                              current === exam.id ? null : exam.id,
+                            );
+                            setCandidateMessage((current) =>
+                              current?.examId === exam.id ? null : current,
+                            );
+                          }}
+                        >
+                          {candidatePanelExamId === exam.id
+                            ? "Masquer les classes"
+                            : "Générer candidats"}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            setProgramPanelExamId((current) =>
+                              current === exam.id ? null : exam.id,
+                            );
+                            setProgramMessage((current) =>
+                              current?.examId === exam.id ? null : current,
+                            );
+                          }}
+                        >
+                          {programPanelExamId === exam.id
+                            ? "Fermer le programme"
+                            : "Gérer le programme"}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => startEditExam(exam)}
+                        >
+                          Modifier
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                          onClick={() => deleteExam(exam)}
+                          disabled={deletingExamId === exam.id}
+                        >
+                          {deletingExamId === exam.id
+                            ? "Suppression..."
+                            : "Supprimer"}
+                        </Button>
+                      </>
+                    )}
                     {canDownloadCandidates && (
                       <Stack
                         direction={{ xs: "column", sm: "row" }}
@@ -1267,7 +1260,7 @@ export default function DashboardExamsPage() {
                                 variant="contained"
                                 size="small"
                                 color={
-                                  currentRole === "professeur"
+                                  roleSlug === "professeur"
                                     ? "secondary"
                                     : "primary"
                                 }
@@ -1287,7 +1280,7 @@ export default function DashboardExamsPage() {
                               variant="contained"
                               size="small"
                               color={
-                                currentRole === "professeur"
+                                roleSlug === "professeur"
                                   ? "secondary"
                                   : "primary"
                               }
@@ -1302,7 +1295,7 @@ export default function DashboardExamsPage() {
                         })()}
                       </Stack>
                     )}
-                    {canManageExams && (
+                    {canGradeExam && (
                       <Button
                         variant="contained"
                         size="small"

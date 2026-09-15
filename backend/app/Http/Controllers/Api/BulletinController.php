@@ -43,7 +43,7 @@ class BulletinController extends Controller
         $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->latest('created_at')
             ->first();
 
@@ -74,12 +74,12 @@ class BulletinController extends Controller
             ->with([
                 'subject',
                 'teacher',
-                'grades' => fn ($query) => $query->where('student_id', $student->id),
+                'grades' => fn($query) => $query->where('student_id', $student->id),
             ])
             ->get();
 
         if ($selectedSeason) {
-            $subjects = $assignments->map(fn (ClassSubjectTeacher $assignment) => $this->subjectForSeason(
+            $subjects = $assignments->map(fn(ClassSubjectTeacher $assignment) => $this->subjectForSeason(
                 $assignment,
                 $assignment->grades->where('season_id', $selectedSeason->id)
             ));
@@ -93,7 +93,7 @@ class BulletinController extends Controller
                     'code' => 'seasons_not_configured',
                 ], 422);
             }
-            $subjects = $assignments->map(fn (ClassSubjectTeacher $assignment) => $this->subjectForYear($assignment, $seasons));
+            $subjects = $assignments->map(fn(ClassSubjectTeacher $assignment) => $this->subjectForYear($assignment, $seasons));
             $bulletinType = 'annuel';
             $periodLabel = "Bulletin annuel — {$schoolYear->label}";
         }
@@ -101,10 +101,10 @@ class BulletinController extends Controller
         // La moyenne générale pondère chaque matière par son coefficient
         // (Maths coef 4 pèse plus que Musique coef 1), pas une simple
         // moyenne à plat des moyennes de matières.
-        $withAverage = $subjects->filter(fn ($s) => $s['average'] !== null);
+        $withAverage = $subjects->filter(fn($s) => $s['average'] !== null);
         $totalCoefficient = $withAverage->sum('coefficient');
         $overallAverage = $totalCoefficient > 0
-            ? round($withAverage->sum(fn ($s) => $s['average'] * $s['coefficient']) / $totalCoefficient, 2)
+            ? round($withAverage->sum(fn($s) => $s['average'] * $s['coefficient']) / $totalCoefficient, 2)
             : null;
 
         // La mention (passage/redoublement) ne concerne que le bulletin de
@@ -133,7 +133,7 @@ class BulletinController extends Controller
     {
         $totalWeight = $grades->sum('coefficient');
         $average = $totalWeight > 0
-            ? round($grades->sum(fn (Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight, 2)
+            ? round($grades->sum(fn(Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight, 2)
             : null;
 
         return [
@@ -159,7 +159,7 @@ class BulletinController extends Controller
             $totalWeight = $seasonGrades->sum('coefficient');
 
             if ($totalWeight > 0) {
-                $periodAverages[] = $seasonGrades->sum(fn (Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight;
+                $periodAverages[] = $seasonGrades->sum(fn(Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight;
             }
         }
 
@@ -188,23 +188,13 @@ class BulletinController extends Controller
         if ($student->user_id === $userId) {
             return;
         }
-//fondateur
-        $isFondateur = SchoolUser::query()
+        $isAdmin = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->where('slug', 'fondateur'))
+            ->whereHas('role', fn($query) => $query->where('slug', 'admin'))
             ->exists();
 
-        if ($isFondateur) {
-            return;
-        }
-        $isDirecteur = SchoolUser::query()
-            ->where('school_id', $school->id)
-            ->where('user_id', $userId)
-            ->whereHas('role', fn ($query) => $query->where('slug', 'directeur'))
-            ->exists();
-
-        if ($isDirecteur) {
+        if ($isAdmin) {
             return;
         }
 

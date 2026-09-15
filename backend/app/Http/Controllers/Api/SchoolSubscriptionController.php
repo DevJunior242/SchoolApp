@@ -94,6 +94,6 @@ class SchoolSubscriptionController extends Controller
 
     private function authorizeDirector(Request $request, School $school): void
     {
-        abort_unless(SchoolUser::query()->where('school_id', $school->id)->where('user_id', $request->user()->id)->whereHas('role', fn ($q) => $q->where('slug', 'directeur'))->exists(), 403, 'Seul le directeur peut gérer l’abonnement.');
+        abort_unless(SchoolUser::query()->where('school_id', $school->id)->where('user_id', $request->user()->id)->whereHas('role', fn($q) => $q->where('slug', 'admin'))->exists(), 403, 'Seul l’administrateur de l’école peut gérer l’abonnement.');
     }
 }

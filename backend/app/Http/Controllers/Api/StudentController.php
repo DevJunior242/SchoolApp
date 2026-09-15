@@ -39,7 +39,7 @@ class StudentController extends Controller
         $enrolled = ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
-            ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+            ->whereHas('schoolClass', fn($query) => $query->where('school_id', $school->id))
             ->exists();
         abort_unless($enrolled, 404);
 
@@ -66,7 +66,7 @@ class StudentController extends Controller
         if (! empty($validated['bus_stop_id'])) {
             $belongsToSchool = BusStop::query()
                 ->where('id', $validated['bus_stop_id'])
-                ->whereHas('bus', fn ($query) => $query->where('school_id', $school->id))
+                ->whereHas('bus', fn($query) => $query->where('school_id', $school->id))
                 ->exists();
             abort_unless($belongsToSchool, 404);
         }
@@ -90,27 +90,27 @@ class StudentController extends Controller
                     // élèves différents peuvent avoir des noms proches) :
                     // chercher sur les deux évite de servir/débiter le
                     // mauvais élève depuis la recherche manuelle de la cantine.
-                    fn ($query, $search) => $query->whereHas('student', fn ($q) => $q
+                    fn($query, $search) => $query->whereHas('student', fn($q) => $q
                         ->where('fullname', 'like', "%{$search}%")
                         ->orWhere('matricule', 'like', "%{$search}%"))
                 )
                 ->when(
                     $request->query('class_id'),
-                    fn ($query, $classId) => $query->whereHas(
+                    fn($query, $classId) => $query->whereHas(
                         'student.classStudents',
-                        fn ($q) => $q->where('status', ClassStudent::STATUS_ACTIVE)
+                        fn($q) => $q->where('status', ClassStudent::STATUS_ACTIVE)
                             ->where('class_id', $classId)
-                            ->whereHas('schoolClass', fn ($classQuery) => $classQuery->where('school_id', $school->id))
+                            ->whereHas('schoolClass', fn($classQuery) => $classQuery->where('school_id', $school->id))
                     )
                 )
-                ->when($sectionIds, fn ($query, $ids) => $query->whereHas(
+                ->when($sectionIds, fn($query, $ids) => $query->whereHas(
                     'student.classStudents.schoolClass.level',
-                    fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids)
+                    fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)
                 ))
                 ->with([
                     'student.user',
                     'student.parents',
-                    'student.classStudents' => fn ($query) => $query
+                    'student.classStudents' => fn($query) => $query
                         ->where('status', ClassStudent::STATUS_ACTIVE)
                         ->latest('created_at')
                         ->limit(1)
@@ -131,8 +131,8 @@ class StudentController extends Controller
 
         $validated = $request->validated();
 
-        $results = DB::transaction(fn () => array_map(
-            fn (array $entry) => $this->enrollStudent($school, $entry, $request),
+        $results = DB::transaction(fn() => array_map(
+            fn(array $entry) => $this->enrollStudent($school, $entry, $request),
             $validated['students']
         ));
 
@@ -178,12 +178,7 @@ class StudentController extends Controller
         );
 
         $parentRole = Role::query()->where('slug', 'parent')->firstOrFail();
-        // Le parent est retrouvé par email/téléphone (ResolvesMemberUser) :
-        // s'il a déjà un autre rôle à cette école (ex: le directeur inscrit
-        // son propre enfant avec sa propre adresse email), on ne l'écrase
-        // pas silencieusement.
-        $this->guardAgainstRoleConflict($school, $parentUser, $parentRole->id);
-        SchoolUser::query()->updateOrCreate(
+        SchoolUser::query()->firstOrCreate(
             ['school_id' => $school->id, 'user_id' => $parentUser->id],
             ['role_id' => $parentRole->id, 'status' => SchoolUser::STATUS_ACTIVE]
         );

@@ -1,5 +1,17 @@
 import { useState } from "react";
-import { Alert, Box, Card, CardContent, Chip, CircularProgress, Divider, Stack, Tab, Tabs, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Divider,
+  Stack,
+  Tab,
+  Tabs,
+  Typography,
+} from "@mui/material";
 import AiChatTab from "../components/AiChatTab.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
@@ -14,6 +26,11 @@ const SUGGESTIONS = [
   "Quels sont les élèves les plus en difficulté cette année ?",
   "Quels élèves ont des paiements en retard ?",
   "Quels sont les chiffres clés de l'école ?",
+  "Quel est le montant total des paiements confirmés ce mois-ci ?",
+  "Quel est notre taux de recouvrement ce mois-ci ?",
+  "Quelles dépenses confirmées sont les plus importantes ce mois-ci ?",
+  "Quel est le solde disponible dans nos caisses et comptes bancaires ?",
+  "Combien reste-t-il d'impayés à recouvrer ?",
   "Quels événements sont prévus prochainement ?",
   "Combien d'élèves dans chaque classe ?",
   "Quelles sont nos recettes par catégorie ce mois-ci ?",
@@ -24,12 +41,18 @@ const SUGGESTIONS = [
   "Qui est le premier de chaque classe ?",
   "Quels élèves ont une faible moyenne ?",
   "Dans quelle matière les élèves ont-ils le plus de mal ?",
+  "Quelle est la moyenne générale des élèves cette année ?",
+  "Quelles classes ont les résultats les plus faibles aux examens ?",
+  "Quelles matières posent le plus de difficultés aux examens ?",
 ];
 
 function RiskTab({ schoolId }) {
-  const { data, loading, error } = useApiGet(`/schools/${schoolId}/students/risk-report`, {
-    enabled: Boolean(schoolId),
-  });
+  const { data, loading, error } = useApiGet(
+    `/schools/${schoolId}/students/risk-report`,
+    {
+      enabled: Boolean(schoolId),
+    },
+  );
 
   const students = data?.students ?? [];
 
@@ -56,8 +79,9 @@ function RiskTab({ schoolId }) {
   return (
     <Stack spacing={1.5}>
       <Typography variant="body2" color="text.secondary">
-        Score de risque d'abandon calculé à partir des absences, de la moyenne, des retards et des paiements en
-        retard (règle métier, pas de prédiction IA).
+        Score de risque d'abandon calculé à partir des absences, de la moyenne,
+        des retards et des paiements en retard (règle métier, pas de prédiction
+        IA).
       </Typography>
 
       {students.map((s) => {
@@ -66,7 +90,13 @@ function RiskTab({ schoolId }) {
         return (
           <Card key={s.student_id} variant="outlined">
             <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                flexWrap="wrap"
+                gap={1}
+              >
                 <Box>
                   <Typography variant="subtitle2">
                     {risk.emoji} {s.fullname}
@@ -75,12 +105,20 @@ function RiskTab({ schoolId }) {
                     {s.matricule}
                   </Typography>
                 </Box>
-                <Chip size="small" label={`${risk.label} (${s.score} pts)`} color={risk.color} />
+                <Chip
+                  size="small"
+                  label={`${risk.label} (${s.score} pts)`}
+                  color={risk.color}
+                />
               </Stack>
               <Divider sx={{ my: 1 }} />
               <Stack direction="row" spacing={2} flexWrap="wrap">
-                <Typography variant="caption">Moyenne : {s.average ?? "—"}/20</Typography>
-                <Typography variant="caption">Absences : {s.absences}</Typography>
+                <Typography variant="caption">
+                  Moyenne : {s.average ?? "—"}/20
+                </Typography>
+                <Typography variant="caption">
+                  Absences : {s.absences}
+                </Typography>
                 <Typography variant="caption">Retards : {s.retards}</Typography>
                 <Typography variant="caption">
                   Paiements : {s.payment_delay ? "en retard" : "à jour"}
