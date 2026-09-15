@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\School;
 use App\Models\Season;
 use App\Models\SchoolClass;
@@ -13,7 +14,7 @@ use App\Traits\Loggable;
 
 class SchoolYear extends Model
 {
-    use HasUuids, Loggable;
+    use HasUuids, SoftDeletes, Loggable;
 
     protected $fillable = ['school_id', 'label', 'start_date', 'end_date', 'is_current'];
 

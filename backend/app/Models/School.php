@@ -7,6 +7,7 @@ use App\Models\Book;
 use App\Models\SchoolUser;
 use App\Models\SchoolClass;
 use App\Models\SchoolSection;
+use App\Traits\Loggable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -14,10 +15,11 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class School extends Model
 {
-    use HasUuids;
+    use HasUuids, SoftDeletes, Loggable;
 
     const STATUS_INACTIVE = 0;
 
@@ -58,7 +60,7 @@ class School extends Model
         'email',
         'website',
         'status',
-         'pricing_plan_id',
+        'pricing_plan_id',
         'language',
         'currency',
         'academic_period_type',
@@ -81,8 +83,8 @@ class School extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => Cache::forget('public.active-schools'));
-        static::deleted(fn () => Cache::forget('public.active-schools'));
+        static::saved(fn() => Cache::forget('public.active-schools'));
+        static::deleted(fn() => Cache::forget('public.active-schools'));
     }
 
     public function isReadOnly(): bool
@@ -125,7 +127,7 @@ class School extends Model
         return SchoolUser::query()
             ->where('school_id', $this->id)
             ->where('status', SchoolUser::STATUS_ACTIVE)
-            ->whereHas('role', fn ($query) => $query->whereNotIn('slug', ['parent', 'eleve']))
+            ->whereHas('role', fn($query) => $query->whereNotIn('slug', ['parent', 'eleve']))
             ->count();
     }
 
@@ -138,7 +140,7 @@ class School extends Model
 
     protected function logoUrl(): Attribute
     {
-        return Attribute::make(get: fn () => $this->logo ? asset('storage/'.$this->logo) : null);
+        return Attribute::make(get: fn() => $this->logo ? asset('storage/' . $this->logo) : null);
     }
 
     public function country(): BelongsTo
@@ -151,7 +153,7 @@ class School extends Model
         return $this->belongsTo(SchoolPricingPlan::class, 'pricing_plan_id');
     }
 
-   
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'school_users')
@@ -165,7 +167,7 @@ class School extends Model
         return $this->hasMany(SchoolYear::class);
     }
 
-   
+
 
     public function paymentMethods(): HasMany
     {
@@ -199,7 +201,7 @@ class School extends Model
     //                 ->withPivot('active')
     //                 ->withTimestamps();
     // }
- public function sections()
+    public function sections()
     {
         return $this->belongsToMany(Section::class, 'school_sections')
             ->withPivot('active')

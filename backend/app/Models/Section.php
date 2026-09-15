@@ -7,13 +7,15 @@ use App\Models\School;
 use App\Models\Expense;
 use App\Models\PaymentMethod;
 use App\Models\TreasuryAccount;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
- 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class Section extends Model
 {
-    use HasUuids;
+    use HasUuids, SoftDeletes, Loggable;
 
     protected $fillable = ['name', 'code'];
 
@@ -22,7 +24,7 @@ class Section extends Model
         return $this->hasMany(Level::class)->orderBy('order');
     }
 
-   public function schools()
+    public function schools()
     {
         return $this->belongsToMany(School::class, 'school_sections')
             ->withPivot('active')
@@ -40,6 +42,4 @@ class Section extends Model
     {
         return $this->hasMany(Expense::class);
     }
-
-     
 }

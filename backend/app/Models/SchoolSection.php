@@ -8,10 +8,11 @@ use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SchoolSection extends Pivot
 {
-    use HasUuids, Loggable;
+    use HasUuids, SoftDeletes, Loggable;
 
     protected $table = 'school_sections';
 
