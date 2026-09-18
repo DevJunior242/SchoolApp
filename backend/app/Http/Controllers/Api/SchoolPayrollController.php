@@ -119,7 +119,7 @@ class SchoolPayrollController extends Controller
 
     public function summary(Request $request, School $school, $userId)
     {
-        $this->authorizeHrStaff($request, $school);
+        //$this->authorizeHrStaff($request, $school);
 
         abort_unless(
             SchoolUser::query()->where('school_id', $school->id)->where('user_id', $userId)->exists(),

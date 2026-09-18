@@ -152,4 +152,11 @@ trait AuthorizesSchoolDirecteur
             abort(403, $message);
         }
     }
+
+    //authorizeSchoolMember
+
+    private function authorizeSchoolMember(Request $request, School $school): void
+    {
+        $this->authorizeRoles($request, $school, ['admin', 'censeur', 'professeur', 'enseignant', 'comptable', 'secretaire', 'surveillant', 'rh', 'infirmier', 'cantine', 'surveillant', 'bibliothecaire', 'chauffeur'], "vous devez etre employé de cette ecole.");
+    }
 }
