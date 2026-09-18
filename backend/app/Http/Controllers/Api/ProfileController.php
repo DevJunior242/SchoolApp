@@ -19,6 +19,8 @@ class ProfileController extends Controller
             'phone' => ['nullable', 'string', 'phone:INTERNATIONAL'],
             'language' => ['required', 'in:fr,en'],
             'avatar' => ['nullable', 'image', 'max:2048'],
+        ], [
+            'phone.phone' => 'Le numéro de téléphone doit être valide et inclure son indicatif international, par exemple +226 70 00 00 00.',
         ]);
 
         if ($request->hasFile('avatar')) {

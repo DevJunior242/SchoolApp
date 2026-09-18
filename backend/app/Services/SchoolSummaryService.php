@@ -30,7 +30,7 @@ class SchoolSummaryService
 
         $teachersCount = SchoolUser::query()
             ->where('school_id', $school->id)
-            ->whereHas('role', fn($query) => $query->where('slug', 'professeur'))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['professeur', 'enseignant']))
             ->when($sectionIds, fn($query, $ids) => $query->whereHas('sections', fn($q) => $q->whereIn('sections.id', $ids)))
             ->count();
 

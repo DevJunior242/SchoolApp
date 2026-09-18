@@ -32,12 +32,12 @@ class ClassTeacherController extends Controller
         $isTeacherInSchool = SchoolUser::query()
             ->where('school_id', $school->id)
             ->where('user_id', $validated['user_id'])
-            ->whereHas('role', fn ($query) => $query->where('slug', 'professeur'))
+            ->whereHas('role', fn($query) => $query->whereIn('slug', ['professeur', 'enseignant']))
             ->exists();
 
         if (! $isTeacherInSchool) {
             throw ValidationException::withMessages([
-                'user_id' => ["Ce membre n'est pas professeur dans cette école."],
+                'user_id' => ["Ce membre n'est ni professeur ni enseignant dans cette école."],
             ]);
         }
 

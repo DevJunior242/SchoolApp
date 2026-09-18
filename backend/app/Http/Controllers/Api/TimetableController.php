@@ -25,7 +25,7 @@ class TimetableController extends Controller
 
         return response()->json(
             TimetableSlot::query()
-                ->whereHas('classSubjectTeacher', fn ($query) => $query->where('class_id', $schoolClass->id))
+                ->whereHas('classSubjectTeacher', fn($query) => $query->where('class_id', $schoolClass->id))
                 ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.teacher'])
                 ->orderBy('day_of_week')
                 ->orderBy('start_time')
@@ -43,18 +43,22 @@ class TimetableController extends Controller
 
         return response()->json(
             TimetableSlot::query()
-                ->whereHas(
-                    'classSubjectTeacher',
-                    fn ($query) => $query
-                        ->where('user_id', $request->user()->id)
-                        ->whereHas('schoolClass', fn ($q) => $q
-                            ->where('school_id', $school->id)
-                            ->whereHas('level.section.schools', fn ($sectionQuery) => $sectionQuery
-                                ->whereKey($school->id)
-                                ->wherePivot('active', true))
-                            ->when($sectionIds, fn ($classQuery, $ids) => $classQuery
-                                ->whereHas('level', fn ($levelQuery) => $levelQuery->whereIn('section_id', $ids))))
-                )
+                ->select('timetable_slots.*')
+                ->join('class_subject_teacher', 'class_subject_teacher.id', '=', 'timetable_slots.class_subject_teacher_id')
+                ->join('classes', 'classes.id', '=', 'class_subject_teacher.class_id')
+                ->join('levels', 'levels.id', '=', 'classes.level_id')
+                ->join('sections', 'sections.id', '=', 'levels.section_id')
+                ->join('school_sections', function ($join) use ($school) {
+                    $join->on('school_sections.section_id', '=', 'levels.section_id')
+                        ->where('school_sections.school_id', $school->id)
+                        ->where('school_sections.active', true);
+                })
+                ->where('class_subject_teacher.user_id', $request->user()->id)
+                ->where('classes.school_id', $school->id)
+                ->whereNull('classes.deleted_at')
+                ->whereNull('sections.deleted_at')
+                ->whereNull('school_sections.deleted_at')
+                ->when($sectionIds, fn($query, $ids) => $query->whereIn('levels.section_id', $ids))
                 ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.schoolClass'])
                 ->orderBy('day_of_week')
                 ->orderBy('start_time')
@@ -110,7 +114,7 @@ class TimetableController extends Controller
     private function assertNoClassConflict(SchoolClass $schoolClass, array $validated): void
     {
         $conflict = TimetableSlot::query()
-            ->whereHas('classSubjectTeacher', fn ($query) => $query->where('class_id', $schoolClass->id))
+            ->whereHas('classSubjectTeacher', fn($query) => $query->where('class_id', $schoolClass->id))
             ->where('day_of_week', $validated['day_of_week'])
             ->where('start_time', '<', $validated['end_time'])
             ->where('end_time', '>', $validated['start_time'])
@@ -126,7 +130,7 @@ class TimetableController extends Controller
     private function assertNoTeacherConflict(string $teacherId, array $validated): void
     {
         $conflict = TimetableSlot::query()
-            ->whereHas('classSubjectTeacher', fn ($query) => $query->where('user_id', $teacherId))
+            ->whereHas('classSubjectTeacher', fn($query) => $query->where('user_id', $teacherId))
             ->where('day_of_week', $validated['day_of_week'])
             ->where('start_time', '<', $validated['end_time'])
             ->where('end_time', '>', $validated['start_time'])

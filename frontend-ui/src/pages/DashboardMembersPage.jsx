@@ -1,28 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
   Checkbox,
   Chip,
   Grid,
   IconButton,
   InputAdornment,
+  Menu,
   MenuItem,
   Pagination,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
-import { motion } from "motion/react";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -66,6 +69,8 @@ export default function DashboardMembersPage() {
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
+  const [actionAnchor, setActionAnchor] = useState(null);
+  const [actionMember, setActionMember] = useState(null);
 
   const activeSections = useMemo(
     () =>
@@ -166,6 +171,11 @@ export default function DashboardMembersPage() {
     }
   }
 
+  function closeActions() {
+    setActionAnchor(null);
+    setActionMember(null);
+  }
+
   if (!schoolId) {
     return (
       <Box sx={{ py: 8, textAlign: "center" }}>
@@ -210,103 +220,98 @@ export default function DashboardMembersPage() {
           {loading ? (
             <Typography color="text.secondary">Chargement...</Typography>
           ) : (
-            <Stack spacing={2}>
-              {members.map((member, index) => (
-                <motion.div
-                  key={member.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.03 }}
-                >
-                  <Card variant="outlined">
-                    <CardContent
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 2,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <Avatar sx={{ bgcolor: "primary.main" }}>
-                        {member.user?.fullname?.charAt(0).toUpperCase()}
-                      </Avatar>
-                      <Box sx={{ flexGrow: 1, minWidth: 200 }}>
-                        <Typography variant="subtitle1" fontWeight={600} noWrap>
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Membre</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Téléphone</TableCell>
+                    <TableCell>Rôle</TableCell>
+                    <TableCell>Sections</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {members.map((member) => (
+                    <TableRow hover key={member.id}>
+                      <TableCell>
+                        <Typography fontWeight={700}>
                           {member.user?.fullname}
                         </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          noWrap
-                        >
-                          {member.user?.email}{" "}
-                          {member.user?.phone ? `· ${member.user.phone}` : ""}
-                        </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={0.5}
-                          flexWrap="wrap"
-                          useFlexGap
-                          sx={{ mt: 1 }}
-                        >
-                          <Chip
-                            label={member.role?.name || "Membre"}
+                      </TableCell>
+                      <TableCell>{member.user?.email || "-"}</TableCell>
+                      <TableCell>{member.user?.phone || "-"}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={member.role?.name || "Membre"}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {member.sections?.length
+                          ? member.sections
+                              .map((section) => section.name)
+                              .join(", ")
+                          : "Toutes les sections"}
+                      </TableCell>
+                      <TableCell align="right">
+                        {!(
+                          member.role?.slug === "admin" && member.is_owner
+                        ) && (
+                          <IconButton
                             size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                          {member.sections?.length ? (
-                            member.sections.map((section) => (
-                              <Chip
-                                key={section.id}
-                                label={section.name}
-                                size="small"
-                                variant="outlined"
-                              />
-                            ))
-                          ) : (
-                            <Chip
-                              label="Toutes les sections"
-                              size="small"
-                              variant="outlined"
-                            />
-                          )}
-                        </Stack>
-                      </Box>
-                      {!(member.role?.slug === "admin" && member.is_owner) && (
-                        <Stack direction="row" spacing={0.5}>
-                          <Tooltip title="Modifier le membre">
-                            <IconButton
-                              aria-label="Modifier le membre"
-                              onClick={() => handleEdit(member)}
-                              size="small"
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Retirer le membre">
-                            <IconButton
-                              aria-label="Retirer le membre"
-                              onClick={() => handleDelete(member)}
-                              size="small"
-                              color="error"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-              {members.length === 0 && (
-                <Typography color="text.secondary">
-                  Aucun membre trouvé.
-                </Typography>
-              )}
-            </Stack>
+                            onClick={(event) => {
+                              setActionAnchor(event.currentTarget);
+                              setActionMember(member);
+                            }}
+                          >
+                            <MoreVertIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {members.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6}>
+                        <Typography color="text.secondary">
+                          Aucun membre trouvé.
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
+          <Menu
+            anchorEl={actionAnchor}
+            open={Boolean(actionAnchor)}
+            onClose={closeActions}
+          >
+            <MenuItem
+              onClick={() => {
+                const member = actionMember;
+                closeActions();
+                handleEdit(member);
+              }}
+            >
+              <EditIcon fontSize="small" sx={{ mr: 1 }} /> Modifier
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                const member = actionMember;
+                closeActions();
+                handleDelete(member);
+              }}
+              sx={{ color: "error.main" }}
+            >
+              <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Retirer
+            </MenuItem>
+          </Menu>
           {lastPage > 1 && (
             <Stack alignItems="center" sx={{ mt: 3 }}>
               <Pagination

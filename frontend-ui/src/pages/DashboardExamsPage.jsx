@@ -55,9 +55,10 @@ export default function DashboardExamsPage() {
   );
   const { roleSlug, isAdmin } = getSchoolAdminAccess(currentMembership);
   const canManageExamForm = isAdmin;
-  const canGradeExam = isAdmin || roleSlug === "professeur";
+  const canGradeExam =
+    isAdmin || ["professeur", "enseignant"].includes(roleSlug);
   const canDownloadCandidates =
-    roleSlug === "professeur" ||
+    ["professeur", "enseignant"].includes(roleSlug) ||
     ["admin", "secretaire", "censeur", "comptable"].includes(roleSlug);
 
   const examTypesQuery = useApiGet(
@@ -1260,7 +1261,9 @@ export default function DashboardExamsPage() {
                                 variant="contained"
                                 size="small"
                                 color={
-                                  roleSlug === "professeur"
+                                  ["professeur", "enseignant"].includes(
+                                    roleSlug,
+                                  )
                                     ? "secondary"
                                     : "primary"
                                 }
@@ -1280,7 +1283,7 @@ export default function DashboardExamsPage() {
                               variant="contained"
                               size="small"
                               color={
-                                roleSlug === "professeur"
+                                ["professeur", "enseignant"].includes(roleSlug)
                                   ? "secondary"
                                   : "primary"
                               }

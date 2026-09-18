@@ -50,6 +50,19 @@
   --react-international-phone-country-selector-border-color: #f3680f;
 }
 
+.international-phone-input--error {
+  --react-international-phone-border-color: #d32f2f;
+  --react-international-phone-country-selector-border-color: #d32f2f;
+}
+
+.international-phone-input__helper {
+  display: block;
+  margin: 5px 14px 0;
+  color: #d32f2f;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 .international-phone-input--light {
   --react-international-phone-border-color: rgba(0, 0, 0, 0.23);
   --react-international-phone-background-color: #ffffff;

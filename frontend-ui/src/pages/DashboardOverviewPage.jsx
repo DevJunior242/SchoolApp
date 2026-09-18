@@ -7,7 +7,6 @@ import {
   Container,
   Grid,
   LinearProgress,
-  Link as MuiLink,
   Paper,
   Stack,
   Typography,
@@ -152,6 +151,19 @@ const QUICK_ACTIONS_BY_ROLE = {
     },
     { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
   ],
+  enseignant: [
+    {
+      label: "Mes cours",
+      to: "/dashboard/my-assignments",
+      icon: <MenuBookOutlinedIcon />,
+    },
+    {
+      label: "Mon emploi du temps",
+      to: "/dashboard/my-timetable",
+      icon: <ScheduleIcon />,
+    },
+    { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
+  ],
   parent: [
     {
       label: "Paiements",
@@ -198,8 +210,13 @@ export default function DashboardOverviewPage() {
   );
   const isStaff =
     Boolean(current) && STAFF_ROLE_SLUGS.includes(current.role?.slug);
+  const roleSlug = current?.role?.slug;
   const quickActions = current
-    ? (QUICK_ACTIONS_BY_ROLE[current.role?.slug] ?? [])
+    ? (QUICK_ACTIONS_BY_ROLE[roleSlug] ??
+      QUICK_ACTIONS_BY_ROLE[
+        roleSlug === "enseignant" ? "professeur" : roleSlug
+      ] ??
+      [])
     : [];
   const { data: summary, error: summaryError } = useApiGet(
     isStaff ? `/schools/${current.school?.id}/dashboard-summary` : null,
@@ -210,6 +227,7 @@ export default function DashboardOverviewPage() {
   // autre élève) + ses propres statistiques — jamais /dashboard-summary,
   // qui contient les finances de l'école entière.
   const isEleve = current?.role?.slug === "eleve";
+  const isTeacherRole = ["professeur", "enseignant"].includes(roleSlug);
   const { data: studentSummary } = useApiGet(
     isEleve ? `/schools/${current.school?.id}/my-dashboard-summary` : null,
     { enabled: isEleve },
@@ -217,10 +235,10 @@ export default function DashboardOverviewPage() {
   // Résumé pour un professeur : ses propres classes/matières/élèves et
   // son emploi du temps du jour — jamais les données des autres profs ni
   // les finances de l'école.
-  const isProfesseur = current?.role?.slug === "professeur";
+  const isProfesseur = isTeacherRole;
   const { data: teachingSummary } = useApiGet(
-    isProfesseur ? `/schools/${current.school?.id}/my-teaching-summary` : null,
-    { enabled: isProfesseur },
+    isTeacherRole ? `/schools/${current.school?.id}/my-teaching-summary` : null,
+    { enabled: isTeacherRole },
   );
   const isRh = current?.role?.slug === "rh";
   const { data: hrStaff } = useApiGet(

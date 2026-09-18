@@ -19,6 +19,7 @@ class RoleSeeder extends Seeder
             ['name' => 'Surveillant général', 'slug' => 'surveillant'],
 
             ['name' => 'Professeur', 'slug' => 'professeur'],
+            ['name' => 'Enseignant', 'slug' => 'enseignant'],
 
             ['name' => 'Élève', 'slug' => 'eleve'],
             ['name' => 'Parent', 'slug' => 'parent'],

@@ -102,8 +102,12 @@ export default function DashboardClassesPage() {
     { params: { per_page: 100 } },
   );
   const teachers = teachersData?.data ?? [];
-  const { data: subjects, error: subjectsError } = useApiGet(
-    canManageClasses ? "/subjects" : null,
+  const {
+    data: subjects,
+    error: subjectsError,
+    reload: reloadSubjects,
+  } = useApiGet(
+    canManageClasses && schoolId ? `/schools/${schoolId}/subjects` : null,
   );
 
   const auxError = levelsError || teachersError || subjectsError;
@@ -127,6 +131,10 @@ export default function DashboardClassesPage() {
   });
   const [assignError, setAssignError] = useState(null);
   const [assignSubmitting, setAssignSubmitting] = useState(false);
+  const [subjectModalOpen, setSubjectModalOpen] = useState(false);
+  const [subjectForm, setSubjectForm] = useState({ name: "", code: "" });
+  const [subjectError, setSubjectError] = useState(null);
+  const [subjectSubmitting, setSubjectSubmitting] = useState(false);
 
   function closeClassModal() {
     setClassModalOpen(false);
@@ -195,6 +203,33 @@ export default function DashboardClassesPage() {
     setAssignError(null);
   }
 
+  function closeSubjectModal() {
+    setSubjectModalOpen(false);
+    setSubjectForm({ name: "", code: "" });
+    setSubjectError(null);
+  }
+
+  async function handleCreateSubject(event) {
+    event.preventDefault();
+    setSubjectError(null);
+    setSubjectSubmitting(true);
+
+    try {
+      await api.post(`/schools/${schoolId}/subjects`, subjectForm);
+      closeSubjectModal();
+      await reloadSubjects();
+    } catch (err) {
+      const messages = err.response?.data?.errors;
+      setSubjectError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : err.response?.data?.message || "Impossible de créer la matière.",
+      );
+    } finally {
+      setSubjectSubmitting(false);
+    }
+  }
+
   async function handleAssign(e) {
     e.preventDefault();
     setAssignError(null);
@@ -249,13 +284,22 @@ export default function DashboardClassesPage() {
           </Typography>
         </Box>
         {canManageClasses && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setClassModalOpen(true)}
-          >
-            Ajouter une classe
-          </Button>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={() => setSubjectModalOpen(true)}
+            >
+              Gérer les matières
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setClassModalOpen(true)}
+            >
+              Ajouter une classe
+            </Button>
+          </Stack>
         )}
       </Stack>
       {(listError || auxError) && (
@@ -623,6 +667,56 @@ export default function DashboardClassesPage() {
           />
         </Stack>
       )}
+      <Dialog
+        open={subjectModalOpen}
+        onClose={closeSubjectModal}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Ajouter une matière à cette école</DialogTitle>
+        <Box component="form" onSubmit={handleCreateSubject}>
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            {subjectError && <Alert severity="error">{subjectError}</Alert>}
+            <TextField
+              label="Nom de la matière"
+              value={subjectForm.name}
+              onChange={(event) =>
+                setSubjectForm((current) => ({
+                  ...current,
+                  name: event.target.value,
+                }))
+              }
+              required
+              fullWidth
+              autoFocus
+            />
+            <TextField
+              label="Code"
+              value={subjectForm.code}
+              onChange={(event) =>
+                setSubjectForm((current) => ({
+                  ...current,
+                  code: event.target.value,
+                }))
+              }
+              helperText="Optionnel, par exemple MATHS."
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={closeSubjectModal}>Annuler</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={subjectSubmitting}
+            >
+              {subjectSubmitting ? "Création..." : "Créer la matière"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
       {/* ✅ Create/Edit Modal */}
       <Dialog
         open={classModalOpen}

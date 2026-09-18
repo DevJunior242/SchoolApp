@@ -103,7 +103,7 @@ export default function StudentHealthPage() {
   );
   const { roleSlug } = getSchoolAdminAccess(currentMembership);
   const canManage = MANAGER_ROLE_SLUGS.includes(roleSlug);
-  const isTeacherOnly = roleSlug === "professeur";
+  const isTeacherOnly = ["professeur", "enseignant"].includes(roleSlug);
 
   const base = schoolId
     ? `/schools/${schoolId}/students/${studentId}/health`

@@ -55,6 +55,8 @@ use App\Http\Controllers\Api\MarketplacePlanController;
 use App\Http\Controllers\Api\ServiceProviderController;
 use App\Http\Controllers\Api\TreasuryAccountController;
 use App\Http\Controllers\Api\SchoolStaffLeaveController;
+use App\Http\Controllers\Api\SchoolStaffAttendanceController;
+use App\Http\Controllers\Api\SchoolPayrollController;
 use App\Http\Controllers\Api\TreasuryMovementController;
 use App\Http\Controllers\Api\EnrollmentRequestController;
 use App\Http\Controllers\Api\SchoolPricingPlanController;
@@ -239,6 +241,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/hr/staff', [SchoolStaffProfileController::class, 'index']);
         Route::get('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'show']);
         Route::get('/schools/{school}/hr/leaves', [SchoolStaffLeaveController::class, 'index']);
+        Route::get('/schools/{school}/hr/attendance', [SchoolStaffAttendanceController::class, 'index']);
+        Route::get('/schools/{school}/my-attendance', [SchoolStaffAttendanceController::class, 'myToday']);
+        Route::get('/schools/{school}/my-attendance/history', [SchoolStaffAttendanceController::class, 'myHistory']);
+        Route::post('/schools/{school}/hr/attendance/qr', [SchoolStaffAttendanceController::class, 'qr']);
+        Route::post('/schools/{school}/hr/attendance/punch', [SchoolStaffAttendanceController::class, 'punch']);
+        Route::get('/schools/{school}/payroll/types', [SchoolPayrollController::class, 'types']);
+        Route::post('/schools/{school}/payroll/types', [SchoolPayrollController::class, 'storeType']);
+        Route::put('/schools/{school}/payroll/types/{type}', [SchoolPayrollController::class, 'updateType']);
+        Route::delete('/schools/{school}/payroll/types/{type}', [SchoolPayrollController::class, 'destroyType']);
+        Route::get('/schools/{school}/payroll/{user}/summary', [SchoolPayrollController::class, 'summary']);
+        Route::post('/schools/{school}/payroll/{user}/entries', [SchoolPayrollController::class, 'storeEntry']);
         Route::get('/schools/{school}/students', [StudentController::class, 'index']);
         Route::get('/schools/{school}/exam-types', [ExamTypeController::class, 'index']);
         Route::get('/schools/{school}/subjects', [SubjectController::class, 'index']);
@@ -346,6 +359,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/schools/{school}/hr/staff/{user}', [SchoolStaffProfileController::class, 'destroy']);
             Route::post('/schools/{school}/hr/leaves', [SchoolStaffLeaveController::class, 'store']);
             Route::put('/schools/{school}/hr/leaves/{leave}/status', [SchoolStaffLeaveController::class, 'updateStatus']);
+            Route::put('/schools/{school}/hr/attendance/{attendance}/correction', [SchoolStaffAttendanceController::class, 'correct']);
             Route::prefix('schools/{school}')->group(function () {
                 Route::get('/classes', [ClassController::class, 'index']);
                 Route::post('/classes', [ClassController::class, 'store']);

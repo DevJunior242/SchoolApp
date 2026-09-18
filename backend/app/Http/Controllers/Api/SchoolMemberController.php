@@ -12,6 +12,7 @@ use App\Models\SchoolUser;
 use App\Models\User;
 use App\Services\BrevoService;
 use App\Services\SchoolAdminPermissionService;
+use App\Services\HrPermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -22,10 +23,12 @@ class SchoolMemberController extends Controller
     use AuthorizesSchoolDirecteur, EnforcesStaffQuota, ResolvesMemberUser;
 
     private SchoolAdminPermissionService $schoolAdminPermissionService;
+    private HrPermissionService $hrPermissionService;
 
     public function __construct()
     {
         $this->schoolAdminPermissionService = app(SchoolAdminPermissionService::class);
+        $this->hrPermissionService = app(HrPermissionService::class);
     }
 
     /**
@@ -33,22 +36,32 @@ class SchoolMemberController extends Controller
      * Note: Si vous souhaitez autoriser la création de directeurs de section (ex: Proviseur),
      * retirez 'directeur' de cette liste.
      */
-    private const RESTRICTED_ROLE_SLUGS = ['parent', 'eleve', 'professeur', 'infirmier'];
+    private const RESTRICTED_ROLE_SLUGS = ['parent', 'eleve', 'professeur', 'enseignant', 'infirmier'];
 
     /**
      * Masqués de la liste générique des membres administratifs.
      */
-    private const HIDDEN_FROM_LIST_ROLE_SLUGS = ['parent', 'eleve', 'professeur'];
+    private const HIDDEN_FROM_LIST_ROLE_SLUGS = ['parent', 'eleve', 'professeur', 'enseignant'];
 
     public function index(Request $request, School $school)
     {
-        $this->authorizeDirecteur($request, $school);
         $actor = $this->actingMember($request, $school);
+
+        if (
+            ! $this->schoolAdminPermissionService->isAdmin($actor)
+            && ! $this->hrPermissionService->canManage($actor)
+        ) {
+            abort(403, "Vous n'avez pas accès aux membres de cette école.");
+        }
 
         return response()->json(
             SchoolUser::query()
                 ->where('school_id', $school->id)
                 ->whereHas('role', fn($query) => $query->whereNotIn('slug', self::HIDDEN_FROM_LIST_ROLE_SLUGS))
+                ->when(
+                    $this->hrPermissionService->isOwner($actor),
+                    fn($query) => $query->whereHas('role', fn($roleQuery) => $roleQuery->where('slug', 'rh'))
+                )
                 ->when(
                     ! $this->schoolAdminPermissionService->isOwner($actor) && $actor->sections->isNotEmpty(),
                     fn($query) => $query->whereHas('sections', fn($q) => $q->whereIn('sections.id', $actor->sections->pluck('id')))
@@ -64,7 +77,6 @@ class SchoolMemberController extends Controller
 
     public function store(Request $request, School $school)
     {
-        $this->authorizeDirecteur($request, $school);
         $actor = $this->actingMember($request, $school);
 
         $validated = $request->validate([
@@ -74,9 +86,22 @@ class SchoolMemberController extends Controller
             'role_id' => ['required', 'uuid', 'exists:roles,id'],
             'section_ids' => ['nullable', 'array'],
             'section_ids.*' => ['uuid', 'distinct', 'exists:sections,id'],
+        ], [
+            'phone.phone' => 'Le numéro de téléphone doit être valide et inclure son indicatif international, par exemple +226 70 00 00 00.',
         ]);
 
         $role = Role::findOrFail($validated['role_id']);
+
+        if ($this->hrPermissionService->isOwner($actor) && $role->slug !== 'rh') {
+            abort(403, 'Un responsable RH ne peut créer que des comptes RH.');
+        }
+
+        if (
+            ! $this->schoolAdminPermissionService->isAdmin($actor)
+            && ! $this->hrPermissionService->canManage($actor)
+        ) {
+            abort(403, "Vous n'êtes pas autorisé à créer ce membre.");
+        }
 
         if (in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
             throw ValidationException::withMessages([
@@ -90,7 +115,9 @@ class SchoolMemberController extends Controller
             ]);
         }
 
-        $this->authorizeSectionAssignment($school, $actor, $role, $validated['section_ids'] ?? []);
+        $sectionIds = $this->normalizeSectionIdsForActor($actor, $validated['section_ids'] ?? []);
+
+        $this->authorizeSectionAssignment($school, $actor, $role, $sectionIds);
 
         $user = $this->resolveUser($validated);
         $this->guardAgainstRoleConflict($school, $user, $validated['role_id']);
@@ -115,12 +142,18 @@ class SchoolMemberController extends Controller
             [
                 'role_id' => $validated['role_id'],
                 'status' => SchoolUser::STATUS_ACTIVE,
+                'is_owner' => $role->slug === 'rh'
+                    && ! SchoolUser::query()
+                        ->where('school_id', $school->id)
+                        ->where('is_owner', true)
+                        ->whereHas('role', fn($query) => $query->where('slug', 'rh'))
+                        ->exists(),
             ]
         );
 
         // Synchronisation des sections attribuées dans school_user_sections
-        if (array_key_exists('section_ids', $validated)) {
-            $schoolUser->sections()->sync($validated['section_ids'] ?? []);
+        if (array_key_exists('section_ids', $validated) || $sectionIds !== []) {
+            $schoolUser->sections()->sync($sectionIds);
         }
 
         $this->syncStaffQuota($school->fresh());
@@ -155,10 +188,20 @@ class SchoolMemberController extends Controller
 
     public function update(Request $request, School $school, SchoolUser $member)
     {
-        $this->authorizeDirecteur($request, $school);
         $actor = $this->actingMember($request, $school);
         $this->ensureMemberBelongsToSchool($school, $member);
         $this->ensureMemberIsWithinActorSections($actor, $member);
+
+        if ($this->hrPermissionService->isOwner($actor) && ! $this->hrPermissionService->canManage($actor, $member)) {
+            abort(403, 'Un responsable RH ne peut gérer que les comptes RH.');
+        }
+
+        if (
+            ! $this->schoolAdminPermissionService->isAdmin($actor)
+            && ! $this->hrPermissionService->canManage($actor, $member)
+        ) {
+            abort(403, "Vous n'êtes pas autorisé à modifier ce membre.");
+        }
 
         if ($member->role?->slug === 'admin' && $this->schoolAdminPermissionService->isOwner($member)) {
             abort(422, 'Le compte administrateur principal ne peut pas être modifié depuis cette interface.');
@@ -175,6 +218,10 @@ class SchoolMemberController extends Controller
 
         $role = Role::findOrFail($validated['role_id']);
 
+        if ($this->hrPermissionService->isOwner($actor) && $role->slug !== 'rh') {
+            abort(403, 'Un responsable RH ne peut attribuer que le rôle RH.');
+        }
+
         if (in_array($role->slug, self::RESTRICTED_ROLE_SLUGS, true)) {
             throw ValidationException::withMessages([
                 'role_id' => ['Ce rôle ne peut pas être attribué depuis cette interface.'],
@@ -187,7 +234,9 @@ class SchoolMemberController extends Controller
             ]);
         }
 
-        $this->authorizeSectionAssignment($school, $actor, $role, $validated['section_ids'] ?? []);
+        $sectionIds = $this->normalizeSectionIdsForActor($actor, $validated['section_ids'] ?? []);
+
+        $this->authorizeSectionAssignment($school, $actor, $role, $sectionIds);
 
         $this->guardAgainstRoleConflict($school, $member->user, $validated['role_id']);
 
@@ -196,8 +245,8 @@ class SchoolMemberController extends Controller
         $member->update(['role_id' => $validated['role_id']]);
 
         // Mise à jour des sections restreintes
-        if (array_key_exists('section_ids', $validated)) {
-            $member->sections()->sync($validated['section_ids'] ?? []);
+        if (array_key_exists('section_ids', $validated) || $sectionIds !== []) {
+            $member->sections()->sync($sectionIds);
         }
 
         $this->syncStaffQuota($school->fresh());
@@ -207,10 +256,16 @@ class SchoolMemberController extends Controller
 
     public function destroy(Request $request, School $school, SchoolUser $member)
     {
-        $this->authorizeDirecteur($request, $school);
         $actor = $this->actingMember($request, $school);
         $this->ensureMemberBelongsToSchool($school, $member);
         $this->ensureMemberIsWithinActorSections($actor, $member);
+
+        if (
+            ! $this->schoolAdminPermissionService->isAdmin($actor)
+            && ! $this->hrPermissionService->canManage($actor, $member)
+        ) {
+            abort(403, "Vous n'êtes pas autorisé à retirer ce membre.");
+        }
 
         if ($this->schoolAdminPermissionService->isOwner($member) || $member->user_id === $request->user()->id) {
             abort(422, "L’administrateur principal et votre propre compte ne peuvent pas être retirés de l'école.");
@@ -255,6 +310,14 @@ class SchoolMemberController extends Controller
             return;
         }
 
+        if ($this->hrPermissionService->isOwner($actor)) {
+            if ($actor->sections->isNotEmpty() && ! $this->hrPermissionService->canAssignSections($actor, $sectionIds)) {
+                abort(403, 'Vous ne pouvez affecter que vos sections RH.');
+            }
+
+            return;
+        }
+
         if (! $this->schoolAdminPermissionService->isAdmin($actor)) {
             abort(403, 'Seuls les administrateurs de l’école peuvent gérer les affectations de sections.');
         }
@@ -264,9 +327,32 @@ class SchoolMemberController extends Controller
         }
     }
 
+    private function normalizeSectionIdsForActor(SchoolUser $actor, array $sectionIds): array
+    {
+        if ($this->hrPermissionService->isOwner($actor) && $sectionIds === []) {
+            throw ValidationException::withMessages([
+                'section_ids' => ['Vous devez attribuer au moins une section à ce compte RH. Un RH ne peut pas créer un accès global.'],
+            ]);
+        }
+
+        return $sectionIds;
+    }
+
     private function ensureMemberIsWithinActorSections(SchoolUser $actor, SchoolUser $member): void
     {
-        if ($this->schoolAdminPermissionService->isOwner($actor) || $actor->sections->isEmpty()) {
+        if (
+            $this->schoolAdminPermissionService->isOwner($actor)
+            || $this->hrPermissionService->isOwner($actor) && $actor->sections->isEmpty()
+            || $actor->sections->isEmpty()
+        ) {
+            return;
+        }
+
+        if ($this->hrPermissionService->isOwner($actor)) {
+            $targetSectionIds = $member->sections->pluck('id')->all();
+            if ($targetSectionIds === [] || ! empty(array_diff($targetSectionIds, $actor->sections->pluck('id')->all()))) {
+                abort(403, 'Vous ne pouvez gérer que les RH de vos sections.');
+            }
             return;
         }
 

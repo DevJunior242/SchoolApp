@@ -1,21 +1,32 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Alert,
   Box,
   Button,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
   Grid,
+  InputLabel,
   IconButton,
   MenuItem,
+  Menu,
   Pagination,
   Paper,
   Stack,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
   InputAdornment,
@@ -24,8 +35,12 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useAuth } from "../context/AuthContext.jsx";
 import api from "../api/axios.jsx";
+import { useSchools } from "../hooks/useSchools.js";
+import { useLocation } from "react-router-dom";
+import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 
 const initialForm = {
   user_id: "",
@@ -33,6 +48,8 @@ const initialForm = {
   position: "",
   employment_status: 1,
   hire_date: "",
+  contract_start_date: "",
+  contract_end_date: "",
   monthly_salary: "",
   contract_type: 1,
 };
@@ -67,13 +84,52 @@ const getContractTypeLabel = (value) =>
   CONTRACT_TYPE_OPTIONS.find((option) => option.value === Number(value))
     ?.label ?? "";
 
+const ROLE_BADGE_COLORS = {
+  admin: "error",
+  comptable: "success",
+  secretaire: "info",
+  censeur: "warning",
+  surveillant: "warning",
+  bibliothecaire: "secondary",
+  infirmier: "error",
+  professeur: "primary",
+  enseignant: "primary",
+};
+
+const getRoleBadgeColor = (roleSlug) => ROLE_BADGE_COLORS[roleSlug] ?? "default";
+
+const formatDate = (value) => {
+  if (!value) return "-";
+  const datePart = String(value).split("T")[0];
+  const [year, month, day] = datePart.split("-");
+  return year && month && day ? `${day}/${month}/${year}` : "-";
+};
+
+const toInputDate = (value) => (value ? String(value).split("T")[0] : "");
+
 export default function DashboardHrPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const schoolId = user?.current_school_id;
+  const isLeavesPage = location.pathname.endsWith("/hr/leaves");
+  const { schoolUsers } = useSchools();
+  const currentMembership = schoolUsers.find(
+    (membership) => membership.school_id === schoolId,
+  );
+  const isHrOwner =
+    currentMembership?.role?.slug === "rh" &&
+    currentMembership?.is_owner === true;
+  const isAdminOwner =
+    currentMembership?.role?.slug === "admin" &&
+    currentMembership?.is_owner === true;
+  const canCreateRhAccount = isHrOwner || isAdminOwner;
+  const schoolSections = currentMembership?.school?.sections ?? [];
   const [staff, setStaff] = useState([]);
+  const [hrManagers, setHrManagers] = useState([]);
+  const [hrManagerPage, setHrManagerPage] = useState(1);
+  const [hrManagerLastPage, setHrManagerLastPage] = useState(1);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
-  const [totalStaff, setTotalStaff] = useState(0);
   const [leaves, setLeaves] = useState([]);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +141,17 @@ export default function DashboardHrPage() {
   const [form, setForm] = useState(initialForm);
   const [leaveForm, setLeaveForm] = useState(initialLeaveForm);
   const [leaveSubmitting, setLeaveSubmitting] = useState(false);
+  const [rhRoleId, setRhRoleId] = useState("");
+  const [rhModalOpen, setRhModalOpen] = useState(false);
+  const [rhForm, setRhForm] = useState({
+    fullname: "",
+    email: "",
+    phone: "",
+    section_ids: [],
+  });
+  const [rhPhoneError, setRhPhoneError] = useState("");
+  const [actionAnchor, setActionAnchor] = useState(null);
+  const [actionMember, setActionMember] = useState(null);
 
   // ✅ Modal states
   const [staffModalOpen, setStaffModalOpen] = useState(false);
@@ -95,14 +162,22 @@ export default function DashboardHrPage() {
 
     async function loadData() {
       try {
-        const [membersRes, leavesRes] = await Promise.all([
+        const [membersRes, managersRes, leavesRes, rolesRes] = await Promise.all([
           api.get(`/schools/${schoolId}/hr/staff`, {
             params: { per_page: 100 },
           }),
+          api.get(`/schools/${schoolId}/hr/staff`, {
+            params: { page: 1, per_page: 10, role: "rh" },
+          }),
           api.get(`/schools/${schoolId}/hr/leaves`),
+          api.get("/roles"),
         ]);
 
+        setRhRoleId(rolesRes.data.find((role) => role.slug === "rh")?.id ?? "");
+
         setLeaves(leavesRes.data || []);
+        setHrManagers(managersRes.data.data || []);
+        setHrManagerLastPage(managersRes.data.last_page || 1);
         setMembers(
           (membersRes.data.data || []).map((member) => ({
             ...member,
@@ -132,7 +207,6 @@ export default function DashboardHrPage() {
     });
     setStaff(res.data.data || []);
     setLastPage(res.data.last_page || 1);
-    setTotalStaff(res.data.total || 0);
   }
 
   useEffect(() => {
@@ -152,19 +226,17 @@ export default function DashboardHrPage() {
     setLeaves(res.data || []);
   }
 
+  async function loadHrManagers(pageNumber = hrManagerPage) {
+    const res = await api.get(`/schools/${schoolId}/hr/staff`, {
+      params: { page: pageNumber, per_page: 10, role: "rh" },
+    });
+    setHrManagers(res.data.data || []);
+    setHrManagerLastPage(res.data.last_page || 1);
+  }
+
   const departments = [
     ...new Set(members.map((person) => person.department).filter(Boolean)),
   ].sort();
-  const totalPayroll = members.reduce(
-    (total, person) => total + Number(person.monthly_salary || 0),
-    0,
-  );
-  const cdiCount = members.filter(
-    (person) => Number(person.contract_type) === 1,
-  ).length;
-  const formatAmount = (amount) =>
-    new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(amount);
-
   // ✅ Close modals
   function closeStaffModal() {
     setStaffModalOpen(false);
@@ -177,6 +249,58 @@ export default function DashboardHrPage() {
     setLeaveModalOpen(false);
     setLeaveForm(initialLeaveForm);
     setError("");
+  }
+
+  function openMemberActions(event, member) {
+    setActionAnchor(event.currentTarget);
+    setActionMember(member);
+  }
+
+  function closeMemberActions() {
+    setActionAnchor(null);
+    setActionMember(null);
+  }
+
+  function openLeaveForMember(member) {
+    closeMemberActions();
+    setLeaveForm((current) => ({
+      ...current,
+      user_id: member.user_id,
+    }));
+    setLeaveModalOpen(true);
+  }
+
+  function closeRhModal() {
+    setRhModalOpen(false);
+    setRhForm({ fullname: "", email: "", phone: "", section_ids: [] });
+    setError("");
+    setRhPhoneError("");
+  }
+
+  async function handleCreateRh(event) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+
+    try {
+      await api.post(`/schools/${schoolId}/members`, {
+        ...rhForm,
+        role_id: rhRoleId,
+      });
+      closeRhModal();
+      await loadStaff();
+      await loadHrManagers();
+    } catch (err) {
+      const messages = err.response?.data?.errors;
+      setError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : err.response?.data?.message || "Impossible de créer le compte RH.",
+      );
+      setRhPhoneError(messages?.phone?.[0] ?? "");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleSubmit(event) {
@@ -228,6 +352,8 @@ export default function DashboardHrPage() {
       position: member.position || "",
       employment_status: member.employment_status ?? 1,
       hire_date: member.hire_date || "",
+      contract_start_date: toInputDate(member.contract_start_date),
+      contract_end_date: toInputDate(member.contract_end_date),
       monthly_salary: member.monthly_salary ?? "",
       contract_type: member.contract_type ?? 1,
     });
@@ -308,23 +434,38 @@ export default function DashboardHrPage() {
       >
         <Box>
           <Typography variant="h5" fontWeight={700}>
-            Ressources humaines
+            {isLeavesPage ? "Congés" : "Employés"}
           </Typography>
           <Typography color="text.secondary">
-            Suivi du personnel, contrats et informations RH.
+            {isLeavesPage
+              ? "Consultez et traitez les demandes de congé du personnel."
+              : "Suivi du personnel, contrats et informations RH."}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setStaffModalOpen(true)}
-          >
-            Ajouter un profil
-          </Button>
-          <Button variant="outlined" onClick={() => setLeaveModalOpen(true)}>
-            Demande de congé
-          </Button>
+          {!isLeavesPage && canCreateRhAccount && (
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={() => setRhModalOpen(true)}
+            >
+              Ajouter un RH
+            </Button>
+          )}
+          {!isLeavesPage && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setStaffModalOpen(true)}
+            >
+              Ajouter un profil
+            </Button>
+          )}
+          {isLeavesPage && (
+            <Button variant="contained" onClick={() => setLeaveModalOpen(true)}>
+              Nouvelle demande
+            </Button>
+          )}
         </Stack>
       </Stack>
 
@@ -334,61 +475,14 @@ export default function DashboardHrPage() {
         </Alert>
       )}
 
-      {/* Stats Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                Personnel RH
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {totalStaff}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                Départements
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {departments.length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                Contrats CDI
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {cdiCount}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                Masse salariale
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {formatAmount(totalPayroll)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
       <Grid container spacing={3}>
         {/* Personnel List */}
-        <Grid item xs={12} md={7}>
+        <Grid
+          item
+          xs={12}
+          md={isLeavesPage ? 12 : 7}
+          sx={{ display: isLeavesPage ? "none" : "block" }}
+        >
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Personnel
@@ -443,75 +537,91 @@ export default function DashboardHrPage() {
                 Aucun profil RH ne correspond à ces filtres.
               </Typography>
             ) : (
-              <Stack spacing={2}>
-                {staff.map((member) => (
-                  <Card key={member.id} variant="outlined">
-                    <CardContent
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 2,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <Box>
-                        <Typography fontWeight={700}>
-                          {member.fullname}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {member.email || member.phone || "Aucun contact"}
-                        </Typography>
-                        {member.department || member.position ? (
-                          <Typography variant="caption" color="text.secondary">
-                            {member.department || "-"}
-                            {member.department && member.position ? " · " : ""}
-                            {member.position || ""}
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Employé</TableCell>
+                      <TableCell>Rôle</TableCell>
+                      <TableCell>Département</TableCell>
+                      <TableCell>Sections</TableCell>
+                      <TableCell>Contrat</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {staff.map((member) => (
+                      <TableRow hover key={member.id}>
+                        <TableCell>
+                          <Typography fontWeight={700}>
+                            {member.fullname}
                           </Typography>
-                        ) : null}
-                      </Box>
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        flexWrap="wrap"
-                        alignItems="center"
-                      >
-                        <Chip label={member.role || "Rôle"} size="small" />
-                        {member.employment_status && (
-                          <Chip
-                            label={getEmploymentStatusLabel(
-                              member.employment_status,
+                          <Typography variant="caption" color="text.secondary">
+                            {member.email || member.phone || "Aucun contact"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Stack
+                            direction="row"
+                            spacing={0.5}
+                            flexWrap="wrap"
+                            useFlexGap
+                          >
+                            <Chip
+                              label={member.role || "Rôle"}
+                              size="small"
+                              color={getRoleBadgeColor(member.role_slug)}
+                              variant="outlined"
+                            />
+                            {member.role_slug === "rh" && member.is_owner && (
+                              <Chip
+                                label="RH principal"
+                                size="small"
+                                color="primary"
+                              />
                             )}
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          {member.department || member.position || "-"}
+                        </TableCell>
+                        <TableCell>
+                          {(member.sections ?? []).length > 0
+                            ? member.sections
+                                .map((section) => section.name)
+                                .join(", ")
+                            : "Toutes"}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {getContractTypeLabel(member.contract_type) || "-"}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {getEmploymentStatusLabel(member.employment_status)}
+                          </Typography>
+                          {member.contract_type === 2 && (
+                            <Typography variant="caption" display="block">
+                              {formatDate(member.contract_start_date)} →{" "}
+                              {formatDate(member.contract_end_date)}
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          <IconButton
                             size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                        )}
-                        {member.contract_type && (
-                          <Chip
-                            label={getContractTypeLabel(member.contract_type)}
-                            size="small"
-                            variant="outlined"
-                          />
-                        )}
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit(member)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(member)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Stack>
+                            aria-label={`Actions pour ${member.fullname}`}
+                            onClick={(event) =>
+                              openMemberActions(event, member)
+                            }
+                          >
+                            <MoreVertIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             )}
             {lastPage > 1 && (
               <Stack alignItems="center" sx={{ mt: 3 }}>
@@ -524,10 +634,81 @@ export default function DashboardHrPage() {
               </Stack>
             )}
           </Paper>
+          <Paper variant="outlined" sx={{ p: 2, mt: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Responsables RH
+            </Typography>
+            {hrManagers.length === 0 ? (
+              <Typography color="text.secondary">
+                Aucun responsable RH n’est encore créé.
+              </Typography>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Nom</TableCell>
+                      <TableCell>Statut</TableCell>
+                      <TableCell>Sections autorisées</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {hrManagers.map((manager) => (
+                      <TableRow hover key={manager.id}>
+                        <TableCell>
+                          <Typography fontWeight={700}>
+                            {manager.fullname}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {manager.email || manager.phone || "Aucun contact"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={manager.is_owner ? "RH principal" : "RH secondaire"}
+                            color={manager.is_owner ? "primary" : "default"}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {(manager.sections ?? []).length > 0
+                            ? manager.sections.map((section) => section.name).join(", ")
+                            : "Accès global"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+            {hrManagerLastPage > 1 && (
+              <Stack alignItems="center" sx={{ mt: 3 }}>
+                <Pagination
+                  count={hrManagerLastPage}
+                  page={hrManagerPage}
+                  onChange={(_, value) => {
+                    setHrManagerPage(value);
+                    loadHrManagers(value).catch((err) =>
+                      setError(
+                        err.response?.data?.message ||
+                          "Impossible de charger les responsables RH.",
+                      ),
+                    );
+                  }}
+                  color="primary"
+                />
+              </Stack>
+            )}
+          </Paper>
         </Grid>
 
         {/* Leaves */}
-        <Grid item xs={12} md={5}>
+        <Grid
+          item
+          xs={12}
+          md={isLeavesPage ? 12 : 5}
+          sx={{ display: isLeavesPage ? "block" : "none" }}
+        >
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Demandes de congé
@@ -600,6 +781,122 @@ export default function DashboardHrPage() {
           </Paper>
         </Grid>
       </Grid>
+
+      <Menu
+        anchorEl={actionAnchor}
+        open={Boolean(actionAnchor)}
+        onClose={closeMemberActions}
+      >
+        <MenuItem
+          onClick={() => {
+            const member = actionMember;
+            closeMemberActions();
+            handleEdit(member);
+          }}
+        >
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          Modifier
+        </MenuItem>
+        <MenuItem onClick={() => openLeaveForMember(actionMember)}>
+          Demande de congé
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            const member = actionMember;
+            closeMemberActions();
+            handleDelete(member);
+          }}
+          sx={{ color: "error.main" }}
+        >
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          Supprimer
+        </MenuItem>
+      </Menu>
+
+      <Dialog open={rhModalOpen} onClose={closeRhModal} fullWidth maxWidth="sm">
+        <DialogTitle>Créer un compte RH</DialogTitle>
+        <Box component="form" onSubmit={handleCreateRh}>
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            {error && <Alert severity="error">{error}</Alert>}
+            <TextField
+              label="Nom complet"
+              value={rhForm.fullname}
+              onChange={(event) =>
+                setRhForm((form) => ({ ...form, fullname: event.target.value }))
+              }
+              required
+              fullWidth
+              autoFocus
+            />
+            <TextField
+              label="Email"
+              type="email"
+              value={rhForm.email}
+              onChange={(event) =>
+                setRhForm((form) => ({ ...form, email: event.target.value }))
+              }
+              required
+              fullWidth
+            />
+            <InternationalPhoneField
+              label="Téléphone"
+              value={rhForm.phone}
+              onChange={(phone) => {
+                setRhPhoneError("");
+                setRhForm((form) => ({ ...form, phone }));
+              }}
+              error={Boolean(rhPhoneError)}
+              helperText={rhPhoneError}
+            />
+            <FormControl fullWidth required={isHrOwner}>
+              <InputLabel id="rh-sections-label">Sections autorisées</InputLabel>
+              <Select
+                labelId="rh-sections-label"
+                multiple
+                value={rhForm.section_ids}
+                label="Sections autorisées"
+                renderValue={(selected) =>
+                  schoolSections
+                    .filter((section) => selected.includes(section.id))
+                    .map((section) => section.name)
+                    .join(", ")
+                }
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setRhForm((form) => ({
+                    ...form,
+                    section_ids: Array.isArray(value) ? value : value.split(","),
+                  }));
+                }}
+              >
+                {schoolSections.map((section) => (
+                  <MenuItem key={section.id} value={section.id}>
+                    <Checkbox checked={rhForm.section_ids.includes(section.id)} />
+                    {section.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
+                {isHrOwner
+                  ? "Sélectionnez au moins une section. Un RH ne peut pas avoir un accès global."
+                  : "Vide = accès à toutes les sections de l’école."}
+              </Typography>
+            </FormControl>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={closeRhModal}>Annuler</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={submitting || !rhRoleId}
+            >
+              {submitting ? "Création..." : "Créer le compte RH"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
 
       {/* ✅ Staff Modal */}
       <Dialog
@@ -704,10 +1001,16 @@ export default function DashboardHrPage() {
               label="Type de contrat"
               value={form.contract_type}
               onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  contract_type: Number(e.target.value),
-                }))
+                setForm((prev) => {
+                  const contractType = Number(e.target.value);
+                  return {
+                    ...prev,
+                    contract_type: contractType,
+                    ...(contractType === 2
+                      ? {}
+                      : { contract_start_date: "", contract_end_date: "" }),
+                  };
+                })
               }
               fullWidth
             >
@@ -717,6 +1020,39 @@ export default function DashboardHrPage() {
                 </MenuItem>
               ))}
             </TextField>
+            {form.contract_type === 2 && (
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <TextField
+                  label="Début du CDD"
+                  type="date"
+                  value={form.contract_start_date}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contract_start_date: e.target.value,
+                    }))
+                  }
+                  InputLabelProps={{ shrink: true }}
+                  required
+                  fullWidth
+                />
+                <TextField
+                  label="Fin du CDD"
+                  type="date"
+                  value={form.contract_end_date}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      contract_end_date: e.target.value,
+                    }))
+                  }
+                  inputProps={{ min: form.contract_start_date || undefined }}
+                  InputLabelProps={{ shrink: true }}
+                  required
+                  fullWidth
+                />
+              </Stack>
+            )}
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeStaffModal}>Annuler</Button>
@@ -745,22 +1081,37 @@ export default function DashboardHrPage() {
           >
             {error && <Alert severity="error">{error}</Alert>}
 
-            <TextField
-              select
-              label="Personnel"
-              value={leaveForm.user_id}
-              onChange={(e) =>
-                setLeaveForm((prev) => ({ ...prev, user_id: e.target.value }))
-              }
-              required
-              fullWidth
-            >
-              {staff.map((member) => (
-                <MenuItem key={member.user_id} value={member.user_id}>
-                  {member.fullname}
-                </MenuItem>
-              ))}
-            </TextField>
+            {leaveForm.user_id ? (
+              <TextField
+                label="Employé"
+                value={
+                  members.find((member) => member.user_id === leaveForm.user_id)
+                    ?.label ?? leaveForm.user_id
+                }
+                slotProps={{ input: { readOnly: true } }}
+                fullWidth
+              />
+            ) : (
+              <TextField
+                select
+                label="Personnel"
+                value={leaveForm.user_id}
+                onChange={(e) =>
+                  setLeaveForm((prev) => ({
+                    ...prev,
+                    user_id: e.target.value,
+                  }))
+                }
+                required
+                fullWidth
+              >
+                {staff.map((member) => (
+                  <MenuItem key={member.user_id} value={member.user_id}>
+                    {member.fullname}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
 
             <TextField
               label="Type de congé"

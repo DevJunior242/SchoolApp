@@ -30,9 +30,21 @@ class SchoolStaffProfile extends Model
         'position',
         'employment_status',
         'hire_date',
+        'contract_start_date',
+        'contract_end_date',
         'monthly_salary',
         'contract_type',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'hire_date' => 'date:Y-m-d',
+            'contract_start_date' => 'date:Y-m-d',
+            'contract_end_date' => 'date:Y-m-d',
+            'monthly_salary' => 'decimal:2',
+        ];
+    }
 
     public function school(): BelongsTo
     {

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   Card,
@@ -18,10 +17,15 @@ import {
   MenuItem,
   Pagination,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
-import { motion } from "motion/react";
 import { Link as RouterLink } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -216,13 +220,10 @@ export default function DashboardStudentsPage() {
       const data = err.response?.data;
 
       if (data?.errors) {
-        // Pour les erreurs de validation Laravel (objets d'erreurs)
         setError(Object.values(data.errors).flat().join(" "));
       } else if (data?.message) {
-        // Pour les erreurs d'exception comme abort(422, "...")
         setError(data.message);
       } else {
-        // Message générique si la réponse est inconnue
         setError("Impossible d'inscrire ces élèves.");
       }
     } finally {
@@ -325,55 +326,67 @@ export default function DashboardStudentsPage() {
       {loading ? (
         <Typography color="text.secondary">Chargement...</Typography>
       ) : (
-        <Stack spacing={2}>
-          {students.map((s, i) => {
-            const studentClass = currentClassOf(s);
-            return (
-              <motion.div
-                key={s.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: i * 0.03 }}
-              >
-                <Card variant="outlined">
-                  <CardContent
-                    sx={{ display: "flex", alignItems: "center", gap: 2 }}
-                  >
-                    <Avatar sx={{ bgcolor: "primary.main" }}>
-                      {s.student?.fullname.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                      <Typography variant="subtitle1" noWrap>
-                        {s.student?.fullname}{" "}
-                        {s.student?.user ? "" : "(mineur)"}
+        <TableContainer component={Card} variant="outlined">
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Élève</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Classe</TableCell>
+                <TableCell>Parents</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {students.map((student) => {
+                const studentClass = currentClassOf(student);
+                return (
+                  <TableRow hover key={student.id}>
+                    <TableCell>
+                      <Typography fontWeight={700}>
+                        {student.student?.fullname}{" "}
+                        {student.student?.user ? "" : "(mineur)"}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" noWrap>
-                        {studentClass ? studentClass?.name : "Aucune classe"} ·{" "}
-                        {s.student?.parents.map((p) => p.fullname).join(", ")}
-                      </Typography>
-                    </Box>
-                    {(canSeeBulletin ||
-                      canSeeHealth ||
-                      canSeeCafeteria ||
-                      canAssignBus) && (
-                      <IconButton
-                        size="small"
-                        onClick={(e) => openActionsMenu(e, s)}
-                      >
-                        <MoreVertIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-          {students.length === 0 && (
-            <Typography color="text.secondary">
-              Aucun élève ne correspond à cette recherche.
-            </Typography>
-          )}
-        </Stack>
+                    </TableCell>
+                    <TableCell>{student.student?.user?.email || "-"}</TableCell>
+                    <TableCell>
+                      {studentClass
+                        ? classLabel(studentClass)
+                        : "Aucune classe"}
+                    </TableCell>
+                    <TableCell>
+                      {student.student?.parents
+                        ?.map((parent) => parent.fullname)
+                        .join(", ") || "-"}
+                    </TableCell>
+                    <TableCell align="right">
+                      {(canSeeBulletin ||
+                        canSeeHealth ||
+                        canSeeCafeteria ||
+                        canAssignBus) && (
+                        <IconButton
+                          size="small"
+                          onClick={(event) => openActionsMenu(event, student)}
+                        >
+                          <MoreVertIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {students.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <Typography color="text.secondary">
+                      Aucun élève ne correspond à cette recherche.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       <Menu

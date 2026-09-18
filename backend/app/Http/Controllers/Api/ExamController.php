@@ -233,7 +233,7 @@ class ExamController extends Controller
             return null;
         }
 
-        if ($roleSlug !== 'professeur') {
+        if (! in_array($roleSlug, ['professeur', 'enseignant'], true)) {
             return null;
         }
 

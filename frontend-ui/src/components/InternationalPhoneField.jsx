@@ -13,12 +13,14 @@ export default function InternationalPhoneField({
   defaultCountry = "bf",
   required = false,
   disabled = false,
+  error = false,
+  helperText = "",
 }) {
   const { mode } = useThemeMode();
 
   return (
     <Box
-      className={`international-phone-input international-phone-input--${mode}`}
+      className={`international-phone-input international-phone-input--${mode}${error ? " international-phone-input--error" : ""}`}
     >
       <Box
         component="label"
@@ -34,6 +36,11 @@ export default function InternationalPhoneField({
         disabled={disabled}
         inputProps={{ id, name, required }}
       />
+      {helperText && (
+        <Box component="span" className="international-phone-input__helper">
+          {helperText}
+        </Box>
+      )}
     </Box>
   );
 }

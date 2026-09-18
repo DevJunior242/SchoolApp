@@ -1,34 +1,45 @@
 import { useState } from "react";
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   Card,
-  CardContent,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Menu,
+  Checkbox,
+  FormControl,
+  InputLabel,
   InputAdornment,
+  MenuItem,
   Pagination,
   Stack,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
   IconButton,
-  Tooltip,
 } from "@mui/material";
-import { motion } from "motion/react";
 import AddIcon from "@mui/icons-material/Add";
 import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
+import { useApiGet } from "../hooks/useApiGet.js";
 
-const emptyForm = { fullname: "", email: "", phone: "" };
+const emptyForm = { fullname: "", email: "", phone: "", section_ids: [] };
 
 export default function DashboardTeachersPage() {
   const { user } = useAuth();
@@ -44,6 +55,13 @@ export default function DashboardTeachersPage() {
     error: listError,
     reload,
   } = usePaginatedList(schoolId ? `/schools/${schoolId}/teachers` : null);
+  const { data: schoolData } = useApiGet(
+    schoolId ? `/schools/${schoolId}/settings` : null,
+    { enabled: Boolean(schoolId) },
+  );
+  const activeSections = (schoolData?.sections ?? []).filter(
+    (section) => section.pivot?.active,
+  );
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -51,6 +69,8 @@ export default function DashboardTeachersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [actionAnchor, setActionAnchor] = useState(null);
+  const [actionTeacher, setActionTeacher] = useState(null);
 
   function closeModal() {
     setOpen(false);
@@ -72,9 +92,15 @@ export default function DashboardTeachersPage() {
       fullname: teacher.user?.fullname || "",
       email: teacher.user?.email || "",
       phone: teacher.user?.phone || "",
+      section_ids: (teacher.sections ?? []).map((section) => section.id),
     });
     setError(null);
     setOpen(true);
+  }
+
+  function closeActions() {
+    setActionAnchor(null);
+    setActionTeacher(null);
   }
 
   async function handleSubmit(e) {
@@ -185,71 +211,93 @@ export default function DashboardTeachersPage() {
       {loading ? (
         <Typography color="text.secondary">Chargement...</Typography>
       ) : (
-        <Stack spacing={2}>
-          {teachers.map((t, i) => (
-            <motion.div
-              key={t.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: i * 0.03 }}
-            >
-              <Card variant="outlined">
-                <CardContent
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      minWidth: 0,
-                    }}
-                  >
-                    <Avatar sx={{ bgcolor: "primary.main" }}>
-                      {t.user?.fullname.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="subtitle1" noWrap>
-                        {t.user?.fullname}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" noWrap>
-                        {t.user?.email}{" "}
-                        {t.user?.phone ? `· ${t.user?.phone}` : ""}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Stack direction="row" spacing={1}>
-                    <Tooltip title="Modifier">
-                      <IconButton size="small" onClick={() => openEditModal(t)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Supprimer">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => setDeleteConfirm(t)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-          {teachers.length === 0 && (
-            <Typography color="text.secondary">
-              Aucun professeur trouvé.
-            </Typography>
-          )}
-        </Stack>
+        <TableContainer component={Card} variant="outlined">
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Nom</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Téléphone</TableCell>
+                <TableCell>Rôle</TableCell>
+                <TableCell>Sections</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {teachers.map((teacher) => (
+                <TableRow hover key={teacher.id}>
+                  <TableCell>
+                    <Typography fontWeight={700}>
+                      {teacher.user?.fullname}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>{teacher.user?.email || "-"}</TableCell>
+                  <TableCell>{teacher.user?.phone || "-"}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={teacher.role?.name || "Professeur"}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {(teacher.sections ?? [])
+                      .map((section) => section.name)
+                      .join(", ") || "-"}
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton
+                      size="small"
+                      onClick={(event) => {
+                        setActionAnchor(event.currentTarget);
+                        setActionTeacher(teacher);
+                      }}
+                    >
+                      <MoreVertIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {teachers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <Typography color="text.secondary">
+                      Aucun professeur trouvé.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
+
+      <Menu
+        anchorEl={actionAnchor}
+        open={Boolean(actionAnchor)}
+        onClose={closeActions}
+      >
+        <MenuItem
+          onClick={() => {
+            const teacher = actionTeacher;
+            closeActions();
+            openEditModal(teacher);
+          }}
+        >
+          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Modifier
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            const teacher = actionTeacher;
+            closeActions();
+            setDeleteConfirm(teacher);
+          }}
+          sx={{ color: "error.main" }}
+        >
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Supprimer
+        </MenuItem>
+      </Menu>
 
       {lastPage > 1 && (
         <Stack alignItems="center" sx={{ mt: 3 }}>
@@ -299,6 +347,45 @@ export default function DashboardTeachersPage() {
               }
               fullWidth
             />
+            <FormControl fullWidth required>
+              <InputLabel id="teacher-sections-label">Sections</InputLabel>
+              <Select
+                labelId="teacher-sections-label"
+                multiple
+                value={form.section_ids}
+                label="Sections"
+                renderValue={(selected) =>
+                  activeSections
+                    .filter((section) => selected.includes(section.id))
+                    .map((section) => section.name)
+                    .join(", ")
+                }
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setForm((current) => ({
+                    ...current,
+                    section_ids: Array.isArray(value)
+                      ? value
+                      : value.split(","),
+                  }));
+                }}
+              >
+                {activeSections.map((section) => (
+                  <MenuItem key={section.id} value={section.id}>
+                    <Checkbox checked={form.section_ids.includes(section.id)} />
+                    {section.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                Primaire = Enseignant · Secondaire = Professeur. Ne mélangez pas
+                les deux.
+              </Typography>
+            </FormControl>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeModal}>Annuler</Button>

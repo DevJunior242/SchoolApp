@@ -82,6 +82,18 @@ const OVERVIEW_ITEM = {
   exact: true,
 };
 
+const MY_ATTENDANCE_ITEM = {
+  label: "Mon pointage",
+  to: "/dashboard/my-attendance",
+  icon: <HowToRegIcon />,
+};
+
+const MY_PAYROLL_ITEM = {
+  label: "Ma paie",
+  to: "/dashboard/my-payroll",
+  icon: <PaymentsIcon />,
+};
+
 // Enveloppe une liste plate dans un unique groupe sans titre, pour que le
 // rendu (groupé par section) ait toujours la même forme quel que soit le
 // rôle — seul l'administrateur a assez de liens pour justifier des sections.
@@ -237,6 +249,11 @@ const PROFESSEUR_NAV_GROUPS = singleGroup([
     label: "Mon emploi du temps",
     to: "/dashboard/my-timetable",
     icon: <ScheduleIcon />,
+  },
+  {
+    label: "Examens",
+    to: "/dashboard/exams",
+    icon: <FactCheckIcon />,
   },
   { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
   {
@@ -505,9 +522,24 @@ const COMPTABLE_NAV_GROUPS = singleGroup([
 const RH_NAV_GROUPS = singleGroup([
   OVERVIEW_ITEM,
   {
-    label: "Ressources humaines",
+    label: "Employés",
     to: "/dashboard/hr",
     icon: <BadgeIcon />,
+  },
+  {
+    label: "Paie",
+    to: "/dashboard/hr/payroll",
+    icon: <PaymentsIcon />,
+  },
+  {
+    label: "Présence",
+    to: "/dashboard/hr/attendance",
+    icon: <HowToRegIcon />,
+  },
+  {
+    label: "Congés",
+    to: "/dashboard/hr/leaves",
+    icon: <EventBusyIcon />,
   },
 ]);
 
@@ -552,6 +584,14 @@ export default function DashboardLayout() {
   const currentRole = schoolUsers.find(
     (su) => su.school.id === user.current_school_id,
   )?.role?.slug;
+  const currentMembership = schoolUsers.find(
+    (su) => su.school.id === user.current_school_id,
+  );
+  const currentSections = currentMembership?.sections ?? [];
+  const sectionBadgeLabel =
+    currentSections.length > 0
+      ? currentSections.map((section) => section.name).join(", ")
+      : "Toutes les sections";
   const { data: children } = useApiGet(
     currentSchool?.id ? `/schools/${currentSchool.id}/my-children` : null,
     { enabled: Boolean(currentSchool?.id) },
@@ -560,6 +600,7 @@ export default function DashboardLayout() {
   const NAV_GROUPS_BY_ROLE = {
     admin: ADMIN_NAV_GROUPS,
     professeur: PROFESSEUR_NAV_GROUPS,
+    enseignant: PROFESSEUR_NAV_GROUPS,
     parent: PARENT_NAV_GROUPS,
     secretaire: SECRETAIRE_NAV_GROUPS,
     rh: RH_NAV_GROUPS,
@@ -587,13 +628,32 @@ export default function DashboardLayout() {
       : schoolUsersLoading || schoolUsers.length === 0
         ? singleGroup([OVERVIEW_ITEM])
         : (NAV_GROUPS_BY_ROLE[currentRole] ?? ADMIN_NAV_GROUPS);
-  const navGroups =
+  const navGroups = (
     hasChildren && currentRole !== "parent"
       ? [...baseNavGroups, ...PARENT_NAV_GROUPS]
-      : baseNavGroups;
+      : baseNavGroups
+  ).map((group) => {
+    if (
+      isSuperAdmin ||
+      isPrestataire ||
+      !currentRole ||
+      currentRole === "parent"
+    ) {
+      return group;
+    }
+
+    const items = group.items.some((item) => item.to === MY_ATTENDANCE_ITEM.to)
+      ? group.items
+      : [...group.items, MY_ATTENDANCE_ITEM];
+
+    const finalItems = items.some((item) => item.to === MY_PAYROLL_ITEM.to)
+      ? items
+      : [...items, MY_PAYROLL_ITEM];
+
+    return { ...group, items: finalItems };
+  });
 
   async function handleLogout() {
-    setAnchorEl(null);
     await logout();
     navigate("/");
   }
@@ -955,15 +1015,36 @@ export default function DashboardLayout() {
             <MenuIcon />
           </IconButton>
 
-          <Typography
-            variant="subtitle1"
-            sx={{ flexGrow: 1, fontWeight: 700 }}
-            noWrap
-          >
-            {isSuperAdmin
-              ? "Administration de la plateforme"
-              : (user.current_school?.name ?? "Aucune école active")}
-          </Typography>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 700, lineHeight: 1.2 }}
+              noWrap
+            >
+              {isSuperAdmin
+                ? "Administration de la plateforme"
+                : (user.current_school?.name ?? "Aucune école active")}
+            </Typography>
+            {!isSuperAdmin && currentMembership && (
+              <Chip
+                label={sectionBadgeLabel}
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{
+                  mt: 0.35,
+                  maxWidth: { xs: 180, sm: 360 },
+                  height: 20,
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  "& .MuiChip-label": {
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  },
+                }}
+              />
+            )}
+          </Box>
 
           <IconButton
             color="inherit"

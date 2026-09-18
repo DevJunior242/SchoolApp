@@ -20,7 +20,7 @@ const SuperAdminSchoolSubscriptionsPage = lazy(
 const SuperAdminDemoRequestsPage = lazy(
   () => import("./pages/SuperAdminDemoRequestsPage.jsx"),
 );
-const HomePage = lazy(() => import("./pages/HomePage.jsx"));
+const HomePage = lazy(() => import("./pages/HomePageRedesign.jsx"));
 const CreateSchoolPage = lazy(() => import("./pages/CreateSchoolPage.jsx"));
 const PricingPage = lazy(() => import("./pages/PricingPage.jsx"));
 const LoginPage = lazy(() => import("./pages/LoginPage.jsx"));
@@ -41,6 +41,16 @@ const DashboardTeachersPage = lazy(
   () => import("./pages/DashboardTeachersPage.jsx"),
 );
 const DashboardHrPage = lazy(() => import("./pages/DashboardHrPage.jsx"));
+const DashboardPayrollPage = lazy(
+  () => import("./pages/DashboardPayrollPage.jsx"),
+);
+const DashboardHrAttendancePage = lazy(
+  () => import("./pages/DashboardHrAttendancePage.jsx"),
+);
+const DashboardMyAttendancePage = lazy(
+  () => import("./pages/DashboardMyAttendancePage.jsx"),
+);
+const MyPayrollPage = lazy(() => import("./pages/MyPayrollPage.jsx"));
 const DashboardClassesPage = lazy(
   () => import("./pages/DashboardClassesPage.jsx"),
 );
@@ -231,6 +241,11 @@ function App() {
           <Route path="members" element={<DashboardMembersPage />} />
           <Route path="teachers" element={<DashboardTeachersPage />} />
           <Route path="hr" element={<DashboardHrPage />} />
+          <Route path="hr/leaves" element={<DashboardHrPage />} />
+          <Route path="hr/payroll" element={<DashboardPayrollPage />} />
+          <Route path="hr/attendance" element={<DashboardHrAttendancePage />} />
+          <Route path="my-attendance" element={<DashboardMyAttendancePage />} />
+          <Route path="my-payroll" element={<MyPayrollPage />} />
           <Route path="classes" element={<DashboardClassesPage />} />
           <Route path="students" element={<DashboardStudentsPage />} />
           <Route path="exams" element={<DashboardExamsPage />} />
