@@ -20,6 +20,7 @@ import { motion } from "motion/react";
 import { Link as RouterLink } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -54,6 +55,13 @@ function emptyForm() {
   };
 }
 
+function toDateTimeLocal(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (part) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export default function DashboardEventsPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
@@ -81,6 +89,7 @@ export default function DashboardEventsPage() {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm());
+  const [editingEvent, setEditingEvent] = useState(null);
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -88,6 +97,29 @@ export default function DashboardEventsPage() {
     setOpen(false);
     setForm(emptyForm());
     setFormError(null);
+    setEditingEvent(null);
+  }
+
+  function openCreateModal() {
+    setEditingEvent(null);
+    setForm(emptyForm());
+    setFormError(null);
+    setOpen(true);
+  }
+
+  function openEditModal(event) {
+    setEditingEvent(event);
+    setForm({
+      title: event.title ?? "",
+      description: event.description ?? "",
+      type: event.type ?? "",
+      class_id: event.class_id ?? "",
+      start_at: toDateTimeLocal(event.start_at),
+      end_at: toDateTimeLocal(event.end_at),
+      location: event.location ?? "",
+    });
+    setFormError(null);
+    setOpen(true);
   }
 
   async function handleSubmit(e) {
@@ -95,10 +127,18 @@ export default function DashboardEventsPage() {
     setFormError(null);
     setSubmitting(true);
     try {
-      await api.post(`/schools/${schoolId}/events`, {
+      const payload = {
         ...form,
         class_id: form.class_id || null,
-      });
+      };
+      if (editingEvent) {
+        await api.put(
+          `/schools/${schoolId}/events/${editingEvent.id}`,
+          payload,
+        );
+      } else {
+        await api.post(`/schools/${schoolId}/events`, payload);
+      }
       await reload();
       closeModal();
     } catch (err) {
@@ -106,7 +146,7 @@ export default function DashboardEventsPage() {
       setFormError(
         messages
           ? Object.values(messages).flat().join(" ")
-          : "Impossible de créer cet événement.",
+          : `Impossible de ${editingEvent ? "modifier" : "créer"} cet événement.`,
       );
     } finally {
       setSubmitting(false);
@@ -114,8 +154,19 @@ export default function DashboardEventsPage() {
   }
 
   async function handleDelete(eventId) {
-    await api.delete(`/schools/${schoolId}/events/${eventId}`);
-    await reload();
+    if (!window.confirm("Supprimer définitivement cet événement ?")) {
+      return;
+    }
+
+    setFormError(null);
+    try {
+      await api.delete(`/schools/${schoolId}/events/${eventId}`);
+      await reload();
+    } catch (err) {
+      setFormError(
+        err.response?.data?.message || "Impossible de supprimer cet événement.",
+      );
+    }
   }
 
   if (!schoolId) {
@@ -150,7 +201,7 @@ export default function DashboardEventsPage() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setOpen(true)}
+            onClick={openCreateModal}
           >
             Ajouter un événement
           </Button>
@@ -207,6 +258,9 @@ export default function DashboardEventsPage() {
                       })}
                       {ev.location ? ` · ${ev.location}` : ""}
                     </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Publié par {ev.creator?.fullname || "Utilisateur inconnu"}
+                    </Typography>
                     {ev.description && (
                       <Typography
                         variant="body2"
@@ -226,12 +280,22 @@ export default function DashboardEventsPage() {
                     <PhotoLibraryOutlinedIcon fontSize="small" />
                   </IconButton>
                   {canManage && (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDelete(ev.id)}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    <>
+                      <IconButton
+                        size="small"
+                        onClick={() => openEditModal(ev)}
+                        aria-label="Modifier l'événement"
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDelete(ev.id)}
+                        aria-label="Supprimer l'événement"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -246,7 +310,9 @@ export default function DashboardEventsPage() {
       )}
 
       <Dialog open={open} onClose={closeModal} fullWidth maxWidth="xs">
-        <DialogTitle>Ajouter un événement</DialogTitle>
+        <DialogTitle>
+          {editingEvent ? "Modifier l'événement" : "Ajouter un événement"}
+        </DialogTitle>
         <Box component="form" onSubmit={handleSubmit}>
           <DialogContent
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
@@ -338,7 +404,11 @@ export default function DashboardEventsPage() {
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeModal}>Annuler</Button>
             <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? "Création..." : "Créer"}
+              {submitting
+                ? "Enregistrement..."
+                : editingEvent
+                  ? "Enregistrer"
+                  : "Créer"}
             </Button>
           </DialogActions>
         </Box>

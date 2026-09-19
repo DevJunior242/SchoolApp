@@ -333,6 +333,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/schools/{school}/seasons/{season}', [SeasonController::class, 'update']);
 
             Route::post('/schools/{school}/events', [EventController::class, 'store']);
+            Route::put('/schools/{school}/events/{event}', [EventController::class, 'update']);
             Route::delete('/schools/{school}/events/{event}', [EventController::class, 'destroy']);
             Route::post('/schools/{school}/events/{event}/recap', [EventRecapController::class, 'store']);
             Route::delete('/schools/{school}/events/{event}/recap/photos/{photo}', [EventRecapController::class, 'destroyPhoto']);
@@ -434,6 +435,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/treasury-accounts/{treasuryAccount}/movements', [TreasuryMovementController::class, 'store']);
 
             Route::post('/schools/{school}/ai/ask', [AiAssistantController::class, 'ask'])
+                ->middleware(['throttle:ai-requests']);
+            Route::post('/schools/{school}/ai/ask-teacher', [AiAssistantController::class, 'askAsTeacher'])
+                ->middleware(['throttle:ai-requests']);
+            Route::post('/schools/{school}/ai/ask-hr', [AiAssistantController::class, 'askAsHr'])
+                ->middleware(['throttle:ai-requests']);
+            Route::post('/schools/{school}/ai/ask-attendance', [AiAssistantController::class, 'askAsAttendanceStaff'])
+                ->middleware(['throttle:ai-requests']);
+            Route::post('/schools/{school}/ai/ask-health', [AiAssistantController::class, 'askAsHealthStaff'])
                 ->middleware(['throttle:ai-requests']);
 
             Route::post('/schools/{school}/attendances/{attendance}/justify', [AttendanceController::class, 'justify']);

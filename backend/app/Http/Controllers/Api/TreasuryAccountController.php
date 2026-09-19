@@ -22,9 +22,19 @@ class TreasuryAccountController extends Controller
     {
         $this->authorizeFinanceStaff($request, $school);
 
+        $actor = $school->schoolUsers()
+            ->where('user_id', $request->user()->id)
+            ->where('status', \App\Models\SchoolUser::STATUS_ACTIVE)
+            ->with('sections')
+            ->firstOrFail();
+
         $accounts = TreasuryAccount::query()
             ->where('school_id', $school->id)
             ->where('is_active', true)
+            ->when(
+                $actor->sections->isNotEmpty(),
+                fn($query) => $query->whereIn('section_id', $actor->sections->pluck('id')),
+            )
             ->when($request->filled('section_id'), fn($query) => $query->where('section_id', $request->query('section_id')))
             ->with('section')
             ->orderBy('name')
@@ -39,8 +49,6 @@ class TreasuryAccountController extends Controller
 
     public function store(Request $request, School $school)
     {
-        $this->authorizeFinanceManager($request, $school);
-
         // 1. Validation : vérifier l'existence dans la table pivot school_sections
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -54,6 +62,8 @@ class TreasuryAccountController extends Controller
 
             ],
         ]);
+
+        $this->authorizeFinanceManager($request, $school, sectionId: $validated['section_id'] ?? null);
 
         try {
             $account = TreasuryAccount::query()->create([
@@ -79,8 +89,8 @@ class TreasuryAccountController extends Controller
                 'payload' => $request->all()
             ]);
 
-            $this->authorizeFinanceManager($request, $school);
             abort_if($treasuryAccount->school_id !== $school->id, 404);
+            $this->authorizeFinanceManager($request, $school, $treasuryAccount);
 
             $validated = $request->validate([
                 'name' => ['sometimes', 'string', 'max:255'],
@@ -112,8 +122,8 @@ class TreasuryAccountController extends Controller
 
     public function destroy(Request $request, School $school, TreasuryAccount $treasuryAccount)
     {
-        $this->authorizeFinanceManager($request, $school);
         abort_if($treasuryAccount->school_id !== $school->id, 404);
+        $this->authorizeFinanceManager($request, $school, $treasuryAccount);
 
         $treasuryAccount->delete();
 

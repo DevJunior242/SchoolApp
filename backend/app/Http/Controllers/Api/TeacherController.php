@@ -45,6 +45,8 @@ class TeacherController extends Controller
             'phone' => ['nullable', 'required_without:email', 'phone:INTERNATIONAL'],
             'section_ids' => ['required', 'array', 'min:1'],
             'section_ids.*' => ['uuid', 'distinct', 'exists:sections,id'],
+        ], [
+            'phone.phone' => 'Le numéro de téléphone doit être valide et inclure son indicatif international, par exemple +226 70 00 00 00.',
         ]);
 
         $sections = $school->sections()
@@ -122,6 +124,8 @@ class TeacherController extends Controller
             'phone' => ['nullable', 'phone:INTERNATIONAL'],
             'section_ids' => ['sometimes', 'array', 'min:1'],
             'section_ids.*' => ['uuid', 'distinct', 'exists:sections,id'],
+        ], [
+            'phone.phone' => 'Le numéro de téléphone doit être valide et inclure son indicatif international, par exemple +226 70 00 00 00.',
         ]);
 
         // Update l'utilisateur associé

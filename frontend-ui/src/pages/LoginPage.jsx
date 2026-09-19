@@ -39,7 +39,9 @@ export default function LoginPage() {
       if (result.twoFactor) {
         setChallengeToken(result.challengeToken);
       } else {
-        navigate("/dashboard");
+        navigate(
+          result.user?.current_school_id ? "/dashboard" : "/create-school",
+        );
       }
     } catch {
       setError("Identifiants invalides.");
@@ -53,11 +55,13 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await verifyTwoFactor(
+      const authenticatedUser = await verifyTwoFactor(
         challengeToken,
         useRecoveryCode ? { recovery_code: code } : { code },
       );
-      navigate("/dashboard");
+      navigate(
+        authenticatedUser?.current_school_id ? "/dashboard" : "/create-school",
+      );
     } catch (err) {
       const messages = err.response?.data?.errors;
       setError(
@@ -176,7 +180,12 @@ export default function LoginPage() {
                   ? "Utiliser le code de mon application à la place"
                   : "Utiliser un code de récupération"}
               </Button>
-              <Button variant="text" size="small" fullWidth onClick={backToCredentials}>
+              <Button
+                variant="text"
+                size="small"
+                fullWidth
+                onClick={backToCredentials}
+              >
                 ← Retour
               </Button>
             </Box>

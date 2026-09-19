@@ -50,7 +50,11 @@ class BusStopController extends Controller
 
         // Ne supprime que les arrêts retirés de la liste : ceux conservés
         // gardent leurs élèves affectés.
-        $bus->stops()->whereNotIn('id', $keptIds)->delete();
+        $bus->stops()
+            ->whereNotIn('id', $keptIds)
+            ->get()
+            ->each
+            ->delete();
 
         return response()->json($bus->load('stops'), 201);
     }

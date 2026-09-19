@@ -25,10 +25,14 @@ import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import ChatbotWidget from "../components/ChatbotWidget.jsx";
 import EnrollmentRequestModal from "../components/EnrollmentRequestModal.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import dashboardImg from "../assets/characters/mock.webp";
+import comptImg from "../assets/characters/compt.webp";
+
 import directionImg from "../assets/characters/direction.webp";
 import enseignantImg from "../assets/characters/enseignant.webp";
 import parentsImg from "../assets/characters/parents.webp";
@@ -110,6 +114,57 @@ const audiences = [
   },
 ];
 
+const aiDemos = [
+  {
+    role: "Direction",
+    accent: "primary.main",
+    question: "Que dois-je suivre aujourd'hui ?",
+    answer:
+      "Les effectifs sont stables. Trois paiements attendent une relance et le taux de présence est de 94 % cette semaine. Je peux vous montrer les priorités, sans parcourir plusieurs écrans.",
+    metrics: [
+      ["Présence", "94 %"],
+      ["À relancer", "03"],
+      ["Classes", "18"],
+    ],
+  },
+  {
+    role: "Comptabilité",
+    accent: "success.main",
+    question: "Où en est la trésorerie ?",
+    answer:
+      "Les recettes du mois progressent de 8,4 %. La caisse reste positive et deux dépenses sont en attente de validation. Voici une lecture synthétique, prête à partager avec la direction.",
+    metrics: [
+      ["Recettes", "+8,4 %"],
+      ["En attente", "02"],
+      ["Rapports", "06"],
+    ],
+  },
+  {
+    role: "Enseignement",
+    accent: "info.main",
+    question: "Quelles classes demandent mon attention ?",
+    answer:
+      "La 5e B présente une baisse de présence cette semaine. Deux notions restent fragiles dans les évaluations récentes. Je peux vous aider à repérer les élèves et préparer votre prochaine séance.",
+    metrics: [
+      ["Mes classes", "04"],
+      ["Présence", "91 %"],
+      ["À revoir", "02"],
+    ],
+  },
+  {
+    role: "Vie scolaire",
+    accent: "warning.main",
+    question: "Quelles justifications sont en attente ?",
+    answer:
+      "Cinq absences attendent une justification, réparties dans trois classes. Les événements à venir sont également regroupés pour faciliter votre organisation de la journée.",
+    metrics: [
+      ["À traiter", "05"],
+      ["Classes", "03"],
+      ["Événements", "04"],
+    ],
+  },
+];
+
 const reveal = {
   hidden: { opacity: 0, y: 18 },
   visible: { opacity: 1, y: 0 },
@@ -117,7 +172,9 @@ const reveal = {
 
 export default function HomePageRedesign() {
   const [audienceIndex, setAudienceIndex] = useState(0);
+  const [aiDemoIndex, setAiDemoIndex] = useState(0);
   const audience = audiences[audienceIndex];
+  const aiDemo = aiDemos[aiDemoIndex];
 
   useEffect(() => {
     if (!window.location.hash) return;
@@ -669,11 +726,221 @@ export default function HomePageRedesign() {
             >
               <Box
                 component="img"
-                src={dashboardImg}
+                src={comptImg}
                 alt="Aperçu du pilotage financier dans Intellino"
                 sx={{ display: "block", width: "100%", opacity: 0.94 }}
               />
             </Box>
+          </Box>
+        </Container>
+      </Box>
+
+      <Box
+        component="section"
+        sx={(theme) => ({
+          py: { xs: 7, md: 10 },
+          bgcolor: theme.palette.mode === "dark" ? "#11100e" : "#f0eee8",
+          borderTop: "1px solid",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+        })}
+      >
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "0.72fr 1.28fr" },
+              gap: { xs: 4, md: 8 },
+              alignItems: "center",
+              minWidth: 0,
+            }}
+          >
+            <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <AutoAwesomeIcon sx={{ color: "primary.main" }} />
+                <Typography
+                  variant="overline"
+                  sx={{ color: "primary.main", fontWeight: 800 }}
+                >
+                  INTELLIGENCE UTILE
+                </Typography>
+              </Stack>
+              <Typography
+                component="h2"
+                sx={{
+                  fontSize: { xs: "2rem", md: "2.8rem" },
+                  lineHeight: 1.05,
+                  fontWeight: 800,
+                }}
+              >
+                Posez une question. Voyez la décision se préciser.
+              </Typography>
+              <Typography color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                Une démonstration simulée de l’assistant Intellino, adaptée au
+                rôle de chaque membre de votre établissement.
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {aiDemos.map((demo, index) => (
+                  <Button
+                    key={demo.role}
+                    onClick={() => setAiDemoIndex(index)}
+                    variant={index === aiDemoIndex ? "contained" : "outlined"}
+                    size="small"
+                    sx={{ borderRadius: 10, textTransform: "none" }}
+                  >
+                    {demo.role}
+                  </Button>
+                ))}
+              </Stack>
+              <Button
+                component={RouterLink}
+                to="/create-school"
+                variant="text"
+                endIcon={<ArrowForwardIcon />}
+                sx={{ alignSelf: "flex-start", px: 0, fontWeight: 800 }}
+              >
+                Découvrir l’espace complet
+              </Button>
+            </Stack>
+
+            <motion.div
+              key={aiDemo.role}
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.35 }}
+              style={{ minWidth: 0, maxWidth: "100%" }}
+            >
+              <Card
+                sx={(theme) => ({
+                  overflow: "hidden",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  boxShadow: "0 18px 50px rgba(0,0,0,.12)",
+                  bgcolor: "background.default",
+                })}
+              >
+                <Box
+                  sx={{
+                    px: { xs: 2, md: 3 },
+                    py: 1.5,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 1,
+                    flexWrap: "wrap",
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    sx={{ minWidth: 0, maxWidth: "100%" }}
+                  >
+                    <Box
+                      sx={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        bgcolor: aiDemo.accent,
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      fontWeight={800}
+                      sx={{ minWidth: 0, overflowWrap: "anywhere" }}
+                    >
+                      Assistant · {aiDemo.role}
+                    </Typography>
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary">
+                    Démonstration
+                  </Typography>
+                </Box>
+                <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                  <Stack spacing={2.2}>
+                    <Stack
+                      direction="row"
+                      spacing={1.5}
+                      alignItems="flex-start"
+                    >
+                      <Avatar
+                        sx={{ bgcolor: "text.primary", width: 34, height: 34 }}
+                      >
+                        {aiDemo.role.charAt(0)}
+                      </Avatar>
+                      <Box
+                        sx={{
+                          px: 2,
+                          py: 1.2,
+                          bgcolor: (theme) =>
+                            alpha(theme.palette.text.primary, 0.06),
+                          maxWidth: "82%",
+                          minWidth: 0,
+                        }}
+                      >
+                        <Typography variant="body2" fontWeight={700}>
+                          {aiDemo.question}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Stack
+                      direction="row"
+                      spacing={1.5}
+                      alignItems="flex-start"
+                    >
+                      <Avatar
+                        sx={{ bgcolor: aiDemo.accent, width: 34, height: 34 }}
+                      >
+                        <AutoAwesomeIcon sx={{ fontSize: 18 }} />
+                      </Avatar>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="body2" sx={{ lineHeight: 1.7 }}>
+                          {aiDemo.answer}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mt: 1 }}
+                        >
+                          Réponse simulée à partir de données d’établissement.
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Divider />
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gap: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      {aiDemo.metrics.map(([label, value]) => (
+                        <Box key={label} sx={{ minWidth: 0 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {label}
+                          </Typography>
+                          <Typography variant="h6" fontWeight={800}>
+                            {value}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <TrendingUpIcon
+                        sx={{ color: aiDemo.accent, fontSize: 19 }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        Une lecture claire pour agir au bon moment.
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </motion.div>
           </Box>
         </Container>
       </Box>

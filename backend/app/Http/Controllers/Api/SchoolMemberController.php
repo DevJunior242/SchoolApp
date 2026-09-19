@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Api\Concerns\EnforcesStaffQuota;
 use App\Http\Controllers\Api\Concerns\ResolvesMemberUser;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Role;
 use App\Models\School;
 use App\Models\SchoolUser;
@@ -142,12 +143,7 @@ class SchoolMemberController extends Controller
             [
                 'role_id' => $validated['role_id'],
                 'status' => SchoolUser::STATUS_ACTIVE,
-                'is_owner' => $role->slug === 'rh'
-                    && ! SchoolUser::query()
-                        ->where('school_id', $school->id)
-                        ->where('is_owner', true)
-                        ->whereHas('role', fn($query) => $query->where('slug', 'rh'))
-                        ->exists(),
+                'is_owner' => $this->ownerFlagForRole($school, $role->slug),
             ]
         );
 
@@ -242,11 +238,33 @@ class SchoolMemberController extends Controller
 
         // Mise à jour des infos utilisateur et du rôle
         $member->user->update(collect($validated)->except(['role_id', 'section_ids'])->all());
-        $member->update(['role_id' => $validated['role_id']]);
+        $member->update([
+            'role_id' => $validated['role_id'],
+            'is_owner' => $this->ownerFlagForRole($school, $role->slug, $member),
+        ]);
 
         // Mise à jour des sections restreintes
         if (array_key_exists('section_ids', $validated) || $sectionIds !== []) {
             $member->sections()->sync($sectionIds);
+        }
+
+        $newSectionIds = $member->sections()->pluck('sections.id')->sort()->values()->all();
+        if ($previousRoleId !== $member->role_id || $previousSectionIds !== $newSectionIds) {
+            ActivityLog::create([
+                'action' => 'member_access_changed',
+                'model' => get_class($member),
+                'model_id' => $member->id,
+                'user_id' => $request->user()->id,
+                'school_id' => $school->id,
+                'old_values' => [
+                    'role_id' => $previousRoleId,
+                    'section_ids' => $previousSectionIds,
+                ],
+                'new_values' => [
+                    'role_id' => $member->role_id,
+                    'section_ids' => $newSectionIds,
+                ],
+            ]);
         }
 
         $this->syncStaffQuota($school->fresh());
@@ -336,6 +354,29 @@ class SchoolMemberController extends Controller
         }
 
         return $sectionIds;
+    }
+
+    private function ownerFlagForRole(School $school, string $roleSlug, ?SchoolUser $currentMember = null): bool
+    {
+        if (! in_array($roleSlug, ['rh', 'comptable'], true)) {
+            return false;
+        }
+
+        if ($currentMember?->role?->slug === $roleSlug && (bool) $currentMember->is_owner) {
+            return true;
+        }
+
+        return ! SchoolUser::query()
+            ->where('school_id', $school->id)
+            ->where('status', SchoolUser::STATUS_ACTIVE)
+            ->when($currentMember, fn($query) => $query->where(
+                $currentMember->getKeyName(),
+                '!=',
+                $currentMember->getKey(),
+            ))
+            ->where('is_owner', true)
+            ->whereHas('role', fn($query) => $query->where('slug', $roleSlug))
+            ->exists();
     }
 
     private function ensureMemberIsWithinActorSections(SchoolUser $actor, SchoolUser $member): void

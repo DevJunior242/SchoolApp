@@ -124,12 +124,7 @@ class AuthController extends Controller
         return response()->json(['message' => 'Mot de passe réinitialisé avec succès.']);
     }
 
-    /**
-     * Route signée (pas d'authentification requise) : le lien reçu par
-     * email suffit à prouver l'identité, comme pour le reset de mot de
-     * passe. Le frontend rappelle cette route avec les mêmes paramètres
-     * (id, hash, expires, signature) que ceux générés dans l'email.
-     */
+
     public function verifyEmail(Request $request, string $id)
     {
         $user = User::findOrFail($id);

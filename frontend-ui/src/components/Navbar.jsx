@@ -18,17 +18,45 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { alpha } from "@mui/material/styles";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useApiGet } from "../hooks/useApiGet.js";
 import { useThemeMode } from "../context/ThemeModeContext.jsx";
 import intellinoMark from "../assets/intellino-mark.svg";
 
 const SECTION_LINKS = [{ label: "Fonctionnalités", id: "features" }];
 
+const ROLE_DASHBOARD_PATHS = {
+  admin: "/dashboard/admin",
+  comptable: "/dashboard/comptable",
+  censeur: "/dashboard/attendance-justifications",
+  surveillant: "/dashboard/attendance-justifications",
+  secretaire: "/dashboard/students",
+  rh: "/dashboard/hr",
+  infirmier: "/dashboard/health",
+  bibliothecaire: "/dashboard/library",
+  chauffeur: "/dashboard/my-bus-trip",
+  cantine: "/dashboard/cafeteria",
+  professeur: "/dashboard/my-assignments",
+  enseignant: "/dashboard/my-assignments",
+  parent: "/dashboard/my-children-payments",
+  eleve: "/dashboard/my-bulletin",
+};
+
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { data: schoolUsers, loading: schoolUsersLoading } = useApiGet(
+    user ? "/my-schools" : null,
+  );
   const { mode, toggleMode } = useThemeMode();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const currentSchoolUser = (schoolUsers ?? []).find(
+    (schoolUser) => schoolUser.school?.id === user?.current_school_id,
+  );
+  const dashboardPath =
+    ROLE_DASHBOARD_PATHS[currentSchoolUser?.role?.slug] ?? "/dashboard";
+  const dashboardReady = Boolean(user) && !schoolUsersLoading;
 
   async function handleLogout() {
     setMobileOpen(false);
@@ -172,7 +200,8 @@ export default function Navbar() {
             <>
               <Button
                 component={RouterLink}
-                to="/dashboard"
+                to={dashboardPath}
+                disabled={!dashboardReady}
                 color="inherit"
                 size="small"
                 sx={{ px: 2, fontSize: "0.875rem" }}
@@ -290,7 +319,8 @@ export default function Navbar() {
             <>
               <ListItemButton
                 component={RouterLink}
-                to="/dashboard"
+                to={dashboardPath}
+                disabled={!dashboardReady}
                 onClick={() => setMobileOpen(false)}
               >
                 <ListItemText primary="Tableau de bord" />

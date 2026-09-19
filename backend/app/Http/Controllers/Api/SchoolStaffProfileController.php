@@ -213,6 +213,8 @@ class SchoolStaffProfileController extends Controller
         SchoolStaffProfile::query()
             ->where('school_id', $school->id)
             ->where('user_id', $user->id)
+            ->get()
+            ->each
             ->delete();
 
         return response()->json([

@@ -70,6 +70,7 @@ import NotificationCenter from "../components/NotificationCenter.jsx";
 import MessagingIcon from "../components/MessagingIcon.jsx";
 import VerifyEmailBanner from "../components/VerifyEmailBanner.jsx";
 import TrialStatusBanner from "../components/TrialStatusBanner.jsx";
+import SchoolSetupRequired from "../components/SchoolSetupRequired.jsx";
 import intellinoMark from "../assets/intellino-mark.svg";
 
 const drawerWidth = 250;
@@ -229,6 +230,12 @@ const INFIRMIER_NAV_GROUPS = singleGroup([
     label: "Tableau de bord santé",
     to: "/dashboard/health",
     icon: <LocalHospitalIcon />,
+  },
+  {
+    label: "Assistant IA",
+    to: "/dashboard/ai-assistant",
+    icon: <SmartToyIcon />,
+    badge: "IA",
   },
   { label: "Élèves", to: "/dashboard/students", icon: <School2Icon /> },
   {
@@ -413,6 +420,12 @@ const CENSEUR_NAV_GROUPS = singleGroup([
     icon: <FactCheckIcon />,
   },
   {
+    label: "Assistant IA",
+    to: "/dashboard/ai-assistant",
+    icon: <SmartToyIcon />,
+    badge: "IA",
+  },
+  {
     label: "Marketplace",
     to: "/dashboard/marketplace",
     icon: <StorefrontIcon />,
@@ -504,7 +517,6 @@ const COMPTABLE_NAV_GROUPS = singleGroup([
     icon: <AccountBalanceWalletIcon />,
   },
   { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
-  { label: "Cantine", to: "/dashboard/cafeteria", icon: <RestaurantIcon /> },
   {
     label: "Assistant IA",
     to: "/dashboard/ai-assistant",
@@ -540,6 +552,12 @@ const RH_NAV_GROUPS = singleGroup([
     label: "Congés",
     to: "/dashboard/hr/leaves",
     icon: <EventBusyIcon />,
+  },
+  {
+    label: "Assistant IA",
+    to: "/dashboard/ai-assistant",
+    icon: <SmartToyIcon />,
+    badge: "IA",
   },
 ]);
 
@@ -626,7 +644,7 @@ export default function DashboardLayout() {
     : isPrestataire
       ? PRESTATAIRE_NAV_GROUPS
       : schoolUsersLoading || schoolUsers.length === 0
-        ? singleGroup([OVERVIEW_ITEM])
+        ? ADMIN_NAV_GROUPS
         : (NAV_GROUPS_BY_ROLE[currentRole] ?? ADMIN_NAV_GROUPS);
   const navGroups = (
     hasChildren && currentRole !== "parent"
@@ -642,16 +660,19 @@ export default function DashboardLayout() {
       return group;
     }
 
-    const items = group.items.some((item) => item.to === MY_ATTENDANCE_ITEM.to)
-      ? group.items
-      : [...group.items, MY_ATTENDANCE_ITEM];
+    const items = group.items.filter(
+      (item) =>
+        item.to !== MY_ATTENDANCE_ITEM.to && item.to !== MY_PAYROLL_ITEM.to,
+    );
 
-    const finalItems = items.some((item) => item.to === MY_PAYROLL_ITEM.to)
-      ? items
-      : [...items, MY_PAYROLL_ITEM];
-
-    return { ...group, items: finalItems };
+    return { ...group, items };
   });
+
+  const personalItems = [MY_ATTENDANCE_ITEM, MY_PAYROLL_ITEM];
+  const navGroupsWithPersonalItems =
+    isSuperAdmin || isPrestataire || !currentRole || currentRole === "parent"
+      ? navGroups
+      : [{ title: "Mon espace", items: personalItems }, ...navGroups];
 
   async function handleLogout() {
     await logout();
@@ -844,7 +865,7 @@ export default function DashboardLayout() {
             py: 2,
           }}
         >
-          {navGroups.map((group, groupIndex) => (
+          {navGroupsWithPersonalItems.map((group, groupIndex) => (
             <Fragment key={group.title ?? `group-${groupIndex}`}>
               {group.title && !isCollapsed && (
                 <Typography
@@ -898,7 +919,11 @@ export default function DashboardLayout() {
                       {!isCollapsed && (
                         <ListItemText
                           primary={item.label}
-                          primaryTypographyProps={{ fontWeight: 600 }}
+                          slotProps={{
+                            primary: {
+                              sx: { fontWeight: 600 },
+                            },
+                          }}
                         />
                       )}
                       {!isCollapsed && item.badge && (
@@ -980,6 +1005,15 @@ export default function DashboardLayout() {
       </Box>
     );
   }
+
+  if (location.pathname === "/dashboard" && currentSchool) {
+    return <Outlet />;
+  }
+
+  const canUseWithoutSchool = [
+    "/dashboard/profile",
+    "/dashboard/security",
+  ].includes(location.pathname);
 
   return (
     <Box
@@ -1193,7 +1227,11 @@ export default function DashboardLayout() {
           {!isSuperAdmin && !isPrestataire && (
             <TrialStatusBanner school={currentSchool} role={currentRole} />
           )}
-          <Outlet />
+          {currentSchool || canUseWithoutSchool ? (
+            <Outlet />
+          ) : (
+            <SchoolSetupRequired />
+          )}
         </Box>
       </Box>
 

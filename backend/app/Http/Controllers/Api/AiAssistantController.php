@@ -4,11 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use Throwable;
 use App\Models\School;
+use App\Models\SchoolUser;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Http\Controllers\Controller;
 use App\Services\StudentRiskService;
 use App\Services\Ai\ParentAssistantService;
+use App\Services\Ai\TeacherAssistantService;
+use App\Services\Ai\HrAssistantService;
+use App\Services\Ai\AttendanceAssistantService;
+use App\Services\Ai\HealthAssistantService;
 use App\Services\Ai\SchoolAssistantService;
 use App\Exceptions\AiNotConfiguredException;
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
@@ -16,6 +21,14 @@ use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 class AiAssistantController extends Controller
 {
     use AuthorizesSchoolDirecteur;
+
+    private const ACCOUNTANT_AI_TOOLS = [
+        'paiements_en_retard',
+        'solde_tresorerie',
+        'depenses_par_categorie',
+        'paiements_par_categorie',
+        'evenements_a_venir',
+    ];
 
     public function riskReport(Request $request, School $school, StudentRiskService $riskService)
     {
@@ -37,6 +50,13 @@ class AiAssistantController extends Controller
             "Seuls les administrateurs et comptables de l'école peuvent utiliser cet assistant."
         );
 
+        $roleSlug = SchoolUser::query()
+            ->where('school_id', $school->id)
+            ->where('user_id', $request->user()->id)
+            ->with('role')
+            ->firstOrFail()
+            ->role?->slug;
+
         $validated = $request->validate([
             'question' => ['required', 'string', 'max:500'],
             'section_id' => [
@@ -50,7 +70,8 @@ class AiAssistantController extends Controller
             $answer = $assistant->ask(
                 $school,
                 $validated['question'],
-                $validated['section_id'] ?? null
+                $validated['section_id'] ?? null,
+                $roleSlug === 'comptable' ? self::ACCOUNTANT_AI_TOOLS : null,
             );
         } catch (AiNotConfiguredException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -82,6 +103,118 @@ class AiAssistantController extends Controller
 
         try {
             $answer = $assistant->ask($request->user(), $school, $validated['question']);
+        } catch (AiNotConfiguredException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => "L'assistant IA est momentanément indisponible (quota ou limite de débit atteinte). Réessayez dans quelques instants.",
+            ], 503);
+        }
+
+        return response()->json(['answer' => $answer]);
+    }
+
+    public function askAsTeacher(Request $request, School $school, TeacherAssistantService $assistant)
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['professeur', 'enseignant'],
+            "Seuls les enseignants peuvent utiliser cet assistant."
+        );
+
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $answer = $assistant->ask($request->user(), $school, $validated['question']);
+        } catch (AiNotConfiguredException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => "L'assistant IA est momentanément indisponible (quota ou limite de débit atteinte). Réessayez dans quelques instants.",
+            ], 503);
+        }
+
+        return response()->json(['answer' => $answer]);
+    }
+
+    public function askAsHr(Request $request, School $school, HrAssistantService $assistant)
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['rh'],
+            "Seul le responsable RH peut utiliser cet assistant."
+        );
+
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $answer = $assistant->ask($request->user(), $school, $validated['question']);
+        } catch (AiNotConfiguredException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => "L'assistant IA est momentanément indisponible (quota ou limite de débit atteinte). Réessayez dans quelques instants.",
+            ], 503);
+        }
+
+        return response()->json(['answer' => $answer]);
+    }
+
+    public function askAsAttendanceStaff(Request $request, School $school, AttendanceAssistantService $assistant)
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['censeur', 'surveillant'],
+            "Seuls le censeur et le surveillant peuvent utiliser cet assistant."
+        );
+
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $answer = $assistant->ask($school, $validated['question']);
+        } catch (AiNotConfiguredException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => "L'assistant IA est momentanément indisponible (quota ou limite de débit atteinte). Réessayez dans quelques instants.",
+            ], 503);
+        }
+
+        return response()->json(['answer' => $answer]);
+    }
+
+    public function askAsHealthStaff(Request $request, School $school, HealthAssistantService $assistant)
+    {
+        $this->authorizeRoles(
+            $request,
+            $school,
+            ['infirmier'],
+            "Seul le personnel de santé peut utiliser cet assistant."
+        );
+
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $answer = $assistant->ask($school, $validated['question']);
         } catch (AiNotConfiguredException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (Throwable $e) {

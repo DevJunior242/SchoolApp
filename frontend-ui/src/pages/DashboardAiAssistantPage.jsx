@@ -15,7 +15,7 @@ import {
 import AiChatTab from "../components/AiChatTab.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
-
+import { useSchools } from "../hooks/useSchools.js";
 const RISK_LABELS = {
   eleve: { label: "Risque élevé", color: "error", emoji: "⚠️" },
   moyen: { label: "Risque moyen", color: "warning", emoji: "🟡" },
@@ -135,6 +135,16 @@ function RiskTab({ schoolId }) {
 export default function DashboardAiAssistantPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
+  const { schoolUsers } = useSchools();
+  const currentMembership = schoolUsers.find(
+    (membership) => membership.school?.id === schoolId,
+  );
+  const roleSlug = currentMembership?.role?.slug;
+  const isTeacher = ["professeur", "enseignant"].includes(roleSlug);
+  const isAccountant = roleSlug === "comptable";
+  const isHr = roleSlug === "rh";
+  const isAttendanceStaff = ["censeur", "surveillant"].includes(roleSlug);
+  const isHealthStaff = roleSlug === "infirmier";
   const [tab, setTab] = useState("chat");
 
   if (!schoolId) {
@@ -145,23 +155,94 @@ export default function DashboardAiAssistantPage() {
     );
   }
 
+  const suggestions = isTeacher
+    ? [
+        "Quelles sont mes classes et mes matières ?",
+        "Quels sont les élèves de mes classes ?",
+        "Quelles sont les moyennes de mes classes ?",
+        "Combien d'absences ont été enregistrées dans mes classes ?",
+        "Quels événements concernent mes classes ?",
+      ]
+    : isHealthStaff
+      ? [
+          "Combien d'élèves ont un dossier santé ?",
+          "Quels élèves ont des allergies enregistrées ?",
+          "Quelles sont les visites médicales récentes ?",
+        ]
+      : isHr
+        ? [
+            "Quel est l'effectif actuel du personnel ?",
+            "Quels sont les congés en cours ou à venir ?",
+            "Quels sont les pointages du personnel ce mois-ci ?",
+          ]
+        : isAttendanceStaff
+          ? [
+              "Combien d'élèves sont absents aujourd'hui ?",
+              "Quelles justifications sont en attente ?",
+              "Quels événements sont prévus prochainement ?",
+            ]
+          : isAccountant
+            ? [
+                "Quels paiements sont en retard ?",
+                "Quel est le solde de nos comptes de trésorerie ?",
+                "Quelles sont les dépenses par catégorie ce mois-ci ?",
+                "Quelles sont nos recettes par catégorie ce mois-ci ?",
+                "Quels événements sont prévus prochainement ?",
+              ]
+            : SUGGESTIONS;
+
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} gutterBottom>
         Assistant IA
       </Typography>
 
-      <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab label="Poser une question" value="chat" />
-        <Tab label="Élèves à risque" value="risk" />
-      </Tabs>
+      {!isTeacher &&
+        !isAccountant &&
+        !isHr &&
+        !isAttendanceStaff &&
+        !isHealthStaff && (
+          <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 2 }}>
+            <Tab label="Poser une question" value="chat" />
+            <Tab label="Élèves à risque" value="risk" />
+          </Tabs>
+        )}
 
-      {tab === "chat" ? (
+      {isTeacher ||
+      isAccountant ||
+      isHr ||
+      isAttendanceStaff ||
+      isHealthStaff ||
+      tab === "chat" ? (
         <AiChatTab
-          endpoint={`/schools/${schoolId}/ai/ask`}
-          suggestions={SUGGESTIONS}
-          placeholder="Posez votre question sur les élèves, absences, paiements..."
-          caption="L'assistant ne répond qu'à partir des données de votre école (élèves, notes, absences, paiements) ; les noms des élèves ne sont jamais transmis à l'IA sous forme de liste, seulement des codes anonymes."
+          endpoint={`/schools/${schoolId}/ai/${isTeacher ? "ask-teacher" : isHr ? "ask-hr" : isAttendanceStaff ? "ask-attendance" : isHealthStaff ? "ask-health" : "ask"}`}
+          suggestions={suggestions}
+          placeholder={
+            isTeacher
+              ? "Posez une question sur vos classes et vos matières..."
+              : isHealthStaff
+                ? "Posez une question sur les dossiers santé des élèves..."
+                : isHr
+                  ? "Posez une question sur le personnel, les congés et les pointages..."
+                  : isAttendanceStaff
+                    ? "Posez une question sur les absences et les justifications..."
+                    : isAccountant
+                      ? "Posez une question sur les paiements et la trésorerie..."
+                      : "Posez votre question sur les élèves, absences, paiements..."
+          }
+          caption={
+            isTeacher
+              ? "L'assistant est limité à vos classes et matières attribuées."
+              : isHealthStaff
+                ? "L'assistant est limité aux données de santé scolaire autorisées."
+                : isHr
+                  ? "L'assistant est limité au personnel, aux congés et aux pointages de l'école."
+                  : isAttendanceStaff
+                    ? "L'assistant est limité aux absences, justifications et événements de l'école."
+                    : isAccountant
+                      ? "L'assistant est limité aux finances et aux événements de l'école."
+                      : "L'assistant ne répond qu'à partir des données autorisées de votre école."
+          }
         />
       ) : (
         <RiskTab schoolId={schoolId} />

@@ -115,6 +115,40 @@ class EventController extends Controller
         return response()->json(status: 204);
     }
 
+    public function update(Request $request, School $school, Event $event)
+    {
+        $this->authorizeEventManager($request, $school);
+        abort_if($event->school_id !== $school->id, 404);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'type' => ['required', 'in:' . implode(',', [
+                Event::TYPE_REUNION,
+                Event::TYPE_EXAMEN,
+                Event::TYPE_SORTIE,
+                Event::TYPE_FERIE,
+                Event::TYPE_BULLETIN,
+                Event::TYPE_AUTRE,
+            ])],
+            'class_id' => ['nullable', 'uuid', 'exists:classes,id'],
+            'start_at' => ['required', 'date'],
+            'end_at' => ['nullable', 'date', 'after:start_at'],
+            'location' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if (! empty($validated['class_id'])) {
+            $schoolClass = SchoolClass::query()
+                ->where('school_id', $school->id)
+                ->findOrFail($validated['class_id']);
+            $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $schoolClass));
+        }
+
+        $event->update($validated);
+
+        return response()->json($event->fresh()->load('schoolClass', 'creator'));
+    }
+
     private function relevantClassIds(string $userId): array
     {
         $asParent = ClassStudent::query()

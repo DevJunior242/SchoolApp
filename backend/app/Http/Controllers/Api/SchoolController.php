@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Role;
 use App\Models\Grade;
+use App\Models\ActivityLog;
 use App\Models\School;
 use App\Models\Season;
 use App\Models\Section;
@@ -169,6 +170,8 @@ class SchoolController extends Controller
             'language' => ['required', 'in:' . School::LANGUAGE_FR . ',' . School::LANGUAGE_EN],
             'currency' => ['nullable', 'string', 'max:10'],
             'academic_period_type' => ['nullable', 'in:' . Season::TYPE_TRIMESTRE . ',' . Season::TYPE_SEMESTRE],
+        ], [
+            'phone.phone' => 'Le numéro de téléphone doit être valide et inclure son indicatif international, par exemple +226 70 00 00 00.',
         ]);
 
         if ($request->hasFile('logo')) {
@@ -211,7 +214,7 @@ class SchoolController extends Controller
             ]);
         }
 
-        $currentYear->seasons()->delete();
+        $currentYear->seasons()->get()->each->delete();
         $this->createSeasonsForYear($school, $currentYear, $newType);
     }
 
@@ -223,7 +226,19 @@ class SchoolController extends Controller
             return response()->json(['message' => "Vous n'appartenez pas à cette école."], 403);
         }
 
-        $request->user()->update(['current_school_id' => $school->id]);
+        $user = $request->user();
+        $previousSchoolId = $user->current_school_id;
+        $user->update(['current_school_id' => $school->id]);
+
+        ActivityLog::create([
+            'action' => 'school_switched',
+            'model' => get_class($user),
+            'model_id' => $user->id,
+            'user_id' => $user->id,
+            'school_id' => $school->id,
+            'old_values' => ['current_school_id' => $previousSchoolId],
+            'new_values' => ['current_school_id' => $school->id],
+        ]);
 
         return response()->json($school->load('country'));
     }

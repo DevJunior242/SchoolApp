@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Concerns;
 
 use App\Models\School;
 use App\Models\SchoolUser;
+use App\Models\TreasuryAccount;
+use App\Services\AccountingPermissionService;
 use Illuminate\Http\Request;
 
 trait AuthorizesSchoolDirecteur
@@ -119,13 +121,30 @@ trait AuthorizesSchoolDirecteur
      * des mouvements manuels : réservé au directeur et au comptable, comme
      * la confirmation des paiements.
      */
-    private function authorizeFinanceManager(Request $request, School $school): void
-    {
-        $this->authorizeRoles(
-            $request,
-            $school,
-            ['admin', 'comptable'],
-            'Seuls l’administrateur et le comptable peuvent gérer la trésorerie.'
+    private function authorizeFinanceManager(
+        Request $request,
+        School $school,
+        ?TreasuryAccount $account = null,
+        ?string $sectionId = null,
+    ): void {
+        $actor = SchoolUser::query()
+            ->where('school_id', $school->id)
+            ->where('user_id', $request->user()->id)
+            ->where('status', SchoolUser::STATUS_ACTIVE)
+            ->with(['role', 'sections'])
+            ->first();
+
+        $permissions = app(AccountingPermissionService::class);
+        $allowed = $account !== null
+            ? $permissions->canManageAccount($actor, $account)
+            : ($sectionId !== null
+                ? $permissions->canManageSection($actor, $sectionId)
+                : in_array($actor?->role?->slug, ['admin', 'comptable'], true));
+
+        abort_unless(
+            $allowed,
+            403,
+            'Vous n\'êtes pas autorisé à gérer ce périmètre de trésorerie.'
         );
     }
 

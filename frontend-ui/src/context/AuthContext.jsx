@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import api from '../api/axios.jsx';
+import { createContext, useContext, useEffect, useState } from "react";
+import api from "../api/axios.jsx";
 
 const AuthContext = createContext(null);
 
@@ -8,16 +8,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
       setLoading(false);
       return;
     }
 
     api
-      .get('/me')
+      .get("/me")
       .then((response) => setUser(response.data))
-      .catch(() => localStorage.removeItem('token'))
+      .catch(() => localStorage.removeItem("token"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -26,14 +26,14 @@ export function AuthProvider({ children }) {
   // que chaque page n'ait à le gérer elle-même.
   useEffect(() => {
     if (user?.current_school_id) {
-      localStorage.setItem('current_school_id', user.current_school_id);
+      localStorage.setItem("current_school_id", user.current_school_id);
     } else {
-      localStorage.removeItem('current_school_id');
+      localStorage.removeItem("current_school_id");
     }
   }, [user]);
 
   async function login(email, password) {
-    const response = await api.post('/login', { email, password });
+    const response = await api.post("/login", { email, password });
 
     if (response.data.two_factor) {
       // Pas de compte connecté pour l'instant : juste le jeton temporaire
@@ -41,39 +41,52 @@ export function AuthProvider({ children }) {
       return { twoFactor: true, challengeToken: response.data.token };
     }
 
-    localStorage.setItem('token', response.data.token);
+    localStorage.setItem("token", response.data.token);
     setUser(response.data.user);
-    return { twoFactor: false };
+    return { twoFactor: false, user: response.data.user };
   }
 
   async function verifyTwoFactor(challengeToken, credentials) {
-    const response = await api.post('/2fa/challenge', { token: challengeToken, ...credentials });
-    localStorage.setItem('token', response.data.token);
+    const response = await api.post("/2fa/challenge", {
+      token: challengeToken,
+      ...credentials,
+    });
+    localStorage.setItem("token", response.data.token);
     setUser(response.data.user);
     return response.data.user;
   }
 
   async function register(data) {
-    const response = await api.post('/register', data);
-    localStorage.setItem('token', response.data.token);
+    const response = await api.post("/register", data);
+    localStorage.setItem("token", response.data.token);
     setUser(response.data.user);
     return response.data.user;
   }
 
   async function logout() {
-    await api.post('/logout').catch(() => {});
-    localStorage.removeItem('token');
+    await api.post("/logout").catch(() => {});
+    localStorage.removeItem("token");
     setUser(null);
   }
 
   async function refreshUser() {
-    const response = await api.get('/me');
+    const response = await api.get("/me");
     setUser(response.data);
     return response.data;
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, verifyTwoFactor, register, logout, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        verifyTwoFactor,
+        register,
+        logout,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

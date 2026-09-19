@@ -66,6 +66,7 @@ export default function DashboardTeachersPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -76,6 +77,7 @@ export default function DashboardTeachersPage() {
     setOpen(false);
     setForm(emptyForm);
     setError(null);
+    setFieldErrors({});
     setEditingTeacher(null);
   }
 
@@ -83,6 +85,7 @@ export default function DashboardTeachersPage() {
     setEditingTeacher(null);
     setForm(emptyForm);
     setError(null);
+    setFieldErrors({});
     setOpen(true);
   }
 
@@ -95,6 +98,7 @@ export default function DashboardTeachersPage() {
       section_ids: (teacher.sections ?? []).map((section) => section.id),
     });
     setError(null);
+    setFieldErrors({});
     setOpen(true);
   }
 
@@ -106,6 +110,7 @@ export default function DashboardTeachersPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     setSubmitting(true);
     try {
       if (editingTeacher) {
@@ -122,6 +127,7 @@ export default function DashboardTeachersPage() {
       closeModal();
     } catch (err) {
       const messages = err.response?.data?.errors;
+      setFieldErrors(messages ?? {});
       setError(
         messages
           ? Object.values(messages).flat().join(" ")
@@ -333,6 +339,8 @@ export default function DashboardTeachersPage() {
             <InternationalPhoneField
               value={form.phone}
               onChange={(phone) => setForm((prev) => ({ ...prev, phone }))}
+              error={Boolean(fieldErrors.phone)}
+              helperText={fieldErrors.phone?.[0] ?? ""}
             />
             <TextField
               label="Nom complet"

@@ -79,14 +79,30 @@ TXT;
         private TreasuryService $treasuryService,
     ) {}
 
-    public function ask(School $school, string $question): string
-    {
+    public function ask(
+        School $school,
+        string $question,
+        ?string $sectionId = null,
+        ?array $allowedTools = null,
+    ): string {
+        $toolDefinitions = $this->toolDefinitions();
+        if ($allowedTools !== null) {
+            $toolDefinitions = array_values(array_filter(
+                $toolDefinitions,
+                fn(array $definition) => in_array(
+                    $definition['function']['name'],
+                    $allowedTools,
+                    true,
+                ),
+            ));
+        }
+
         $messages = [
             ['role' => 'system', 'content' => self::SYSTEM_PROMPT],
             ['role' => 'user', 'content' => $question],
         ];
 
-        $first = $this->client->chat($messages, $this->toolDefinitions(), 'auto');
+        $first = $this->client->chat($messages, $toolDefinitions, 'auto');
         $toolCalls = $first['tool_calls'] ?? [];
 
         if ($toolCalls === []) {
@@ -96,7 +112,12 @@ TXT;
         $toolCall = $toolCalls[0];
         $arguments = json_decode($toolCall['function']['arguments'] ?? '{}', true) ?: [];
 
-        [$result, $tokenMap] = $this->runTool($school, $toolCall['function']['name'], $arguments);
+        $toolName = $toolCall['function']['name'];
+        if ($allowedTools !== null && ! in_array($toolName, $allowedTools, true)) {
+            return "Je n'ai pas accès à cette information avec votre rôle.";
+        }
+
+        [$result, $tokenMap] = $this->runTool($school, $toolName, $arguments);
         $result['currency'] = $school->currency ?: $school->country?->currency ?: 'XOF';
 
         $messages[] = $first;

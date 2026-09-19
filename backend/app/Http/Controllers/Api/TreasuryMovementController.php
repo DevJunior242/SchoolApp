@@ -41,8 +41,8 @@ class TreasuryMovementController extends Controller
     // donc effectif dès sa saisie, par des rôles déjà habilités à confirmer.
     public function store(Request $request, School $school, TreasuryAccount $treasuryAccount)
     {
-        $this->authorizeFinanceManager($request, $school);
         abort_if($treasuryAccount->school_id !== $school->id, 404);
+        $this->authorizeFinanceManager($request, $school, $treasuryAccount);
 
         $validated = $request->validate([
             'type' => ['required', 'in:' . implode(',', self::TYPES)],

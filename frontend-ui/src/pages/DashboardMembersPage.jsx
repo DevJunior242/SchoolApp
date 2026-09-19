@@ -5,13 +5,16 @@ import {
   Button,
   Checkbox,
   Chip,
+  FormControl,
   Grid,
+  InputLabel,
   IconButton,
   InputAdornment,
   Menu,
   MenuItem,
   Pagination,
   Paper,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -394,21 +397,22 @@ export default function DashboardMembersPage() {
                   </MenuItem>
                 ))}
               </TextField>
-              <TextField
-                select
-                label="Sections attribuées"
-                value={form.section_ids}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setForm((previous) => ({
-                    ...previous,
-                    section_ids:
-                      typeof value === "string" ? value.split(",") : value,
-                  }));
-                }}
-                SelectProps={{
-                  multiple: true,
-                  renderValue: (selected) => (
+              <FormControl fullWidth>
+                <InputLabel id="member-sections-label">
+                  Sections attribuées
+                </InputLabel>
+                <Select
+                  labelId="member-sections-label"
+                  multiple
+                  value={form.section_ids}
+                  label="Sections attribuées"
+                  onChange={(event) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      section_ids: event.target.value,
+                    }))
+                  }
+                  renderValue={(selected) => (
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                       {selected.map((id) => (
                         <Chip
@@ -422,18 +426,25 @@ export default function DashboardMembersPage() {
                         />
                       ))}
                     </Box>
-                  ),
-                }}
-                helperText="Laissez vide pour attribuer un accès global à l'école."
-                fullWidth
-              >
-                {activeSections.map((section) => (
-                  <MenuItem key={section.id} value={section.id}>
-                    <Checkbox checked={form.section_ids.includes(section.id)} />
-                    {section.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+                  )}
+                >
+                  {activeSections.map((section) => (
+                    <MenuItem key={section.id} value={section.id}>
+                      <Checkbox
+                        checked={form.section_ids.includes(section.id)}
+                      />
+                      {section.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 0.5 }}
+                >
+                  Laissez vide pour attribuer un accès global à l'école.
+                </Typography>
+              </FormControl>
               <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
                 <Button type="submit" variant="contained" disabled={submitting}>
                   {submitting

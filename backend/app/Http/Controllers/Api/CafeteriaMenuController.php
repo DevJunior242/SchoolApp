@@ -63,7 +63,7 @@ class CafeteriaMenuController extends Controller
             ['created_by' => $request->user()->id]
         );
 
-        $menu->items()->delete();
+        $menu->items()->get()->each->delete();
         $menu->items()->createMany($validated['items']);
 
         return response()->json($menu->load('items'), 201);

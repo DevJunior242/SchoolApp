@@ -56,6 +56,7 @@ export default function DashboardSettingsPage() {
   const [form, setForm] = useState(emptyForm());
   const [formInitialized, setFormInitialized] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [logoFile, setLogoFile] = useState(null);
@@ -92,6 +93,7 @@ export default function DashboardSettingsPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setFormError(null);
+    setFieldErrors({});
     setSuccess(null);
     setSubmitting(true);
     try {
@@ -111,6 +113,7 @@ export default function DashboardSettingsPage() {
       setSuccess("Paramètres enregistrés.");
     } catch (err) {
       const messages = err.response?.data?.errors;
+      setFieldErrors(messages ?? {});
       setFormError(
         messages
           ? Object.values(messages).flat().join(" ")
@@ -261,6 +264,8 @@ export default function DashboardSettingsPage() {
               <InternationalPhoneField
                 value={form.phone}
                 onChange={(phone) => setForm((prev) => ({ ...prev, phone }))}
+                error={Boolean(fieldErrors.phone)}
+                helperText={fieldErrors.phone?.[0] ?? ""}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>

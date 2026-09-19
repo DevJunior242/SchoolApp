@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Loggable;
 use App\Models\BookCopy;
 use App\Models\BookDocument;
 use App\Models\BookReservation;
@@ -14,10 +15,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Book extends Model
 {
-    use HasUuids;
+    use HasUuids, Loggable;
 
     protected $fillable = [
-        'school_id', 'title', 'author', 'publisher', 'isbn', 'category', 'language', 'level_id', 'description',
+        'school_id',
+        'title',
+        'author',
+        'publisher',
+        'isbn',
+        'category',
+        'language',
+        'level_id',
+        'description',
     ];
 
     public function school(): BelongsTo

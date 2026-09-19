@@ -46,7 +46,7 @@ trait Loggable
                 'model' => get_class($model),
                 'model_id' => $model->id,
                 'user_id' => Auth::id(),
-                'school_id' => $model->school_id ?? (Auth::user()->current_school_id ?? null),
+                'school_id' => $model->school_id ?? Auth::user()?->current_school_id,
                 'old_values' => $oldValues ? json_encode($oldValues) : null,
                 'new_values' => $newValues ? json_encode($newValues) : null,
             ]);

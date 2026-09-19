@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import RoleProtectedRoute from "./components/RoleProtectedRoute.jsx";
 import GuestRoute from "./components/GuestRoute.jsx";
 
 const PublicLayout = lazy(() => import("./layouts/PublicLayout.jsx"));
@@ -31,6 +32,7 @@ const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage.jsx"));
 const DashboardOverviewPage = lazy(
   () => import("./pages/DashboardOverviewPage.jsx"),
 );
+const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage.jsx"));
 const DashboardSchoolsPage = lazy(
   () => import("./pages/DashboardSchoolsPage.jsx"),
 );
@@ -231,11 +233,14 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              <RoleProtectedRoute>
+                <DashboardLayout />
+              </RoleProtectedRoute>
             </ProtectedRoute>
           }
         >
           <Route index element={<DashboardOverviewPage />} />
+          <Route path="admin" element={<AdminDashboardPage />} />
           <Route path="schools" element={<DashboardSchoolsPage />} />
           <Route path="comptable" element={<DashboardComptablePage />} />
           <Route path="members" element={<DashboardMembersPage />} />
