@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios.jsx';
+import { asArray } from '../utils/apiData.js';
 
 const DEFAULT_ERROR = 'Impossible de charger la liste. Vérifiez votre connexion et réessayez.';
 
@@ -30,9 +31,13 @@ export function usePaginatedList(url, extraParams = {}) {
     api
       .get(url, { params: { page, search: search || undefined, ...extraParams } })
       .then((response) => {
-        setData(response.data.data);
-        setLastPage(response.data.last_page);
-        setTotal(response.data.total);
+        const payload = response?.data;
+        const metadata = payload?.data && !Array.isArray(payload.data)
+          ? payload.data
+          : payload;
+        setData(asArray(payload));
+        setLastPage(metadata?.last_page ?? 1);
+        setTotal(metadata?.total ?? asArray(payload).length);
       })
       .catch((err) => setError(err.response?.data?.message || DEFAULT_ERROR))
       .finally(() => setLoading(false));

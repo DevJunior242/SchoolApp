@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { asArray } from '../utils/apiData.js';
 
 export function useSchools() {
   const { refreshUser } = useAuth();
@@ -12,7 +13,7 @@ export function useSchools() {
     setError(null);
     try {
       const response = await api.get('/my-schools');
-      setSchoolUsers(response.data);
+      setSchoolUsers(asArray(response.data));
     } catch (err) {
       setError(err.response?.data?.message || 'Impossible de charger vos écoles.');
     } finally {

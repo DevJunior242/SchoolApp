@@ -20,6 +20,7 @@ import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { db } from "../offline/db.js";
+import { asArray } from "../utils/apiData.js";
 
 const EVALUATION_TYPES = [
   { value: "interrogation", label: "Interrogation" },
@@ -143,7 +144,10 @@ export default function GradeEntryPage() {
     async function loadLocalSeasons() {
       if (!schoolId) return;
 
-      const rows = await db.seasons.where("school_id").equals(schoolId).toArray();
+      const rows = await db.seasons
+        .where("school_id")
+        .equals(schoolId)
+        .toArray();
 
       if (rows.length > 0) {
         setCachedSeasons(rows);
@@ -182,7 +186,7 @@ export default function GradeEntryPage() {
 
     try {
       const response = await api.get(`/assignments/${assignmentId}/grades`);
-      const serverGrades = response.data.map((g) => ({
+      const serverGrades = asArray(response.data).map((g) => ({
         ...g,
         assignmentId,
         pending: false,
@@ -269,13 +273,16 @@ export default function GradeEntryPage() {
       // on veut quand même laisser loadGrades() et le cache élèves faire
       // leur travail plutôt que de tout interrompre au premier rejet.
       await Promise.allSettled([
-        api.get(`/assignments/${assignmentId}`).then((r) => setAssignment(r.data)),
+        api
+          .get(`/assignments/${assignmentId}`)
+          .then((r) => setAssignment(r.data)),
         api
           .get(`/assignments/${assignmentId}/students`)
           .then((r) => setStudentsData(r.data))
           .catch((err) => {
             setStudentsError(
-              err.response?.data?.message || "Impossible de charger les élèves.",
+              err.response?.data?.message ||
+                "Impossible de charger les élèves.",
             );
           }),
         loadGrades(),

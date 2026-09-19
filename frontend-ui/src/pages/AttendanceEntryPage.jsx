@@ -17,6 +17,7 @@ import { Link as RouterLink, useParams } from "react-router-dom";
 import api from "../api/axios.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { db } from "../offline/db.js";
+import { asArray } from "../utils/apiData.js";
 
 const STATUS_OPTIONS = [
   { value: 1, label: "Présent" },
@@ -209,7 +210,7 @@ export default function AttendanceEntryPage() {
         // 4. Mettre à jour React
         const map = {};
 
-        response.data.forEach((a) => {
+        asArray(response.data).forEach((a) => {
           map[a.student_id] = a.status;
         });
 
