@@ -40,6 +40,12 @@ function emptyForm() {
   };
 }
 
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+}
+
 export default function BecomeProviderPage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -47,6 +53,8 @@ export default function BecomeProviderPage() {
     enabled: Boolean(user),
   });
   const { data: plans } = useApiGet("/marketplace/plans");
+  const planOptions = asArray(plans);
+  const countryOptions = asArray(countries);
 
   const [form, setForm] = useState(emptyForm());
   const [error, setError] = useState(null);
@@ -100,10 +108,10 @@ export default function BecomeProviderPage() {
         Enseignant, formateur, chauffeur, fournisseur, imprimeur, librairie...
         apparaissez dans l'annuaire consulté par les écoles de votre pays.
       </Typography>
-      {plans?.length > 0 && (
+      {planOptions.length > 0 && (
         <Typography color="text.secondary" sx={{ mb: 3 }}>
           Abonnement :{" "}
-          {plans
+          {planOptions
             .map(
               (plan) =>
                 `${Number(plan.amount).toLocaleString()} ${plan.currency} / ${PERIOD_LABELS[plan.period] ?? plan.period}`,
@@ -205,7 +213,7 @@ export default function BecomeProviderPage() {
                   required
                   fullWidth
                 >
-                  {(countries ?? []).map((c) => (
+                  {countryOptions.map((c) => (
                     <MenuItem key={c.id} value={c.id}>
                       {c.name}
                     </MenuItem>

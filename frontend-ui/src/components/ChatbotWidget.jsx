@@ -26,6 +26,12 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axios.jsx";
 import EnrollmentRequestModal from "./EnrollmentRequestModal.jsx";
 
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+}
+
 // Réponses tirées telles quelles du contenu déjà publié sur la page (sections
 // Fonctionnalités / Notre approche / Tarifs) : pas de chiffre ni de promesse
 // inventés pour ce bot.
@@ -86,7 +92,15 @@ function BulleBot({ children }) {
       <Avatar sx={{ width: 28, height: 28, bgcolor: "primary.main" }}>
         <SmartToyIcon sx={{ fontSize: 16 }} />
       </Avatar>
-      <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "action.hover", maxWidth: "85%" }}>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 1.5,
+          borderRadius: 2,
+          bgcolor: "action.hover",
+          maxWidth: "85%",
+        }}
+      >
         <Typography variant="body2">{children}</Typography>
       </Paper>
     </Stack>
@@ -108,7 +122,8 @@ export default function ChatbotWidget() {
     setChargementEcoles(true);
     api
       .get("/schools")
-      .then((response) => setEcoles(response.data))
+      .then((response) => setEcoles(asArray(response.data)))
+      .catch(() => setEcoles([]))
       .finally(() => setChargementEcoles(false));
   }, [ouvert, ecoles.length, chargementEcoles]);
 
@@ -169,10 +184,19 @@ export default function ChatbotWidget() {
           <Stack
             direction="row"
             spacing={1}
-            sx={{ alignItems: "center", p: 2, bgcolor: "primary.main", color: "primary.contrastText" }}
+            sx={{
+              alignItems: "center",
+              p: 2,
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
+            }}
           >
             {etape !== "accueil" && (
-              <IconButton size="small" onClick={() => setEtape("accueil")} sx={{ color: "inherit" }}>
+              <IconButton
+                size="small"
+                onClick={() => setEtape("accueil")}
+                sx={{ color: "inherit" }}
+              >
                 <ArrowBackIcon fontSize="small" />
               </IconButton>
             )}
@@ -188,24 +212,51 @@ export default function ChatbotWidget() {
           <Stack spacing={2} sx={{ p: 2, overflowY: "auto", flexGrow: 1 }}>
             {etape === "accueil" && (
               <>
-                <BulleBot>Bonjour 👋 Je suis l'assistant Intellino. Comment puis-je vous aider ?</BulleBot>
+                <BulleBot>
+                  Bonjour 👋 Je suis l'assistant Intellino. Comment puis-je vous
+                  aider ?
+                </BulleBot>
                 <Stack spacing={1}>
-                  <Button variant="outlined" startIcon={<LoginIcon />} onClick={seConnecter}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<LoginIcon />}
+                    onClick={seConnecter}
+                  >
                     Se connecter à mon compte
                   </Button>
-                  <Button variant="outlined" startIcon={<SchoolIcon />} onClick={() => setEtape("ecole")}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<SchoolIcon />}
+                    onClick={() => setEtape("ecole")}
+                  >
                     Trouver l'école de mon enfant
                   </Button>
-                  <Button variant="outlined" startIcon={<AddBusinessIcon />} onClick={creerEcole}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddBusinessIcon />}
+                    onClick={creerEcole}
+                  >
                     Créer l'espace de mon établissement
                   </Button>
-                  <Button variant="outlined" startIcon={<SellIcon />} onClick={voirLesTarifs}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<SellIcon />}
+                    onClick={voirLesTarifs}
+                  >
                     Voir les tarifs
                   </Button>
-                  <Button variant="outlined" startIcon={<HelpOutlineIcon />} onClick={() => setEtape("faq")}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<HelpOutlineIcon />}
+                    onClick={() => setEtape("faq")}
+                  >
                     Questions fréquentes
                   </Button>
-                  <Button variant="outlined" startIcon={<SupportAgentIcon />} onClick={() => setEtape("humain")}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<SupportAgentIcon />}
+                    onClick={() => setEtape("humain")}
+                  >
                     Parler à un humain
                   </Button>
                 </Stack>
@@ -223,20 +274,28 @@ export default function ChatbotWidget() {
                   <Autocomplete
                     size="small"
                     options={ecoles}
-                    getOptionLabel={(s) => `${s.name}${s.city ? ` — ${s.city}` : ""}`}
+                    getOptionLabel={(s) =>
+                      `${s.name}${s.city ? ` — ${s.city}` : ""}`
+                    }
                     value={ecole}
                     onChange={(_, v) => setEcole(v)}
                     noOptionsText="Aucune école trouvée"
-                    renderInput={(params) => <TextField {...params} label="Nom de l'école" />}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Nom de l'école" />
+                    )}
                   />
                 )}
                 {ecole && (
                   <Stack spacing={1}>
                     <BulleBot>
-                      Vous pouvez envoyer une demande de pré-inscription à {ecole.name}, l'établissement vous
-                      recontactera directement.
+                      Vous pouvez envoyer une demande de pré-inscription à{" "}
+                      {ecole.name}, l'établissement vous recontactera
+                      directement.
                     </BulleBot>
-                    <Button variant="contained" onClick={() => setModalOuverte(true)}>
+                    <Button
+                      variant="contained"
+                      onClick={() => setModalOuverte(true)}
+                    >
                       Envoyer une demande de pré-inscription
                     </Button>
                   </Stack>
@@ -263,7 +322,8 @@ export default function ChatbotWidget() {
             {etape === "humain" && (
               <>
                 <BulleBot>
-                  Notre équipe vous répond sous 24h via le formulaire de contact en bas de page.
+                  Notre équipe vous répond sous 24h via le formulaire de contact
+                  en bas de page.
                 </BulleBot>
                 <Button variant="contained" onClick={allerAuContact}>
                   Aller au formulaire de contact

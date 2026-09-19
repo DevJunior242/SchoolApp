@@ -31,23 +31,76 @@ import { useApiGet } from "../hooks/useApiGet.js";
 const STEPS = ["Informations de l'école", "Activation"];
 
 const ISO3_TO_ISO2 = {
-  AGO: "AO", BEN: "BJ", BDI: "BI", BFA: "BF", BWA: "BW", CAF: "CF",
-  CIV: "CI", CMR: "CM", COD: "CD", COG: "CG", COM: "KM", CPV: "CV",
-  DJI: "DJ", DZA: "DZ", EGY: "EG", ERI: "ER", ETH: "ET", GAB: "GA",
-  GHA: "GH", GIN: "GN", GMB: "GM", GNB: "GW", GNQ: "GQ", KEN: "KE",
-  LBR: "LR", LBY: "LY", LSO: "LS", MAR: "MA", MDG: "MG", MLI: "ML",
-  MOZ: "MZ", MRT: "MR", MUS: "MU", MWI: "MW", NAM: "NA", NER: "NE",
-  NGA: "NG", RWA: "RW", SDN: "SD", SEN: "SN", SLE: "SL", SOM: "SO",
-  SSD: "SS", STP: "ST", SWZ: "SZ", SYC: "SC", TCD: "TD", TGO: "TG",
-  TUN: "TN", TZA: "TZ", UGA: "UG", ZAF: "ZA", ZMB: "ZM", ZWE: "ZW",
+  AGO: "AO",
+  BEN: "BJ",
+  BDI: "BI",
+  BFA: "BF",
+  BWA: "BW",
+  CAF: "CF",
+  CIV: "CI",
+  CMR: "CM",
+  COD: "CD",
+  COG: "CG",
+  COM: "KM",
+  CPV: "CV",
+  DJI: "DJ",
+  DZA: "DZ",
+  EGY: "EG",
+  ERI: "ER",
+  ETH: "ET",
+  GAB: "GA",
+  GHA: "GH",
+  GIN: "GN",
+  GMB: "GM",
+  GNB: "GW",
+  GNQ: "GQ",
+  KEN: "KE",
+  LBR: "LR",
+  LBY: "LY",
+  LSO: "LS",
+  MAR: "MA",
+  MDG: "MG",
+  MLI: "ML",
+  MOZ: "MZ",
+  MRT: "MR",
+  MUS: "MU",
+  MWI: "MW",
+  NAM: "NA",
+  NER: "NE",
+  NGA: "NG",
+  RWA: "RW",
+  SDN: "SD",
+  SEN: "SN",
+  SLE: "SL",
+  SOM: "SO",
+  SSD: "SS",
+  STP: "ST",
+  SWZ: "SZ",
+  SYC: "SC",
+  TCD: "TD",
+  TGO: "TG",
+  TUN: "TN",
+  TZA: "TZ",
+  UGA: "UG",
+  ZAF: "ZA",
+  ZMB: "ZM",
+  ZWE: "ZW",
 };
 
 function countryFlag(isoCode) {
   const iso2 = ISO3_TO_ISO2[isoCode];
 
   return iso2
-    ? String.fromCodePoint(...[...iso2].map((letter) => 127397 + letter.charCodeAt(0)))
+    ? String.fromCodePoint(
+        ...[...iso2].map((letter) => 127397 + letter.charCodeAt(0)),
+      )
     : "";
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
 }
 
 export default function CreateSchoolPage() {
@@ -60,12 +113,18 @@ export default function CreateSchoolPage() {
     enabled: Boolean(user),
   });
   const { data: pricingPlans } = useApiGet("/school-pricing-plans");
-  const { data: sections, error: sectionsError, loading: sectionsLoading } = useApiGet("/sections", {
+  const {
+    data: sections,
+    error: sectionsError,
+    loading: sectionsLoading,
+  } = useApiGet("/sections", {
     enabled: Boolean(user),
   });
 
   const requestedPlan = searchParams.get("plan");
-  const planOptions = (pricingPlans ?? [])
+  const countryOptions = asArray(countries);
+  const sectionOptions = asArray(sections);
+  const planOptions = asArray(pricingPlans)
     .filter((plan) => plan.monthly_enabled || plan.annual_enabled)
     .map((plan) => ({
       value: plan.id,
@@ -75,7 +134,8 @@ export default function CreateSchoolPage() {
   const requestedPlanOption = planOptions.find(
     (plan) => plan.slug === requestedPlan || plan.value === requestedPlan,
   );
-  const defaultPlanId = requestedPlanOption?.value || planOptions[0]?.value || "";
+  const defaultPlanId =
+    requestedPlanOption?.value || planOptions[0]?.value || "";
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
@@ -87,15 +147,18 @@ export default function CreateSchoolPage() {
 
   // Sélectionne toutes les sections par défaut une fois les données chargées
   useEffect(() => {
-    if (sections?.length && form.section_ids.length === 0) {
+    const availableSections = asArray(sections);
+    if (availableSections.length && form.section_ids.length === 0) {
       setForm((prev) => ({
         ...prev,
-        section_ids: sections.map((s) => s.id),
+        section_ids: availableSections
+          .map((section) => section?.id)
+          .filter(Boolean),
       }));
     }
   }, [sections]);
 
-  const selectedCountry = (countries ?? []).find(
+  const selectedCountry = asArray(countries).find(
     (country) => country.id === form.country_id,
   );
   const [activationKey, setActivationKey] = useState("");
@@ -157,9 +220,15 @@ export default function CreateSchoolPage() {
             Le superadmin de la plateforme ne peut pas créer une école.
           </Alert>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Vous êtes administrateur plateforme et avez déjà accès au back-office.
+            Vous êtes administrateur plateforme et avez déjà accès au
+            back-office.
           </Typography>
-          <Button component={RouterLink} to="/dashboard" variant="contained" fullWidth>
+          <Button
+            component={RouterLink}
+            to="/dashboard"
+            variant="contained"
+            fullWidth
+          >
             Retour au tableau de bord
           </Button>
         </Paper>
@@ -261,7 +330,7 @@ export default function CreateSchoolPage() {
                   required
                   fullWidth
                 >
-                  {(countries ?? []).map((country) => (
+                  {countryOptions.map((country) => (
                     <MenuItem key={country.id} value={country.id}>
                       {countryFlag(country.iso_code)} {country.name}
                     </MenuItem>
@@ -275,28 +344,41 @@ export default function CreateSchoolPage() {
                 >
                   <FormLabel component="legend">Sections enseignées</FormLabel>
                   <FormGroup row sx={{ mt: 0.5 }}>
-                    {(sections ?? []).map((section) => (
+                    {sectionOptions.map((section) => (
                       <FormControlLabel
                         key={section.id}
                         label={section.name}
-                        control={(
+                        control={
                           <Checkbox
-                            checked={form.section_ids.includes(section.id)}
+                            checked={
+                              Array.isArray(form.section_ids) &&
+                              form.section_ids.includes(section.id)
+                            }
                             onChange={(event) => {
                               setForm((previous) => ({
                                 ...previous,
                                 section_ids: event.target.checked
-                                  ? [...previous.section_ids, section.id]
-                                  : previous.section_ids.filter((id) => id !== section.id),
+                                  ? [
+                                      ...(Array.isArray(previous.section_ids)
+                                        ? previous.section_ids
+                                        : []),
+                                      section.id,
+                                    ]
+                                  : (Array.isArray(previous.section_ids)
+                                      ? previous.section_ids
+                                      : []
+                                    ).filter((id) => id !== section.id),
                               }));
                             }}
                           />
-                        )}
+                        }
                       />
                     ))}
                   </FormGroup>
                   <Typography variant="caption" color="text.secondary">
-                    {sectionsLoading ? "Chargement des sections..." : "Sélectionnez les sections ouvertes dans votre établissement"}
+                    {sectionsLoading
+                      ? "Chargement des sections..."
+                      : "Sélectionnez les sections ouvertes dans votre établissement"}
                   </Typography>
                 </FormControl>
 
@@ -358,8 +440,8 @@ export default function CreateSchoolPage() {
                 <Typography color="text.secondary">
                   Vous avez une clé d'activation fournie par l'équipe INTELLINO
                   ? Entrez-la ici. Sinon, laissez ce champ vide :{" "}
-                  <strong>{form.name}</strong> démarrer avec un essai gratuit
-                  de 30 jours, sans engagement.
+                  <strong>{form.name}</strong> démarrer avec un essai gratuit de
+                  30 jours, sans engagement.
                 </Typography>
                 <TextField
                   label="Clé d'activation (optionnel)"
