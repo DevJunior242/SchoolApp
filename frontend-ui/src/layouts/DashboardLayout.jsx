@@ -1006,14 +1006,17 @@ export default function DashboardLayout() {
     );
   }
 
-  if (location.pathname === "/dashboard" && currentSchool) {
+  if (
+    location.pathname === "/dashboard" &&
+    (currentSchool || isSuperAdmin || isPrestataire)
+  ) {
     return <Outlet />;
   }
 
-  const canUseWithoutSchool = [
-    "/dashboard/profile",
-    "/dashboard/security",
-  ].includes(location.pathname);
+  const canUseWithoutSchool =
+    isSuperAdmin ||
+    isPrestataire ||
+    ["/dashboard/profile", "/dashboard/security"].includes(location.pathname);
 
   return (
     <Box
