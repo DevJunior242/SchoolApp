@@ -15,6 +15,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { alpha } from "@mui/material/styles";
 import { Link as RouterLink } from "react-router-dom";
 import { useApiGet } from "../hooks/useApiGet.js";
+import { asArray } from "../utils/apiData.js";
 
 const INCLUDED_EVERYWHERE = [
   "Interface en français, ressources en mooré et dioula",
@@ -47,7 +48,7 @@ const FAQ = [
 export default function PricingPage() {
   const { data: remotePlans, loading } = useApiGet("/school-pricing-plans");
   const [billingCycle, setBillingCycle] = useState("monthly");
-  const plans = (remotePlans ?? []).map((plan) => ({
+  const plans = asArray(remotePlans).map((plan) => ({
     id: plan.slug,
     name: plan.name,
     for: plan.max_staff_accounts

@@ -29,6 +29,7 @@ import { useApiGet } from "../hooks/useApiGet.js";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useAuth } from "../context/AuthContext";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
+import { asArray } from "../utils/apiData.js";
 
 export default function DashboardClassesPage() {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ export default function DashboardClassesPage() {
     enabled: Boolean(user),
   });
   const membership = useMemo(
-    () => (memberships ?? []).find((item) => item.school_id === schoolId),
+    () => asArray(memberships).find((item) => item.school_id === schoolId),
     [memberships, schoolId],
   );
   const { isAdmin, isPrincipalAdmin, isGeneralAdmin, assignedSectionIds } =
@@ -83,7 +84,7 @@ export default function DashboardClassesPage() {
           ? assignedSectionIds
           : activeSectionIds;
 
-    return (levels ?? []).filter(
+    return asArray(levels).filter(
       (level) =>
         activeSectionIds.includes(level.section_id) &&
         allowedSectionIds.includes(level.section_id),
@@ -101,7 +102,7 @@ export default function DashboardClassesPage() {
     canManageClasses && schoolId ? `/schools/${schoolId}/teachers` : null,
     { params: { per_page: 100 } },
   );
-  const teachers = teachersData?.data ?? [];
+  const teachers = asArray(teachersData);
   const {
     data: subjects,
     error: subjectsError,

@@ -27,6 +27,7 @@ import {
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
+import { asArray } from "../utils/apiData.js";
 
 const STEPS = ["Informations de l'école", "Activation"];
 
@@ -95,12 +96,6 @@ function countryFlag(isoCode) {
         ...[...iso2].map((letter) => 127397 + letter.charCodeAt(0)),
       )
     : "";
-}
-
-function asArray(value) {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  return [];
 }
 
 export default function CreateSchoolPage() {

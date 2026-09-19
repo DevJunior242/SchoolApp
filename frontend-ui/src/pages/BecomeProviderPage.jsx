@@ -16,6 +16,7 @@ import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
+import { asArray, getApiErrorMessage } from "../utils/apiData.js";
 
 const PERIOD_LABELS = { 1: "mois", 2: "an" };
 
@@ -38,12 +39,6 @@ function emptyForm() {
     phone: "",
     email: "",
   };
-}
-
-function asArray(value) {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  return [];
 }
 
 export default function BecomeProviderPage() {
@@ -87,12 +82,8 @@ export default function BecomeProviderPage() {
         );
         return;
       }
-      const messages = err.response?.data?.errors;
       setError(
-        messages
-          ? Object.values(messages).flat().join(" ")
-          : err.response?.data?.message ||
-              "Impossible d'envoyer l'inscription.",
+        getApiErrorMessage(err, "Impossible d'envoyer l'inscription."),
       );
     } finally {
       setSubmitting(false);

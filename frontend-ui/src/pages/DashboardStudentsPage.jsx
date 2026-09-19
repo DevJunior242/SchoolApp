@@ -38,6 +38,7 @@ import { useApiGet } from "../hooks/useApiGet.js";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useSchools } from "../hooks/useSchools.js";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
+import { asArray } from "../utils/apiData.js";
 
 const RELATIONSHIPS = [
   { value: "pere", label: "Père" },
@@ -121,11 +122,12 @@ export default function DashboardStudentsPage() {
       params: { per_page: 1000 },
     },
   );
-  const classes = classesData?.data ?? [];
+  const classes = asArray(classesData);
 
   const { data: buses } = useApiGet(
     canAssignBus && schoolId ? `/schools/${schoolId}/buses` : null,
   );
+  const busList = asArray(buses);
   const [busDialogStudent, setBusDialogStudent] = useState(null);
   const [selectedStopId, setSelectedStopId] = useState("");
   const [busSubmitting, setBusSubmitting] = useState(false);
@@ -708,7 +710,7 @@ export default function DashboardStudentsPage() {
               helperText="Laissez vide si l'élève ne prend pas le bus scolaire"
             >
               <MenuItem value="">Aucun</MenuItem>
-              {(buses ?? []).flatMap((bus) =>
+              {busList.flatMap((bus) =>
                 (bus.stops ?? []).map((stop) => (
                   <MenuItem key={stop.id} value={stop.id}>
                     {bus.label} — {stop.label}

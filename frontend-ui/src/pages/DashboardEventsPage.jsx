@@ -27,6 +27,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
+import { asArray } from "../utils/apiData.js";
 
 const MANAGER_ROLE_SLUGS = ["admin", "censeur", "secretaire"];
 
@@ -66,7 +67,7 @@ export default function DashboardEventsPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
   const { schoolUsers } = useSchools();
-  const currentMembership = schoolUsers.find(
+  const currentMembership = asArray(schoolUsers).find(
     (membership) => membership.school?.id === schoolId,
   );
   const { roleSlug } = getSchoolAdminAccess(currentMembership);
@@ -78,6 +79,7 @@ export default function DashboardEventsPage() {
     error,
     reload,
   } = useApiGet(schoolId ? `/schools/${schoolId}/events` : null);
+  const eventList = asArray(events);
   const { data: classesData } = useApiGet(
     schoolId ? `/schools/${schoolId}/classes` : null,
     {
@@ -85,7 +87,7 @@ export default function DashboardEventsPage() {
       enabled: canManage,
     },
   );
-  const classes = classesData?.data ?? [];
+  const classes = asArray(classesData);
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm());
@@ -220,7 +222,7 @@ export default function DashboardEventsPage() {
         </Typography>
       ) : (
         <Stack spacing={1.5} sx={{ mt: 3 }}>
-          {(events ?? []).map((ev, i) => (
+          {eventList.map((ev, i) => (
             <motion.div
               key={ev.id}
               initial={{ opacity: 0, y: 10 }}
@@ -301,7 +303,7 @@ export default function DashboardEventsPage() {
               </Card>
             </motion.div>
           ))}
-          {(events ?? []).length === 0 && (
+          {eventList.length === 0 && (
             <Typography color="text.secondary">
               Aucun événement pour l'instant.
             </Typography>

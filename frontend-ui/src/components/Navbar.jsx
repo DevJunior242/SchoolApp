@@ -21,6 +21,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useThemeMode } from "../context/ThemeModeContext.jsx";
 import intellinoMark from "../assets/intellino-mark.svg";
+import { asArray } from "../utils/apiData.js";
 
 const SECTION_LINKS = [{ label: "Fonctionnalités", id: "features" }];
 
@@ -51,7 +52,8 @@ export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const currentSchoolUser = (schoolUsers ?? []).find(
+  const schoolUserList = asArray(schoolUsers);
+  const currentSchoolUser = schoolUserList.find(
     (schoolUser) => schoolUser.school?.id === user?.current_school_id,
   );
   const dashboardPath =

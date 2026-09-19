@@ -1,8 +1,18 @@
-import { Alert, Box, Card, CardContent, Chip, IconButton, Stack, Typography } from '@mui/material';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
-import api from '../api/axios.jsx';
-import { useApiGet } from '../hooks/useApiGet.js';
+import {
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  Stack,
+  Typography,
+} from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import api from "../api/axios.jsx";
+import { useApiGet } from "../hooks/useApiGet.js";
+import { asArray } from "../utils/apiData.js";
 
 /**
  * Recharges de portefeuille cantine en attente de confirmation. Partagé
@@ -13,21 +23,29 @@ import { useApiGet } from '../hooks/useApiGet.js';
  * lui-même reçue.
  */
 export default function CafeteriaRechargesTab({ schoolId }) {
-  const { data, loading, error, reload } = useApiGet(schoolId ? `/schools/${schoolId}/cafeteria/wallet-transactions` : null, {
-    params: { status: 0 },
-  });
+  const { data, loading, error, reload } = useApiGet(
+    schoolId ? `/schools/${schoolId}/cafeteria/wallet-transactions` : null,
+    {
+      params: { status: 0 },
+    },
+  );
 
   async function handleConfirm(id) {
-    await api.post(`/schools/${schoolId}/cafeteria/wallet-transactions/${id}/confirm`);
+    await api.post(
+      `/schools/${schoolId}/cafeteria/wallet-transactions/${id}/confirm`,
+    );
     await reload();
   }
 
   async function handleReject(id) {
-    await api.post(`/schools/${schoolId}/cafeteria/wallet-transactions/${id}/reject`);
+    await api.post(
+      `/schools/${schoolId}/cafeteria/wallet-transactions/${id}/reject`,
+    );
     await reload();
   }
 
-  if (loading) return <Typography color="text.secondary">Chargement...</Typography>;
+  if (loading)
+    return <Typography color="text.secondary">Chargement...</Typography>;
 
   if (error) {
     return (
@@ -37,18 +55,21 @@ export default function CafeteriaRechargesTab({ schoolId }) {
     );
   }
 
-  const transactions = data?.data ?? [];
+  const transactions = asArray(data);
 
   return (
     <Stack spacing={1.5}>
       {transactions.map((t) => (
         <Card key={t.id} variant="outlined">
-          <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="subtitle2">{t.wallet?.student?.fullname}</Typography>
+              <Typography variant="subtitle2">
+                {t.wallet?.student?.fullname}
+              </Typography>
               <Typography variant="body2" color="text.secondary">
-                {Number(t.amount).toLocaleString()} FCFA · {t.payment_method?.name}
-                {t.transaction_id ? ` · Réf. ${t.transaction_id}` : ''}
+                {Number(t.amount).toLocaleString()} FCFA ·{" "}
+                {t.payment_method?.name}
+                {t.transaction_id ? ` · Réf. ${t.transaction_id}` : ""}
               </Typography>
             </Box>
             <Chip label="En attente" color="warning" size="small" />
@@ -61,7 +82,11 @@ export default function CafeteriaRechargesTab({ schoolId }) {
           </CardContent>
         </Card>
       ))}
-      {transactions.length === 0 && <Typography color="text.secondary">Aucune recharge en attente.</Typography>}
+      {transactions.length === 0 && (
+        <Typography color="text.secondary">
+          Aucune recharge en attente.
+        </Typography>
+      )}
     </Stack>
   );
 }

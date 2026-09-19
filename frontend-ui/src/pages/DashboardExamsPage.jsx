@@ -21,6 +21,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
+import { asArray } from "../utils/apiData.js";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -116,11 +117,11 @@ export default function DashboardExamsPage() {
   const [programMessage, setProgramMessage] = useState(null);
   const [programSavingId, setProgramSavingId] = useState(null);
 
-  const examTypes = examTypesQuery.data ?? [];
-  const schoolYears = schoolYearsQuery.data ?? [];
-  const exams = examsQuery.data ?? [];
-  const classes = classesQuery.data?.data ?? [];
-  const subjects = subjectsQuery.data ?? [];
+  const examTypes = asArray(examTypesQuery.data);
+  const schoolYears = asArray(schoolYearsQuery.data);
+  const exams = asArray(examsQuery.data);
+  const classes = asArray(classesQuery.data);
+  const subjects = asArray(subjectsQuery.data);
   const filteredExams =
     examModeFilter === "all"
       ? exams
@@ -191,7 +192,7 @@ export default function DashboardExamsPage() {
           `/schools/${schoolId}/exams/${exam.id}/candidates/${candidate.id}/subjects`,
         );
 
-        const matchingSubject = (response.data ?? []).find(
+        const matchingSubject = asArray(response.data).find(
           (item) => item.exam_subject_id === subjectId,
         );
 

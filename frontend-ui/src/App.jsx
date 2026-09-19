@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RoleProtectedRoute from "./components/RoleProtectedRoute.jsx";
 import GuestRoute from "./components/GuestRoute.jsx";
+import AppErrorBoundary from "./components/AppErrorBoundary.jsx";
 
 const PublicLayout = lazy(() => import("./layouts/PublicLayout.jsx"));
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
@@ -196,175 +197,192 @@ function RouteFallback() {
 
 function App() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Routes>
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/create-school" element={<CreateSchoolPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route
-            path="/login"
-            element={
-              <GuestRoute>
-                <LoginPage />
-              </GuestRoute>
-            }
-          />
+    <AppErrorBoundary>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/create-school" element={<CreateSchoolPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route
+              path="/login"
+              element={
+                <GuestRoute>
+                  <LoginPage />
+                </GuestRoute>
+              }
+            />
+
+            <Route
+              path="/register"
+              element={
+                <GuestRoute>
+                  <RegisterPage />
+                </GuestRoute>
+              }
+            />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route
+              path="/devenir-prestataire"
+              element={<BecomeProviderPage />}
+            />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
 
           <Route
-            path="/register"
+            path="/dashboard"
             element={
-              <GuestRoute>
-                <RegisterPage />
-              </GuestRoute>
+              <ProtectedRoute>
+                <RoleProtectedRoute>
+                  <DashboardLayout />
+                </RoleProtectedRoute>
+              </ProtectedRoute>
             }
-          />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/devenir-prestataire" element={<BecomeProviderPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <RoleProtectedRoute>
-                <DashboardLayout />
-              </RoleProtectedRoute>
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<DashboardOverviewPage />} />
-          <Route path="admin" element={<AdminDashboardPage />} />
-          <Route path="schools" element={<DashboardSchoolsPage />} />
-          <Route path="comptable" element={<DashboardComptablePage />} />
-          <Route path="members" element={<DashboardMembersPage />} />
-          <Route path="teachers" element={<DashboardTeachersPage />} />
-          <Route path="hr" element={<DashboardHrPage />} />
-          <Route path="hr/leaves" element={<DashboardHrPage />} />
-          <Route path="hr/payroll" element={<DashboardPayrollPage />} />
-          <Route path="hr/attendance" element={<DashboardHrAttendancePage />} />
-          <Route path="my-attendance" element={<DashboardMyAttendancePage />} />
-          <Route path="my-payroll" element={<MyPayrollPage />} />
-          <Route path="classes" element={<DashboardClassesPage />} />
-          <Route path="students" element={<DashboardStudentsPage />} />
-          <Route path="exams" element={<DashboardExamsPage />} />
-          <Route
-            path="classes/:classId/timetable"
-            element={<DashboardTimetablePage />}
-          />
-          <Route path="my-assignments" element={<TeacherAssignmentsPage />} />
-          <Route
-            path="assignments/:assignmentId/grades"
-            element={<GradeEntryPage />}
-          />
-          <Route
-            path="students/:studentId/bulletin"
-            element={<BulletinPage />}
-          />
-          <Route
-            path="students/:studentId/health"
-            element={<StudentHealthPage />}
-          />
-          <Route
-            path="students/:studentId/wallet"
-            element={<StudentWalletPage />}
-          />
-          <Route
-            path="students/:studentId/qr-badge"
-            element={<StudentQrBadgePage />}
-          />
-          <Route
-            path="my-children-cafeteria"
-            element={<ParentCafeteriaPage />}
-          />
-          <Route path="my-badge" element={<StudentSelfBadgePage />} />
-          <Route path="my-wallet" element={<StudentSelfWalletPage />} />
-          <Route path="my-bulletin" element={<StudentSelfBulletinPage />} />
-          <Route path="buses" element={<DashboardBusesPage />} />
-          <Route path="my-bus-trip" element={<BusDriverTripPage />} />
-          <Route path="my-children-bus" element={<ParentBusTrackingPage />} />
-          <Route path="library" element={<DashboardLibraryPage />} />
-          <Route path="my-library" element={<MyLibraryPage />} />
-          <Route path="my-children-library" element={<ParentLibraryPage />} />
-          <Route
-            path="assignments/:assignmentId/course-contents"
-            element={<AssignmentCourseContentPage />}
-          />
-          <Route path="my-courses" element={<MyCoursesPage />} />
-          <Route path="my-children-courses" element={<ParentCoursesPage />} />
-          <Route path="marketplace" element={<DashboardMarketplacePage />} />
-          <Route
-            path="marketplace-moderation"
-            element={<SuperAdminMarketplacePage />}
-          />
-          <Route path="my-marketplace-items" element={<ProviderItemsPage />} />
-          <Route path="ai-assistant" element={<DashboardAiAssistantPage />} />
-          <Route
-            path="my-children-ai-assistant"
-            element={<ParentAiAssistantPage />}
-          />
-          <Route path="cafeteria" element={<DashboardCafeteriaPage />} />
-          <Route path="health" element={<HealthDashboardPage />} />
-          <Route path="parents" element={<DashboardParentsPage />} />
-          <Route path="payments" element={<DashboardPaymentsPage />} />
-          <Route path="expenses" element={<DashboardExpensesPage />} />
-          <Route path="treasury" element={<DashboardTreasuryPage />} />
-          <Route path="accounting" element={<DashboardAccountingPage />} />
-          <Route path="my-children-payments" element={<ParentPaymentsPage />} />
-          <Route
-            path="assignments/:assignmentId/attendances"
-            element={<AttendanceEntryPage />}
-          />
-          <Route
-            path="my-children-attendances"
-            element={<ParentAttendancePage />}
-          />
-          <Route
-            path="my-children-bulletins"
-            element={<ParentBulletinsPage />}
-          />
-          <Route
-            path="attendance-justifications"
-            element={<AttendanceJustificationsPage />}
-          />
-          <Route path="my-timetable" element={<TeacherTimetablePage />} />
-          <Route path="events" element={<DashboardEventsPage />} />
-          <Route path="events/:eventId/recap" element={<EventRecapPage />} />
-          <Route
-            path="enrollment-requests"
-            element={<DashboardEnrollmentRequestsPage />}
-          />
-          <Route path="settings" element={<DashboardSettingsPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="security" element={<AccountSecurityPage />} />
-          <Route path="school-year" element={<DashboardSchoolYearPage />} />
-          <Route path="messages" element={<DashboardMessagesPage />} />
-          <Route
-            path="activation-keys"
-            element={<SuperAdminActivationKeysPage />}
-          />
-          <Route path="all-schools" element={<SuperAdminSchoolsPage />} />
-          <Route
-            path="school-pricing-plans"
-            element={<SuperAdminSchoolPricingPlansPage />}
-          />
-          <Route
-            path="school-subscriptions"
-            element={<SuperAdminSchoolSubscriptionsPage />}
-          />
-          <Route
-            path="demo-requests"
-            element={<SuperAdminDemoRequestsPage />}
-          />
-        </Route>
-      </Routes>
-    </Suspense>
+          >
+            <Route index element={<DashboardOverviewPage />} />
+            <Route path="admin" element={<AdminDashboardPage />} />
+            <Route path="schools" element={<DashboardSchoolsPage />} />
+            <Route path="comptable" element={<DashboardComptablePage />} />
+            <Route path="members" element={<DashboardMembersPage />} />
+            <Route path="teachers" element={<DashboardTeachersPage />} />
+            <Route path="hr" element={<DashboardHrPage />} />
+            <Route path="hr/leaves" element={<DashboardHrPage />} />
+            <Route path="hr/payroll" element={<DashboardPayrollPage />} />
+            <Route
+              path="hr/attendance"
+              element={<DashboardHrAttendancePage />}
+            />
+            <Route
+              path="my-attendance"
+              element={<DashboardMyAttendancePage />}
+            />
+            <Route path="my-payroll" element={<MyPayrollPage />} />
+            <Route path="classes" element={<DashboardClassesPage />} />
+            <Route path="students" element={<DashboardStudentsPage />} />
+            <Route path="exams" element={<DashboardExamsPage />} />
+            <Route
+              path="classes/:classId/timetable"
+              element={<DashboardTimetablePage />}
+            />
+            <Route path="my-assignments" element={<TeacherAssignmentsPage />} />
+            <Route
+              path="assignments/:assignmentId/grades"
+              element={<GradeEntryPage />}
+            />
+            <Route
+              path="students/:studentId/bulletin"
+              element={<BulletinPage />}
+            />
+            <Route
+              path="students/:studentId/health"
+              element={<StudentHealthPage />}
+            />
+            <Route
+              path="students/:studentId/wallet"
+              element={<StudentWalletPage />}
+            />
+            <Route
+              path="students/:studentId/qr-badge"
+              element={<StudentQrBadgePage />}
+            />
+            <Route
+              path="my-children-cafeteria"
+              element={<ParentCafeteriaPage />}
+            />
+            <Route path="my-badge" element={<StudentSelfBadgePage />} />
+            <Route path="my-wallet" element={<StudentSelfWalletPage />} />
+            <Route path="my-bulletin" element={<StudentSelfBulletinPage />} />
+            <Route path="buses" element={<DashboardBusesPage />} />
+            <Route path="my-bus-trip" element={<BusDriverTripPage />} />
+            <Route path="my-children-bus" element={<ParentBusTrackingPage />} />
+            <Route path="library" element={<DashboardLibraryPage />} />
+            <Route path="my-library" element={<MyLibraryPage />} />
+            <Route path="my-children-library" element={<ParentLibraryPage />} />
+            <Route
+              path="assignments/:assignmentId/course-contents"
+              element={<AssignmentCourseContentPage />}
+            />
+            <Route path="my-courses" element={<MyCoursesPage />} />
+            <Route path="my-children-courses" element={<ParentCoursesPage />} />
+            <Route path="marketplace" element={<DashboardMarketplacePage />} />
+            <Route
+              path="marketplace-moderation"
+              element={<SuperAdminMarketplacePage />}
+            />
+            <Route
+              path="my-marketplace-items"
+              element={<ProviderItemsPage />}
+            />
+            <Route path="ai-assistant" element={<DashboardAiAssistantPage />} />
+            <Route
+              path="my-children-ai-assistant"
+              element={<ParentAiAssistantPage />}
+            />
+            <Route path="cafeteria" element={<DashboardCafeteriaPage />} />
+            <Route path="health" element={<HealthDashboardPage />} />
+            <Route path="parents" element={<DashboardParentsPage />} />
+            <Route path="payments" element={<DashboardPaymentsPage />} />
+            <Route path="expenses" element={<DashboardExpensesPage />} />
+            <Route path="treasury" element={<DashboardTreasuryPage />} />
+            <Route path="accounting" element={<DashboardAccountingPage />} />
+            <Route
+              path="my-children-payments"
+              element={<ParentPaymentsPage />}
+            />
+            <Route
+              path="assignments/:assignmentId/attendances"
+              element={<AttendanceEntryPage />}
+            />
+            <Route
+              path="my-children-attendances"
+              element={<ParentAttendancePage />}
+            />
+            <Route
+              path="my-children-bulletins"
+              element={<ParentBulletinsPage />}
+            />
+            <Route
+              path="attendance-justifications"
+              element={<AttendanceJustificationsPage />}
+            />
+            <Route path="my-timetable" element={<TeacherTimetablePage />} />
+            <Route path="events" element={<DashboardEventsPage />} />
+            <Route path="events/:eventId/recap" element={<EventRecapPage />} />
+            <Route
+              path="enrollment-requests"
+              element={<DashboardEnrollmentRequestsPage />}
+            />
+            <Route path="settings" element={<DashboardSettingsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="security" element={<AccountSecurityPage />} />
+            <Route path="school-year" element={<DashboardSchoolYearPage />} />
+            <Route path="messages" element={<DashboardMessagesPage />} />
+            <Route
+              path="activation-keys"
+              element={<SuperAdminActivationKeysPage />}
+            />
+            <Route path="all-schools" element={<SuperAdminSchoolsPage />} />
+            <Route
+              path="school-pricing-plans"
+              element={<SuperAdminSchoolPricingPlansPage />}
+            />
+            <Route
+              path="school-subscriptions"
+              element={<SuperAdminSchoolSubscriptionsPage />}
+            />
+            <Route
+              path="demo-requests"
+              element={<SuperAdminDemoRequestsPage />}
+            />
+          </Route>
+        </Routes>
+      </Suspense>
+    </AppErrorBoundary>
   );
 }
 

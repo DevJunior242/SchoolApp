@@ -25,12 +25,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutlineOutlined";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios.jsx";
 import EnrollmentRequestModal from "./EnrollmentRequestModal.jsx";
-
-function asArray(value) {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  return [];
-}
+import { asArray } from "../utils/apiData.js";
 
 // Réponses tirées telles quelles du contenu déjà publié sur la page (sections
 // Fonctionnalités / Notre approche / Tarifs) : pas de chiffre ni de promesse

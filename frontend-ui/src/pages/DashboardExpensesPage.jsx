@@ -33,6 +33,7 @@ import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
+import { asArray } from "../utils/apiData.js";
 
 const STATUS_LABELS = {
   0: { label: "En attente", color: "warning" },
@@ -69,7 +70,7 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
   const { user } = useAuth();
   const schoolId = user?.current_school_id;
   const { schoolUsers } = useSchools();
-  const currentMembership = schoolUsers.find(
+  const currentMembership = asArray(schoolUsers).find(
     (su) => su?.school?.id === schoolId,
   );
   const { roleSlug, hasGlobalAdminAccess } =
@@ -88,23 +89,23 @@ export default function DashboardExpensesPage({ embedded = false } = {}) {
   const { data: categoriesData, reload: reloadCategories } = useApiGet(
     schoolId ? `/schools/${schoolId}/expense-categories` : null,
   );
-  const categories = categoriesData ?? [];
+  const categories = asArray(categoriesData);
 
   const { data: accountsData } = useApiGet(
     schoolId ? `/schools/${schoolId}/treasury-accounts` : null,
   );
-  const accounts = accountsData ?? [];
+  const accounts = asArray(accountsData);
 
   const { data: methodsData } = useApiGet(
     schoolId ? `/schools/${schoolId}/payment-methods` : null,
   );
-  const methods = methodsData ?? [];
+  const methods = asArray(methodsData);
 
   const { data: recentData, reload: reloadRecent } = useApiGet(
     schoolId ? `/schools/${schoolId}/expenses` : null,
     { params: { status: 1, per_page: 6 } },
   );
-  const recentExpenses = recentData?.data ?? [];
+  const recentExpenses = asArray(recentData);
 
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);

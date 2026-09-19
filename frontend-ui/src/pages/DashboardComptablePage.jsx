@@ -15,6 +15,7 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
+import { asArray } from "../utils/apiData.js";
 
 function fmt(value) {
   return `${Number(value ?? 0).toLocaleString("fr-FR")} FCFA`;
@@ -93,10 +94,10 @@ export default function DashboardComptablePage() {
     },
   );
 
-  const accounts = accountsData ?? [];
-  const confirmedPayments = confirmedPaymentsData?.data ?? [];
-  const confirmedExpenses = confirmedExpensesData?.data ?? [];
-  const pendingPayments = pendingPaymentsData?.data ?? [];
+  const accounts = asArray(accountsData);
+  const confirmedPayments = asArray(confirmedPaymentsData);
+  const confirmedExpenses = asArray(confirmedExpensesData);
+  const pendingPayments = asArray(pendingPaymentsData);
 
   const caisseTotal = accounts
     .filter((account) => account.type === "CASH")

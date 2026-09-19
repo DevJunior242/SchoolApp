@@ -12,6 +12,7 @@ import {
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import QrScanner from "qr-scanner";
 import api from "../api/axios.jsx";
+import { asArray } from "../utils/apiData.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function DashboardMyAttendancePage() {
@@ -35,7 +36,7 @@ export default function DashboardMyAttendancePage() {
         api.get(`/schools/${schoolId}/my-attendance/history`),
       ]);
       setStatus(todayResponse.data);
-      setHistory(historyResponse.data ?? []);
+      setHistory(asArray(historyResponse.data));
     } catch (requestError) {
       setError(
         requestError.response?.data?.message ||
@@ -58,7 +59,7 @@ export default function DashboardMyAttendancePage() {
 
         if (!cancelled) {
           setStatus(todayResponse.data);
-          setHistory(historyResponse.data ?? []);
+          setHistory(asArray(historyResponse.data));
         }
       } catch (requestError) {
         if (!cancelled) {

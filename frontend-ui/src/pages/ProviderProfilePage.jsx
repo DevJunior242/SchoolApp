@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import api from "../api/axios.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
+import { asArray } from "../utils/apiData.js";
 import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 
 const CATEGORY_LABELS = {
@@ -52,6 +53,9 @@ export default function ProviderProfilePage() {
     params: { type: PLAN_TYPE_BOOST },
   });
   const { data: methods } = useApiGet("/marketplace/payment-methods");
+  const planOptions = asArray(plans);
+  const boostPlanOptions = asArray(boostPlans);
+  const paymentMethods = asArray(methods);
 
   const [form, setForm] = useState(null);
   const [initialized, setInitialized] = useState(false);
@@ -71,8 +75,10 @@ export default function ProviderProfilePage() {
   const [boostReporting, setBoostReporting] = useState(false);
   const [boostReportError, setBoostReportError] = useState(null);
 
-  const selectedMethod = methods?.find((m) => m.id === methodId);
-  const selectedBoostMethod = methods?.find((m) => m.id === boostMethodId);
+  const selectedMethod = paymentMethods.find((m) => m.id === methodId);
+  const selectedBoostMethod = paymentMethods.find(
+    (m) => m.id === boostMethodId,
+  );
 
   // Ajustement pendant le rendu : initialise le formulaire une fois la
   // fiche chargée, sans écraser une saisie en cours.
@@ -328,14 +334,14 @@ export default function ProviderProfilePage() {
                   required
                   fullWidth
                 >
-                  {(plans ?? []).map((plan) => (
+                  {planOptions.map((plan) => (
                     <MenuItem key={plan.id} value={plan.id}>
                       {PERIOD_LABELS[plan.period] ?? plan.period} —{" "}
                       {Number(plan.amount).toLocaleString()} {plan.currency}
                     </MenuItem>
                   ))}
                 </TextField>
-                {(plans ?? []).length === 0 && (
+                {planOptions.length === 0 && (
                   <Alert severity="warning">
                     Aucune formule disponible pour l'instant, revenez plus tard.
                   </Alert>
@@ -463,14 +469,14 @@ export default function ProviderProfilePage() {
                   required
                   fullWidth
                 >
-                  {(boostPlans ?? []).map((plan) => (
+                  {boostPlanOptions.map((plan) => (
                     <MenuItem key={plan.id} value={plan.id}>
                       {plan.duration_days} jours —{" "}
                       {Number(plan.amount).toLocaleString()} {plan.currency}
                     </MenuItem>
                   ))}
                 </TextField>
-                {(boostPlans ?? []).length === 0 && (
+                {boostPlanOptions.length === 0 && (
                   <Alert severity="warning">
                     Aucune formule de boost disponible pour l'instant, revenez
                     plus tard.

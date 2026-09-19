@@ -37,6 +37,7 @@ import directionImg from "../assets/characters/direction.webp";
 import enseignantImg from "../assets/characters/enseignant.webp";
 import parentsImg from "../assets/characters/parents.webp";
 import eleveImg from "../assets/characters/eleve.webp";
+import { asArray } from "../utils/apiData.js";
 
 const modules = [
   {
@@ -1001,11 +1002,7 @@ export default function HomePageRedesign() {
 function SchoolsSection() {
   const { data: schools } = useApiGet("/schools");
   const [selectedSchool, setSelectedSchool] = useState(null);
-  const schoolList = Array.isArray(schools)
-    ? schools
-    : Array.isArray(schools?.data)
-      ? schools.data
-      : [];
+  const schoolList = asArray(schools);
 
   if (schoolList.length === 0) return null;
 

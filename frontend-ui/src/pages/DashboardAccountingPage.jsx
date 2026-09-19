@@ -31,6 +31,7 @@ import DashboardExpensesPage from "./DashboardExpensesPage.jsx";
 import DashboardTreasuryPage from "./DashboardTreasuryPage.jsx";
 import CafeteriaRechargesTab from "../components/CafeteriaRechargesTab.jsx";
 import api from "../api/axios.jsx";
+import { asArray } from "../utils/apiData.js";
 
 function fmt(n) {
   return `${Number(n ?? 0).toLocaleString()} FCFA`;
@@ -69,7 +70,7 @@ function AccountingDashboardTab({ schoolId }) {
   const { data: accountsData } = useApiGet(
     schoolId ? `/schools/${schoolId}/treasury-accounts` : null,
   );
-  const accounts = accountsData ?? [];
+  const accounts = asArray(accountsData);
   const caisseTotal = accounts
     .filter((a) => a.type === "CASH")
     .reduce((sum, a) => sum + Number(a?.balance ?? 0), 0);
@@ -83,7 +84,7 @@ function AccountingDashboardTab({ schoolId }) {
       params: { status: 0, per_page: 6 },
     },
   );
-  const pending = pendingData?.data ?? [];
+  const pending = asArray(pendingData);
 
   const { data: expensesData } = useApiGet(
     schoolId ? `/schools/${schoolId}/expenses` : null,
@@ -91,7 +92,7 @@ function AccountingDashboardTab({ schoolId }) {
       params: { status: 1, per_page: 100 },
     },
   );
-  const monthExpenses = (expensesData?.data ?? []).filter((e) =>
+  const monthExpenses = asArray(expensesData).filter((e) =>
     isThisMonth(e?.expense_date),
   );
   const byCategory = {};
@@ -250,7 +251,7 @@ function AccountingReportsTab({ schoolId }) {
       params: { status: 1, per_page: 200 },
     },
   );
-  const payments = paymentsData?.data ?? [];
+  const payments = asArray(paymentsData);
 
   const { data: expensesData } = useApiGet(
     schoolId ? `/schools/${schoolId}/expenses` : null,
@@ -258,7 +259,7 @@ function AccountingReportsTab({ schoolId }) {
       params: { status: 1, per_page: 200 },
     },
   );
-  const expenses = expensesData?.data ?? [];
+  const expenses = asArray(expensesData);
 
   const { data: summary } = useApiGet(
     schoolId ? `/schools/${schoolId}/dashboard-summary` : null,
@@ -266,7 +267,7 @@ function AccountingReportsTab({ schoolId }) {
   const { data: accountsData } = useApiGet(
     schoolId ? `/schools/${schoolId}/treasury-accounts` : null,
   );
-  const accounts = accountsData ?? [];
+  const accounts = asArray(accountsData);
 
   const REPORTS = [
     {

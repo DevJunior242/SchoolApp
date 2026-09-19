@@ -22,6 +22,7 @@ import {
 import QrCode2Icon from "@mui/icons-material/QrCode2";
 import EditIcon from "@mui/icons-material/Edit";
 import api from "../api/axios.jsx";
+import { asArray } from "../utils/apiData.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -51,7 +52,7 @@ export default function DashboardHrAttendancePage() {
     const response = await api.get(`/schools/${schoolId}/hr/attendance`, {
       params: { date },
     });
-    setRecords(response.data ?? []);
+    setRecords(asArray(response.data));
   }
 
   async function generateQr() {
@@ -70,7 +71,7 @@ export default function DashboardHrAttendancePage() {
     api
       .get(`/schools/${schoolId}/hr/attendance`, { params: { date } })
       .then((response) => {
-        if (!cancelled) setRecords(response.data ?? []);
+        if (!cancelled) setRecords(asArray(response.data));
       })
       .catch((requestError) => {
         if (!cancelled)

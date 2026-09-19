@@ -19,6 +19,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
+import { asArray } from "../utils/apiData.js";
 
 function formatDate(d) {
   return d ? new Date(d).toLocaleDateString("fr-FR") : "—";
@@ -37,6 +38,7 @@ export default function DashboardSchoolYearPage() {
     error,
     reload,
   } = useApiGet(schoolId ? `/schools/${schoolId}/school-years` : null);
+  const schoolYears = asArray(years);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -113,8 +115,8 @@ export default function DashboardSchoolYearPage() {
 
   if (loading) return <p>Chargement...</p>;
 
-  const currentYear = (years ?? []).find((y) => y.is_current);
-  const pastYears = (years ?? []).filter((y) => !y.is_current);
+  const currentYear = schoolYears.find((y) => y.is_current);
+  const pastYears = schoolYears.filter((y) => !y.is_current);
 
   return (
     <Box>

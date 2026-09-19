@@ -20,6 +20,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { asArray } from "../utils/apiData.js";
 
 const monthNow = () => new Date().toISOString().slice(0, 7);
 
@@ -60,7 +61,7 @@ export default function DashboardPayrollPage() {
   async function loadTypes() {
     if (!schoolId) return;
     const response = await api.get(`/schools/${schoolId}/payroll/types`);
-    setTypes(response.data ?? []);
+    setTypes(asArray(response.data));
     if (response.data?.[0]) {
       setEntryForm((prev) => ({ ...prev, type_id: response.data[0].id }));
     }
@@ -92,8 +93,8 @@ export default function DashboardPayrollPage() {
         );
 
         if (!cancelled) {
-          setStaff(employees.data?.data ?? []);
-          setTypes(payrollTypes.data ?? []);
+          setStaff(asArray(employees.data));
+          setTypes(asArray(payrollTypes.data));
           if (payrollTypes.data?.[0]) {
             setEntryForm((prev) => ({
               ...prev,

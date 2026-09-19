@@ -33,6 +33,7 @@ import LibraryServiceTab from "../components/LibraryServiceTab.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
+import { asArray } from "../utils/apiData.js";
 
 const COPY_STATUS_AVAILABLE = 1;
 const COPY_STATUS_BORROWED = 2;
@@ -325,7 +326,7 @@ function CatalogueTab({ schoolId }) {
               fullWidth
             >
               <MenuItem value="">Tous niveaux</MenuItem>
-              {(levels ?? []).map((l) => (
+              {asArray(levels).map((l) => (
                 <MenuItem key={l.id} value={l.id}>
                   {l.name}
                 </MenuItem>
@@ -676,7 +677,7 @@ function DocumentsTab({ schoolId }) {
               fullWidth
             >
               <MenuItem value="">Tous niveaux</MenuItem>
-              {(levels ?? []).map((l) => (
+              {asArray(levels).map((l) => (
                 <MenuItem key={l.id} value={l.id}>
                   {l.name}
                 </MenuItem>

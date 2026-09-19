@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Alert,
   Box,
@@ -9,26 +9,27 @@ import {
   IconButton,
   Stack,
   Typography,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { Navigate } from 'react-router-dom';
-import api from '../api/axios.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useApiGet } from '../hooks/useApiGet.js';
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { Navigate } from "react-router-dom";
+import api from "../api/axios.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useApiGet } from "../hooks/useApiGet.js";
+import { asArray } from "../utils/apiData.js";
 
 const STATUS_LABELS = {
-  0: { label: 'Disponible', color: 'success' },
-  1: { label: 'Utilisée', color: 'default' },
-  2: { label: 'Révoquée', color: 'error' },
+  0: { label: "Disponible", color: "success" },
+  1: { label: "Utilisée", color: "default" },
+  2: { label: "Révoquée", color: "error" },
 };
 
 export default function SuperAdminActivationKeysPage() {
   const { user } = useAuth();
-  const { data, loading, error, reload } = useApiGet('/admin/activation-keys', {
-    enabled: user?.role?.slug === 'superadmin',
+  const { data, loading, error, reload } = useApiGet("/admin/activation-keys", {
+    enabled: user?.role?.slug === "superadmin",
   });
-  const keys = data?.data ?? [];
+  const keys = asArray(data);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState(null);
   const [copiedKey, setCopiedKey] = useState(null);
@@ -37,7 +38,7 @@ export default function SuperAdminActivationKeysPage() {
     setGenerateError(null);
     setGenerating(true);
     try {
-      await api.post('/admin/activation-keys');
+      await api.post("/admin/activation-keys");
       await reload();
     } catch {
       setGenerateError("Impossible de générer une clé.");
@@ -52,23 +53,38 @@ export default function SuperAdminActivationKeysPage() {
     setTimeout(() => setCopiedKey(null), 1500);
   }
 
-  if (user?.role?.slug !== 'superadmin') {
+  if (user?.role?.slug !== "superadmin") {
     return <Navigate to="/dashboard" replace />;
   }
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 2 }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 1,
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
         <Box>
           <Typography variant="h5" fontWeight={700}>
             Clés d'activation
           </Typography>
           <Typography color="text.secondary">
-            Générez une clé et transmettez-la à un client pour qu'il puisse créer son école.
+            Générez une clé et transmettez-la à un client pour qu'il puisse
+            créer son école.
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleGenerate} disabled={generating}>
-          {generating ? 'Génération...' : 'Générer une clé'}
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleGenerate}
+          disabled={generating}
+        >
+          {generating ? "Génération..." : "Générer une clé"}
         </Button>
       </Stack>
 
@@ -86,16 +102,31 @@ export default function SuperAdminActivationKeysPage() {
         <Stack spacing={1.5} sx={{ mt: 3 }}>
           {keys.map((k) => (
             <Card key={k.id} variant="outlined">
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", gap: 2 }}
+              >
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{k.key}</Typography>
+                  <Typography
+                    sx={{ fontFamily: "monospace", wordBreak: "break-all" }}
+                  >
+                    {k.key}
+                  </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Créée le {new Date(k.created_at).toLocaleDateString('fr-FR')}
-                    {k.school ? ` · Utilisée par ${k.school.name}` : ''}
+                    Créée le{" "}
+                    {new Date(k.created_at).toLocaleDateString("fr-FR")}
+                    {k.school ? ` · Utilisée par ${k.school.name}` : ""}
                   </Typography>
                 </Box>
-                <Chip label={STATUS_LABELS[k.status].label} color={STATUS_LABELS[k.status].color} size="small" />
-                <IconButton size="small" onClick={() => handleCopy(k.key)} disabled={k.status !== 0}>
+                <Chip
+                  label={STATUS_LABELS[k.status].label}
+                  color={STATUS_LABELS[k.status].color}
+                  size="small"
+                />
+                <IconButton
+                  size="small"
+                  onClick={() => handleCopy(k.key)}
+                  disabled={k.status !== 0}
+                >
                   <ContentCopyIcon fontSize="small" />
                 </IconButton>
                 {copiedKey === k.key && (
@@ -106,7 +137,11 @@ export default function SuperAdminActivationKeysPage() {
               </CardContent>
             </Card>
           ))}
-          {keys.length === 0 && <Typography color="text.secondary">Aucune clé générée pour l'instant.</Typography>}
+          {keys.length === 0 && (
+            <Typography color="text.secondary">
+              Aucune clé générée pour l'instant.
+            </Typography>
+          )}
         </Stack>
       )}
     </Box>

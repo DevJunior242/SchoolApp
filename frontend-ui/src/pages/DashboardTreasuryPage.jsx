@@ -33,6 +33,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
+import { asArray } from "../utils/apiData.js";
 
 const CREDIT_TYPES = ["DEPOSIT", "TRANSFER_IN"];
 
@@ -266,9 +267,7 @@ function AccountCard({
     { params: { per_page: 6 } },
   );
 
-  const movements = Array.isArray(movementsData)
-    ? movementsData
-    : (movementsData?.data ?? []);
+  const movements = asArray(movementsData);
 
   // Rafraîchir l'historique quand le solde change (ex: après un virement dans le parent)
   const [lastBalance, setLastBalance] = useState(account?.balance);
@@ -610,7 +609,7 @@ export default function DashboardTreasuryPage({
   const schoolId = user?.current_school_id;
 
   const { schoolUsers } = useSchools();
-  const currentMembership = schoolUsers.find(
+  const currentMembership = asArray(schoolUsers).find(
     (membership) => membership?.school?.id === schoolId,
   );
   const { roleSlug } = getSchoolAdminAccess(currentMembership);
@@ -621,9 +620,7 @@ export default function DashboardTreasuryPage({
     schoolId ? `/schools/${schoolId}/sections` : null,
   );
 
-  const sections = Array.isArray(sectionsData)
-    ? sectionsData
-    : (sectionsData?.data ?? []);
+  const sections = asArray(sectionsData);
   // Récupération des comptes de trésorerie
   const {
     data: accountsData,
@@ -634,9 +631,7 @@ export default function DashboardTreasuryPage({
     params: sectionId ? { section_id: sectionId } : {},
   });
 
-  const rawAccounts = Array.isArray(accountsData)
-    ? accountsData
-    : (accountsData?.data ?? []);
+  const rawAccounts = asArray(accountsData);
   const accounts = rawAccounts.filter(
     (a) =>
       (!typeFilter || a.type === typeFilter) &&
