@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
@@ -46,6 +47,7 @@ export default function DashboardBusesPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyBusForm());
+  const [editingBus, setEditingBus] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -80,16 +82,21 @@ export default function DashboardBusesPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await api.post(`/schools/${schoolId}/buses`, form);
+      if (editingBus) {
+        await api.put(`/schools/${schoolId}/buses/${editingBus.id}`, form);
+      } else {
+        await api.post(`/schools/${schoolId}/buses`, form);
+      }
       await reload();
       setDialogOpen(false);
       setForm(emptyBusForm());
+      setEditingBus(null);
     } catch (err) {
       const messages = err.response?.data?.errors;
       setError(
         messages
           ? Object.values(messages).flat().join(" ")
-          : "Impossible de créer ce bus.",
+          : `Impossible de ${editingBus ? "modifier" : "créer"} ce bus.`,
       );
     } finally {
       setSubmitting(false);
@@ -97,9 +104,36 @@ export default function DashboardBusesPage() {
   }
 
   async function handleDeleteBus(id) {
-    await api.delete(`/schools/${schoolId}/buses/${id}`);
-    if (selectedBusId === id) setSelectedBusId(null);
-    await reload();
+    if (!window.confirm("Supprimer ce bus ?")) return;
+
+    setError(null);
+    try {
+      await api.delete(`/schools/${schoolId}/buses/${id}`);
+      if (selectedBusId === id) setSelectedBusId(null);
+      await reload();
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Impossible de supprimer ce bus.",
+      );
+    }
+  }
+
+  function openCreateDialog() {
+    setEditingBus(null);
+    setForm(emptyBusForm());
+    setError(null);
+    setDialogOpen(true);
+  }
+
+  function openEditDialog(bus) {
+    setEditingBus(bus);
+    setForm({
+      label: bus.label ?? "",
+      plate_number: bus.plate_number ?? "",
+      driver_id: bus.driver_id ?? bus.driver?.id ?? "",
+    });
+    setError(null);
+    setDialogOpen(true);
   }
 
   function updateStop(index, field, value) {
@@ -168,7 +202,7 @@ export default function DashboardBusesPage() {
         <Button
           startIcon={<AddIcon />}
           variant="contained"
-          onClick={() => setDialogOpen(true)}
+          onClick={openCreateDialog}
         >
           Ajouter un bus
         </Button>
@@ -178,7 +212,7 @@ export default function DashboardBusesPage() {
         <Typography color="text.secondary">Chargement...</Typography>
       ) : (
         <Stack spacing={1.5} sx={{ mb: 3 }}>
-          {(buses ?? []).map((bus) => (
+          {busList.map((bus) => (
             <Card
               key={bus.id}
               variant="outlined"
@@ -210,6 +244,16 @@ export default function DashboardBusesPage() {
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
+                    openEditDialog(bus);
+                  }}
+                  aria-label="Modifier le bus"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleDeleteBus(bus.id);
                   }}
                 >
@@ -218,7 +262,7 @@ export default function DashboardBusesPage() {
               </CardContent>
             </Card>
           ))}
-          {(buses ?? []).length === 0 && (
+          {busList.length === 0 && (
             <Typography color="text.secondary">
               Aucun bus pour l'instant.
             </Typography>
@@ -305,11 +349,16 @@ export default function DashboardBusesPage() {
 
       <Dialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => {
+          setDialogOpen(false);
+          setEditingBus(null);
+        }}
         fullWidth
         maxWidth="xs"
       >
-        <DialogTitle>Ajouter un bus</DialogTitle>
+        <DialogTitle>
+          {editingBus ? "Modifier le bus" : "Ajouter un bus"}
+        </DialogTitle>
         <Box component="form" onSubmit={handleSubmitBus}>
           <DialogContent
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
@@ -356,9 +405,20 @@ export default function DashboardBusesPage() {
             </TextField>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={() => setDialogOpen(false)}>Annuler</Button>
+            <Button
+              onClick={() => {
+                setDialogOpen(false);
+                setEditingBus(null);
+              }}
+            >
+              Annuler
+            </Button>
             <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? "Création..." : "Créer"}
+              {submitting
+                ? "Enregistrement..."
+                : editingBus
+                  ? "Enregistrer"
+                  : "Créer"}
             </Button>
           </DialogActions>
         </Box>

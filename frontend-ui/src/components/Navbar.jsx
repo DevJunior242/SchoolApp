@@ -38,8 +38,8 @@ const ROLE_DASHBOARD_PATHS = {
   cantine: "/dashboard/cafeteria",
   professeur: "/dashboard/my-assignments",
   enseignant: "/dashboard/my-assignments",
-  parent: "/dashboard/my-children-payments",
-  eleve: "/dashboard/my-bulletin",
+  parent: "/dashboard/parent",
+  eleve: "/dashboard/student",
 };
 
 export default function Navbar() {

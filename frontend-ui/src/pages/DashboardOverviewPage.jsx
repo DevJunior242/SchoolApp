@@ -25,8 +25,8 @@ export default function DashboardOverviewPage() {
     cantine: "/dashboard/cafeteria",
     professeur: "/dashboard/my-assignments",
     enseignant: "/dashboard/my-assignments",
-    parent: "/dashboard/my-children-payments",
-    eleve: "/dashboard/my-bulletin",
+    parent: "/dashboard/parent",
+    eleve: "/dashboard/student",
   };
 
   if (loading || !current) {

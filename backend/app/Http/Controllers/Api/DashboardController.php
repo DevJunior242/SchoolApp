@@ -31,9 +31,13 @@ class DashboardController extends Controller
         $sectionIds = $this->restrictedSectionIds($request, $school);
 
         return response()->json([
-            ...$summaryService->summary($school, $sectionIds),
-            'recent_activity' => $summaryService->recentActivity($school, 6, $sectionIds),
-            'monthly_trend' => $summaryService->monthlyTrend($school, 6, $sectionIds),
+            'success' => true,
+            'data' => [[
+                ...$summaryService->summary($school, $sectionIds),
+                'recent_activity' => $summaryService->recentActivity($school, 6, $sectionIds),
+                'monthly_trend' => $summaryService->monthlyTrend($school, 6, $sectionIds),
+            ]],
+            'message' => 'Résumé école chargé.',
         ]);
     }
 
@@ -50,16 +54,20 @@ class DashboardController extends Controller
         $myScore = $riskService->scoreFor($school, $student);
 
         return response()->json([
-            'school' => [
-                'students_count' => $schoolSummary['students_count'],
-                'teachers_count' => $schoolSummary['teachers_count'],
-                'classes_count' => $schoolSummary['classes_count'],
-            ],
-            'me' => [
-                'average' => $myScore['average'],
-                'absences' => $myScore['absences'],
-                'retards' => $myScore['retards'],
-            ],
+            'success' => true,
+            'data' => [[
+                'school' => [
+                    'students_count' => $schoolSummary['students_count'],
+                    'teachers_count' => $schoolSummary['teachers_count'],
+                    'classes_count' => $schoolSummary['classes_count'],
+                ],
+                'me' => [
+                    'average' => $myScore['average'],
+                    'absences' => $myScore['absences'],
+                    'retards' => $myScore['retards'],
+                ],
+            ]],
+            'message' => 'Résumé élève chargé.',
         ]);
     }
 

@@ -29,12 +29,16 @@ import SearchIcon from "@mui/icons-material/Search";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import ShareIcon from "@mui/icons-material/Share";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
+import { asArray } from "../utils/apiData.js";
 
 const RESTRICTED_ROLE_SLUGS = ["parent", "eleve", "professeur", "superadmin"];
 const EMPTY_FORM = {
@@ -66,11 +70,16 @@ export default function DashboardMembersPage() {
   const { data: memberships } = useApiGet("/my-schools", {
     enabled: Boolean(user),
   });
+  const { data: invitationsData, reload: reloadInvitations } = useApiGet(
+    schoolId ? `/schools/${schoolId}/member-invitations` : null,
+    { enabled: Boolean(schoolId) },
+  );
   const [roles, setRoles] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [inviting, setInviting] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [actionAnchor, setActionAnchor] = useState(null);
   const [actionMember, setActionMember] = useState(null);
@@ -102,6 +111,7 @@ export default function DashboardMembersPage() {
       }),
     [isGeneralAdmin, isPrincipalAdmin, roles],
   );
+  const invitations = asArray(invitationsData);
 
   useEffect(() => {
     api.get("/roles").then((response) => setRoles(response.data));
@@ -133,6 +143,58 @@ export default function DashboardMembersPage() {
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleInvitation() {
+    setError(null);
+    setSuccess(null);
+    setInviting(true);
+    try {
+      const response = await api.post(
+        `/schools/${schoolId}/members/invitation`,
+        form,
+      );
+      const invitationUrl = response.data?.invitation_url;
+      const message = `Bonjour, voici votre lien pour rejoindre l'école. Saisissez vos informations puis attendez la validation de l'administration. Le lien est valable 24 heures : ${invitationUrl}`;
+      const whatsappNumber = form.phone?.replace(/\D/g, "");
+      const whatsappUrl = whatsappNumber
+        ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+      setSuccess("Le lien d'invitation est prêt dans WhatsApp.");
+      reloadInvitations();
+    } catch (requestError) {
+      const messages = requestError.response?.data?.errors;
+      setError(
+        messages
+          ? Object.values(messages).flat().join(" ")
+          : requestError.response?.data?.message ||
+              "Impossible de créer le lien d'invitation.",
+      );
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  async function handleReviewInvitation(invitation, decision) {
+    setError(null);
+    setSuccess(null);
+    try {
+      await api.post(
+        `/schools/${schoolId}/member-invitations/${invitation.id}/review`,
+        { decision },
+      );
+      await Promise.all([reload(), reloadInvitations()]);
+      setSuccess(
+        decision === "accept" ? "Invitation validée." : "Invitation rejetée.",
+      );
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message ||
+          "Impossible de traiter cette invitation.",
+      );
     }
   }
 
@@ -196,6 +258,80 @@ export default function DashboardMembersPage() {
         Attribuez un rôle et les sections actives auxquelles chaque membre peut
         accéder.
       </Typography>
+
+      {invitations.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Invitations à traiter
+          </Typography>
+          <Stack spacing={1}>
+            {invitations.map((invitation) => (
+              <Stack
+                key={invitation.id}
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "stretch", sm: "center" }}
+                justifyContent="space-between"
+                sx={{
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
+                  pb: 1,
+                }}
+              >
+                <Box>
+                  <Typography fontWeight={700}>
+                    {invitation.fullname || "Informations en attente"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {invitation.email || invitation.phone || "Lien envoyé"} ·{" "}
+                    {invitation.role?.name || "Rôle"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {invitation.status === "submitted"
+                      ? "Demande reçue"
+                      : "Lien en attente de réponse"}
+                    {invitation.section_ids?.length
+                      ? ` · Sections : ${invitation.section_ids
+                          .map(
+                            (id) =>
+                              activeSections.find(
+                                (section) => section.id === id,
+                              )?.name || id,
+                          )
+                          .join(", ")}`
+                      : " · Toutes les sections"}
+                  </Typography>
+                </Box>
+                {invitation.status === "submitted" && (
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color="success"
+                      startIcon={<CheckIcon />}
+                      onClick={() =>
+                        handleReviewInvitation(invitation, "accept")
+                      }
+                    >
+                      Valider
+                    </Button>
+                    <Button
+                      size="small"
+                      color="error"
+                      startIcon={<CloseIcon />}
+                      onClick={() =>
+                        handleReviewInvitation(invitation, "reject")
+                      }
+                    >
+                      Rejeter
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            ))}
+          </Stack>
+        </Paper>
+      )}
 
       <Grid container spacing={4}>
         <Grid size={{ xs: 12, md: 7 }}>
@@ -332,6 +468,13 @@ export default function DashboardMembersPage() {
             <Typography variant="h6" gutterBottom>
               {editingMember ? "Modifier un membre" : "Ajouter un membre"}
             </Typography>
+            {!editingMember && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Pour inviter quelqu’un sans saisir ses coordonnées, choisissez
+                seulement son rôle et ses sections puis utilisez le bouton
+                WhatsApp.
+              </Typography>
+            )}
             {success && (
               <Alert severity="success" sx={{ mb: 2 }}>
                 {success}
@@ -445,7 +588,11 @@ export default function DashboardMembersPage() {
                   Laissez vide pour attribuer un accès global à l'école.
                 </Typography>
               </FormControl>
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                sx={{ mt: 1 }}
+              >
                 <Button type="submit" variant="contained" disabled={submitting}>
                   {submitting
                     ? "Enregistrement..."
@@ -453,6 +600,17 @@ export default function DashboardMembersPage() {
                       ? "Enregistrer"
                       : "Ajouter"}
                 </Button>
+                {!editingMember && (
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    startIcon={<ShareIcon />}
+                    onClick={handleInvitation}
+                    disabled={inviting || submitting || !form.role_id}
+                  >
+                    {inviting ? "Création..." : "Inviter par WhatsApp"}
+                  </Button>
+                )}
                 {editingMember && (
                   <Button
                     type="button"

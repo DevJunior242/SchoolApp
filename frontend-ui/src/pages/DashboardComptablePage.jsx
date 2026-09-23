@@ -16,6 +16,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { asArray } from "../utils/apiData.js";
+import QuickActions from "../components/QuickActions.jsx";
 
 function fmt(value) {
   return `${Number(value ?? 0).toLocaleString("fr-FR")} FCFA`;
@@ -162,6 +163,7 @@ export default function DashboardComptablePage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Vue instantanée des encaisses, paiements et dépenses de l'école.
       </Typography>
+      <QuickActions role="comptable" />
 
       {errors.length > 0 && (
         <Alert severity="error" sx={{ mb: 3 }}>

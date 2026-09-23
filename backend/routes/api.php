@@ -91,6 +91,7 @@ Route::middleware('throttle:2fa-challenge')->post('/2fa/challenge', [TwoFactorAu
 // Plus strict : peut envoyer un email à n'importe quelle adresse sans
 // authentification (risque de "email bombing" d'un tiers).
 Route::middleware('throttle:password-email')->post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::middleware('throttle:register-attempts')->post('/member-invitations/accept', [SchoolMemberController::class, 'acceptInvitation']);
 Route::get('/school-pricing-plans', [SchoolPricingPlanController::class, 'publicIndex']);
 
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
@@ -312,7 +313,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/schools/{school}/buses', [BusController::class, 'index']);
         Route::get('/schools/{school}/buses/{bus}/trip', [BusTripController::class, 'show']);
+        Route::get('/schools/{school}/my-bus-dashboard-summary', [BusTripController::class, 'driverSummary']);
         Route::get('/schools/{school}/my-children-bus', [BusTripController::class, 'mine']);
+        Route::get('/schools/{school}/my-bus', [BusTripController::class, 'mineForStudent']);
 
         Route::get('/schools/{school}/library/books', [BookController::class, 'index']);
         Route::get('/schools/{school}/library/books/{book}', [BookController::class, 'show']);
@@ -345,6 +348,9 @@ Route::middleware('auth:sanctum')->group(function () {
             // Ne pas exposer de route /schools/{school}/grades sans classe.
 
             Route::post('/schools/{school}/members', [SchoolMemberController::class, 'store']);
+            Route::post('/schools/{school}/members/invitation', [SchoolMemberController::class, 'createInvitation']);
+            Route::get('/schools/{school}/member-invitations', [SchoolMemberController::class, 'invitations']);
+            Route::post('/schools/{school}/member-invitations/{invitation}/review', [SchoolMemberController::class, 'reviewInvitation']);
             Route::put('/schools/{school}/members/{member}', [SchoolMemberController::class, 'update']);
             Route::delete('/schools/{school}/members/{member}', [SchoolMemberController::class, 'destroy']);
             Route::prefix('schools/{school}')->group(function () {

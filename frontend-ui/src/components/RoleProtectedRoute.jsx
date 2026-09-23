@@ -1,5 +1,5 @@
-import { Box, Button, Container, Paper, Typography } from "@mui/material";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Button, Container, Paper, Typography } from "@mui/material";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSchools } from "../hooks/useSchools.js";
 
@@ -28,7 +28,14 @@ const ROLE_ROUTE_PREFIXES = {
     "hr",
     "settings",
   ],
-  comptable: ["comptable", "accounting", "payments", "expenses", "treasury"],
+  comptable: [
+    "comptable",
+    "accounting",
+    "payments",
+    "expenses",
+    "treasury",
+    "ai-assistant",
+  ],
   censeur: ["attendance-justifications", "ai-assistant"],
   surveillant: ["attendance-justifications", "ai-assistant"],
   secretaire: ["students", "classes", "enrollment-requests"],
@@ -52,6 +59,8 @@ const ROLE_ROUTE_PREFIXES = {
     "ai-assistant",
   ],
   parent: [
+    "parent",
+    "exams",
     "my-children-cafeteria",
     "my-children-bus",
     "my-children-library",
@@ -61,7 +70,16 @@ const ROLE_ROUTE_PREFIXES = {
     "my-children-bulletins",
     "my-children-courses",
   ],
-  eleve: ["my-badge", "my-wallet", "my-bulletin", "my-courses"],
+  eleve: [
+    "student",
+    "exams",
+    "my-badge",
+    "my-wallet",
+    "my-bus",
+    "my-bulletin",
+    "my-library",
+    "my-courses",
+  ],
 };
 
 const SHARED_SCHOOL_PREFIXES = ["events", "marketplace"];
@@ -71,6 +89,11 @@ const RESTRICTED_PREFIXES = Object.values(ROLE_ROUTE_PREFIXES)
 
 function matchesPrefix(path, prefix) {
   return path === prefix || path.startsWith(`${prefix}/`);
+}
+
+function canViewBulletinDetail(path, roleSlug) {
+  const isBulletinDetail = /^students\/[^/]+\/bulletin$/.test(path);
+  return isBulletinDetail && (roleSlug === "eleve" || roleSlug === "parent");
 }
 
 function ForbiddenPage() {
@@ -129,6 +152,10 @@ export default function RoleProtectedRoute({ children }) {
       matchesPrefix(dashboardPath, prefix),
     )
   ) {
+    return children;
+  }
+
+  if (canViewBulletinDetail(dashboardPath, roleSlug)) {
     return children;
   }
 

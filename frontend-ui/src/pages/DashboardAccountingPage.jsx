@@ -64,9 +64,10 @@ function isThisMonth(dateStr) {
 }
 
 function AccountingDashboardTab({ schoolId }) {
-  const { data: summary } = useApiGet(
+  const { data: summaryData } = useApiGet(
     schoolId ? `/schools/${schoolId}/dashboard-summary` : null,
   );
+  const summary = asArray(summaryData)[0] ?? null;
   const { data: accountsData } = useApiGet(
     schoolId ? `/schools/${schoolId}/treasury-accounts` : null,
   );
@@ -261,9 +262,10 @@ function AccountingReportsTab({ schoolId }) {
   );
   const expenses = asArray(expensesData);
 
-  const { data: summary } = useApiGet(
+  const { data: summaryData } = useApiGet(
     schoolId ? `/schools/${schoolId}/dashboard-summary` : null,
   );
+  const summary = asArray(summaryData)[0] ?? null;
   const { data: accountsData } = useApiGet(
     schoolId ? `/schools/${schoolId}/treasury-accounts` : null,
   );

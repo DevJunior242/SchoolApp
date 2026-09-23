@@ -41,6 +41,7 @@ import api from "../api/axios.jsx";
 import { useSchools } from "../hooks/useSchools.js";
 import { useLocation } from "react-router-dom";
 import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
+import QuickActions from "../components/QuickActions.jsx";
 
 const initialForm = {
   user_id: "",
@@ -96,7 +97,8 @@ const ROLE_BADGE_COLORS = {
   enseignant: "primary",
 };
 
-const getRoleBadgeColor = (roleSlug) => ROLE_BADGE_COLORS[roleSlug] ?? "default";
+const getRoleBadgeColor = (roleSlug) =>
+  ROLE_BADGE_COLORS[roleSlug] ?? "default";
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -162,16 +164,17 @@ export default function DashboardHrPage() {
 
     async function loadData() {
       try {
-        const [membersRes, managersRes, leavesRes, rolesRes] = await Promise.all([
-          api.get(`/schools/${schoolId}/hr/staff`, {
-            params: { per_page: 100 },
-          }),
-          api.get(`/schools/${schoolId}/hr/staff`, {
-            params: { page: 1, per_page: 10, role: "rh" },
-          }),
-          api.get(`/schools/${schoolId}/hr/leaves`),
-          api.get("/roles"),
-        ]);
+        const [membersRes, managersRes, leavesRes, rolesRes] =
+          await Promise.all([
+            api.get(`/schools/${schoolId}/hr/staff`, {
+              params: { per_page: 100 },
+            }),
+            api.get(`/schools/${schoolId}/hr/staff`, {
+              params: { page: 1, per_page: 10, role: "rh" },
+            }),
+            api.get(`/schools/${schoolId}/hr/leaves`),
+            api.get("/roles"),
+          ]);
 
         setRhRoleId(rolesRes.data.find((role) => role.slug === "rh")?.id ?? "");
 
@@ -469,6 +472,8 @@ export default function DashboardHrPage() {
         </Stack>
       </Stack>
 
+      {!isLeavesPage && <QuickActions role="rh" />}
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -665,14 +670,20 @@ export default function DashboardHrPage() {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={manager.is_owner ? "RH principal" : "RH secondaire"}
+                            label={
+                              manager.is_owner
+                                ? "RH principal"
+                                : "RH secondaire"
+                            }
                             color={manager.is_owner ? "primary" : "default"}
                             size="small"
                           />
                         </TableCell>
                         <TableCell>
                           {(manager.sections ?? []).length > 0
-                            ? manager.sections.map((section) => section.name).join(", ")
+                            ? manager.sections
+                                .map((section) => section.name)
+                                .join(", ")
                             : "Accès global"}
                         </TableCell>
                       </TableRow>
@@ -851,7 +862,9 @@ export default function DashboardHrPage() {
               helperText={rhPhoneError}
             />
             <FormControl fullWidth required={isHrOwner}>
-              <InputLabel id="rh-sections-label">Sections autorisées</InputLabel>
+              <InputLabel id="rh-sections-label">
+                Sections autorisées
+              </InputLabel>
               <Select
                 labelId="rh-sections-label"
                 multiple
@@ -867,18 +880,26 @@ export default function DashboardHrPage() {
                   const value = event.target.value;
                   setRhForm((form) => ({
                     ...form,
-                    section_ids: Array.isArray(value) ? value : value.split(","),
+                    section_ids: Array.isArray(value)
+                      ? value
+                      : value.split(","),
                   }));
                 }}
               >
                 {schoolSections.map((section) => (
                   <MenuItem key={section.id} value={section.id}>
-                    <Checkbox checked={rhForm.section_ids.includes(section.id)} />
+                    <Checkbox
+                      checked={rhForm.section_ids.includes(section.id)}
+                    />
                     {section.name}
                   </MenuItem>
                 ))}
               </Select>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, ml: 1.5 }}
+              >
                 {isHrOwner
                   ? "Sélectionnez au moins une section. Un RH ne peut pas avoir un accès global."
                   : "Vide = accès à toutes les sections de l’école."}

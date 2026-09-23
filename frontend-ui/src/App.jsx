@@ -27,6 +27,9 @@ const CreateSchoolPage = lazy(() => import("./pages/CreateSchoolPage.jsx"));
 const PricingPage = lazy(() => import("./pages/PricingPage.jsx"));
 const LoginPage = lazy(() => import("./pages/LoginPage.jsx"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage.jsx"));
+const AcceptInvitationPage = lazy(
+  () => import("./pages/AcceptInvitationPage.jsx"),
+);
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage.jsx"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage.jsx"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage.jsx"));
@@ -34,6 +37,9 @@ const DashboardOverviewPage = lazy(
   () => import("./pages/DashboardOverviewPage.jsx"),
 );
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage.jsx"));
+const StudentDashboardPage = lazy(
+  () => import("./pages/StudentDashboardPage.jsx"),
+);
 const DashboardSchoolsPage = lazy(
   () => import("./pages/DashboardSchoolsPage.jsx"),
 );
@@ -88,6 +94,9 @@ const DashboardComptablePage = lazy(
   () => import("./pages/DashboardComptablePage.jsx"),
 );
 const ParentPaymentsPage = lazy(() => import("./pages/ParentPaymentsPage.jsx"));
+const ParentDashboardPage = lazy(
+  () => import("./pages/ParentDashboardPage.jsx"),
+);
 const AttendanceEntryPage = lazy(
   () => import("./pages/AttendanceEntryPage.jsx"),
 );
@@ -146,6 +155,9 @@ const StudentSelfBulletinPage = lazy(
 );
 const DashboardBusesPage = lazy(() => import("./pages/DashboardBusesPage.jsx"));
 const BusDriverTripPage = lazy(() => import("./pages/BusDriverTripPage.jsx"));
+const StudentBusTrackingPage = lazy(
+  () => import("./pages/StudentBusTrackingPage.jsx"),
+);
 const ParentBusTrackingPage = lazy(
   () => import("./pages/ParentBusTrackingPage.jsx"),
 );
@@ -222,6 +234,10 @@ function App() {
                 </GuestRoute>
               }
             />
+            <Route
+              path="/accept-invitation"
+              element={<AcceptInvitationPage />}
+            />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -246,6 +262,8 @@ function App() {
           >
             <Route index element={<DashboardOverviewPage />} />
             <Route path="admin" element={<AdminDashboardPage />} />
+            <Route path="student" element={<StudentDashboardPage />} />
+            <Route path="parent" element={<ParentDashboardPage />} />
             <Route path="schools" element={<DashboardSchoolsPage />} />
             <Route path="comptable" element={<DashboardComptablePage />} />
             <Route path="members" element={<DashboardMembersPage />} />
@@ -299,6 +317,7 @@ function App() {
             <Route path="my-bulletin" element={<StudentSelfBulletinPage />} />
             <Route path="buses" element={<DashboardBusesPage />} />
             <Route path="my-bus-trip" element={<BusDriverTripPage />} />
+            <Route path="my-bus" element={<StudentBusTrackingPage />} />
             <Route path="my-children-bus" element={<ParentBusTrackingPage />} />
             <Route path="library" element={<DashboardLibraryPage />} />
             <Route path="my-library" element={<MyLibraryPage />} />

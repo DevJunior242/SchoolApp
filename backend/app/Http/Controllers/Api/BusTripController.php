@@ -34,7 +34,7 @@ class BusTripController extends Controller
         $this->abortUnlessOwnBus($request, $bus);
 
         $validated = $request->validate([
-            'direction' => ['required', 'in:'.BusTrip::DIRECTION_PICKUP.','.BusTrip::DIRECTION_DROPOFF],
+            'direction' => ['required', 'in:' . BusTrip::DIRECTION_PICKUP . ',' . BusTrip::DIRECTION_DROPOFF],
         ]);
 
         $alreadyActive = BusTrip::query()
@@ -59,6 +59,50 @@ class BusTripController extends Controller
         }
 
         return response()->json($trip, 201);
+    }
+
+    public function driverSummary(Request $request, School $school)
+    {
+        $bus = Bus::query()
+            ->where('school_id', $school->id)
+            ->where('driver_id', $request->user()->id)
+            ->with('stops')
+            ->first();
+
+        abort_unless($bus, 404, 'Aucun bus ne vous est assigné dans cette école.');
+
+        $monthStart = now()->startOfMonth();
+        $trips = BusTrip::query()
+            ->where('bus_id', $bus->id)
+            ->where('driver_id', $request->user()->id)
+            ->where('started_at', '>=', $monthStart)
+            ->withCount([
+                'stopEvents as reached_stops_count' => fn($query) => $query->whereNotNull('reached_at'),
+            ])
+            ->latest('started_at')
+            ->get();
+
+        $activeTrip = $trips->firstWhere('status', BusTrip::STATUS_IN_PROGRESS);
+
+        return response()->json([
+            'success' => true,
+            'data' => [[
+                'bus' => [
+                    'id' => $bus->id,
+                    'label' => $bus->label,
+                    'plate_number' => $bus->plate_number,
+                    'stops_count' => $bus->stops->count(),
+                ],
+                'trips' => [
+                    'month_count' => $trips->count(),
+                    'completed_count' => $trips->where('status', BusTrip::STATUS_COMPLETED)->count(),
+                    'active_count' => $activeTrip ? 1 : 0,
+                    'reached_stops_count' => $trips->sum('reached_stops_count'),
+                ],
+                'active_trip' => $activeTrip,
+            ]],
+            'message' => 'Résumé chauffeur chargé.',
+        ]);
     }
 
     /**
@@ -169,6 +213,57 @@ class BusTripController extends Controller
         return response()->json($result->values());
     }
 
+    public function mineForStudent(Request $request, School $school)
+    {
+        $student = $request->user()->studentProfile;
+        abort_unless($student, 404, 'Aucune fiche élève associée à ce compte.');
+
+        $schoolStudent = SchoolStudent::query()
+            ->where('school_id', $school->id)
+            ->where('student_id', $student->id)
+            ->with(['student', 'busStop.bus'])
+            ->first();
+
+        abort_unless($schoolStudent, 404, 'Cet élève n’est pas inscrit dans cette école.');
+
+        if (! $schoolStudent->busStop) {
+            return response()->json([[
+                'student' => $schoolStudent->student,
+                'status' => 'no_stop_assigned',
+            ]]);
+        }
+
+        $stop = $schoolStudent->busStop;
+        $trip = BusTrip::query()
+            ->where('bus_id', $stop->bus_id)
+            ->where('status', BusTrip::STATUS_IN_PROGRESS)
+            ->latest('started_at')
+            ->first();
+
+        if (! $trip) {
+            return response()->json([[
+                'student' => $schoolStudent->student,
+                'bus' => $stop->bus,
+                'stop' => $stop,
+                'status' => 'no_active_trip',
+            ]]);
+        }
+
+        $event = BusTripStopEvent::query()
+            ->where('bus_trip_id', $trip->id)
+            ->where('bus_stop_id', $stop->id)
+            ->first();
+
+        return response()->json([[
+            'student' => $schoolStudent->student,
+            'bus' => $stop->bus,
+            'stop' => $stop,
+            'status' => $event?->reached_at ? 'passed' : 'en_route',
+            'distance_km' => $event?->reached_at ? null : ($this->etaToStop($trip, $stop)['distance_km'] ?? null),
+            'eta_minutes' => $event?->reached_at ? null : ($this->etaToStop($trip, $stop)['eta_minutes'] ?? null),
+        ]]);
+    }
+
     private function evaluateNextStop(BusTrip $trip, float $lat, float $lng): void
     {
         $orderDirection = $trip->direction === BusTrip::DIRECTION_PICKUP ? 'asc' : 'desc';
@@ -176,10 +271,10 @@ class BusTripController extends Controller
         $nextEvent = BusTripStopEvent::query()
             ->where('bus_trip_id', $trip->id)
             ->whereNull('reached_at')
-            ->whereHas('stop', fn ($query) => $query->whereNotNull('latitude')->whereNotNull('longitude'))
+            ->whereHas('stop', fn($query) => $query->whereNotNull('latitude')->whereNotNull('longitude'))
             ->with('stop')
             ->get()
-            ->sortBy(fn ($event) => $event->stop->order, SORT_REGULAR, $orderDirection === 'desc')
+            ->sortBy(fn($event) => $event->stop->order, SORT_REGULAR, $orderDirection === 'desc')
             ->first();
 
         if (! $nextEvent) {

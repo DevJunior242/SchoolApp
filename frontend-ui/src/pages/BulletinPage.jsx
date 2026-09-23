@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -14,25 +14,30 @@ import {
   TableRow,
   TextField,
   Typography,
-} from '@mui/material';
-import DownloadIcon from '@mui/icons-material/Download';
-import { useNavigate, useParams } from 'react-router-dom';
-import api from '../api/axios.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useApiGet } from '../hooks/useApiGet.js';
+} from "@mui/material";
+import DownloadIcon from "@mui/icons-material/Download";
+import { useNavigate, useParams } from "react-router-dom";
+import api from "../api/axios.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useApiGet } from "../hooks/useApiGet.js";
 
 const BULLETIN_TYPE_LABELS = {
-  trimestre: 'Bulletin trimestriel',
-  semestre: 'Bulletin semestriel',
-  annuel: 'Bulletin annuel',
+  trimestre: "Bulletin trimestriel",
+  semestre: "Bulletin semestriel",
+  annuel: "Bulletin annuel",
 };
 
-export default function BulletinPage() {
+export default function BulletinPage({ studentId: studentIdProp = null }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { studentId } = useParams();
-  const { data: seasons } = useApiGet(user.current_school_id ? `/schools/${user.current_school_id}/seasons` : null);
-  const [seasonId, setSeasonId] = useState('');
+  const { studentId: routeStudentId } = useParams();
+  const studentId = studentIdProp ?? routeStudentId;
+  const { data: seasons } = useApiGet(
+    user.current_school_id
+      ? `/schools/${user.current_school_id}/seasons`
+      : null,
+  );
+  const [seasonId, setSeasonId] = useState("");
   const [bulletin, setBulletin] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,9 +46,12 @@ export default function BulletinPage() {
     async function load() {
       setLoading(true);
       try {
-        const response = await api.get(`/schools/${user.current_school_id}/students/${studentId}/bulletin`, {
-          params: seasonId ? { season_id: seasonId } : {},
-        });
+        const response = await api.get(
+          `/schools/${user.current_school_id}/students/${studentId}/bulletin`,
+          {
+            params: seasonId ? { season_id: seasonId } : {},
+          },
+        );
         setBulletin(response.data);
       } catch {
         setError("Impossible de charger le bulletin.");
@@ -79,11 +87,24 @@ export default function BulletinPage() {
 
       {bulletin && (
         <>
-          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+          <Stack
+            direction="row"
+            sx={{
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 3,
+              flexWrap: "wrap",
+              gap: 2,
+            }}
+          >
             <Typography variant="h5" fontWeight={700}>
               Bulletin — {bulletin.student?.fullname}
             </Typography>
-            <Button variant="contained" startIcon={<DownloadIcon />} onClick={() => window.print()}>
+            <Button
+              variant="contained"
+              startIcon={<DownloadIcon />}
+              onClick={() => window.print()}
+            >
               Télécharger (PDF)
             </Button>
           </Stack>
@@ -105,7 +126,16 @@ export default function BulletinPage() {
           </TextField>
 
           <Box id="bulletin-print">
-            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 2 }}>
+            <Stack
+              direction="row"
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 1,
+                flexWrap: "wrap",
+                gap: 2,
+              }}
+            >
               <Box>
                 <Typography variant="h6" fontWeight={700}>
                   {user.current_school?.name}
@@ -115,22 +145,27 @@ export default function BulletinPage() {
                 </Typography>
               </Box>
               <Chip
-                label={`Moyenne générale : ${bulletin.overall_average ?? '—'}`}
+                label={`Moyenne générale : ${bulletin.overall_average ?? "—"}`}
                 color="primary"
-                sx={{ fontWeight: 700, fontSize: '1rem', py: 2.5 }}
+                sx={{ fontWeight: 700, fontSize: "1rem", py: 2.5 }}
               />
             </Stack>
 
-            <Stack direction="row" sx={{ mb: 2, gap: 1, flexWrap: 'wrap' }}>
+            <Stack direction="row" sx={{ mb: 2, gap: 1, flexWrap: "wrap" }}>
               <Chip
-                label={BULLETIN_TYPE_LABELS[bulletin.bulletin_type] ?? bulletin.bulletin_type}
+                label={
+                  BULLETIN_TYPE_LABELS[bulletin.bulletin_type] ??
+                  bulletin.bulletin_type
+                }
                 variant="outlined"
                 size="small"
               />
               {bulletin.mention && (
                 <Chip
                   label={bulletin.mention}
-                  color={bulletin.mention.startsWith('Admis') ? 'success' : 'error'}
+                  color={
+                    bulletin.mention.startsWith("Admis") ? "success" : "error"
+                  }
                   size="small"
                   sx={{ fontWeight: 600 }}
                 />
@@ -157,7 +192,9 @@ export default function BulletinPage() {
                         <TableCell align="center">{s.coefficient}</TableCell>
                         <TableCell align="center">{s.grades_count}</TableCell>
                         <TableCell align="right">
-                          <Typography fontWeight={700}>{s.average ?? '—'}</Typography>
+                          <Typography fontWeight={700}>
+                            {s.average ?? "—"}
+                          </Typography>
                         </TableCell>
                       </TableRow>
                     ))}

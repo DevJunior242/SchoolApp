@@ -1,3 +1,4 @@
+import { asArray } from "../utils/apiData.js";
 import {
   Alert,
   Box,
@@ -19,6 +20,7 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { useSchools } from "../hooks/useSchools.js";
+import QuickActions from "../components/QuickActions.jsx";
 
 function formatAmount(value, currency = "XOF") {
   return `${Number(value ?? 0).toLocaleString("fr-FR")} ${currency}`;
@@ -63,12 +65,13 @@ export default function AdminDashboardPage() {
   );
   const schoolId = current?.school?.id;
   const {
-    data: summary,
+    data: summaryData,
     loading,
     error,
   } = useApiGet(schoolId ? `/schools/${schoolId}/dashboard-summary` : null, {
     enabled: Boolean(schoolId),
   });
+  const summary = asArray(summaryData)[0] ?? null;
 
   if (schoolsLoading || loading) {
     return <LinearProgress />;
@@ -94,6 +97,7 @@ export default function AdminDashboardPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Vue générale de {current.school?.name} et de son activité.
       </Typography>
+      <QuickActions role="admin" />
 
       <Grid container spacing={2}>
         <StatCard

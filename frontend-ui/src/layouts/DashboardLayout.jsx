@@ -83,6 +83,32 @@ const OVERVIEW_ITEM = {
   exact: true,
 };
 
+const ROLE_DASHBOARD_ITEMS = {
+  admin: { label: "Tableau de bord", to: "/dashboard/admin" },
+  comptable: { label: "Tableau de bord", to: "/dashboard/comptable" },
+  censeur: {
+    label: "Tableau de bord",
+    to: "/dashboard/attendance-justifications",
+  },
+  surveillant: {
+    label: "Tableau de bord",
+    to: "/dashboard/attendance-justifications",
+  },
+  secretaire: { label: "Tableau de bord", to: "/dashboard/students" },
+  rh: { label: "Tableau de bord", to: "/dashboard/hr" },
+  infirmier: { label: "Tableau de bord", to: "/dashboard/health" },
+  bibliothecaire: { label: "Tableau de bord", to: "/dashboard/library" },
+  chauffeur: { label: "Tableau de bord", to: "/dashboard/my-bus-trip" },
+  cantine: { label: "Tableau de bord", to: "/dashboard/cafeteria" },
+  professeur: { label: "Tableau de bord", to: "/dashboard/my-assignments" },
+  enseignant: { label: "Tableau de bord", to: "/dashboard/my-assignments" },
+  parent: {
+    label: "Tableau de bord",
+    to: "/dashboard/parent",
+  },
+  eleve: { label: "Tableau de bord", to: "/dashboard/student" },
+};
+
 const MY_ATTENDANCE_ITEM = {
   label: "Mon pointage",
   to: "/dashboard/my-attendance",
@@ -294,11 +320,6 @@ const PARENT_NAV_GROUPS = singleGroup([
     icon: <DescriptionIcon />,
   },
   {
-    label: "Examens",
-    to: "/dashboard/exams",
-    icon: <FactCheckIcon />,
-  },
-  {
     label: "Cantine",
     to: "/dashboard/my-children-cafeteria",
     icon: <RestaurantIcon />,
@@ -317,6 +338,11 @@ const PARENT_NAV_GROUPS = singleGroup([
     label: "Cours",
     to: "/dashboard/my-children-courses",
     icon: <OndemandVideoIcon />,
+  },
+  {
+    label: "Examens",
+    to: "/dashboard/exams",
+    icon: <FactCheckIcon />,
   },
   { label: "Événements", to: "/dashboard/events", icon: <EventIcon /> },
   {
@@ -338,6 +364,11 @@ const ELEVE_NAV_GROUPS = singleGroup([
     icon: <BadgeIcon />,
   },
   { label: "Ma cantine", to: "/dashboard/my-wallet", icon: <RestaurantIcon /> },
+  {
+    label: "Mon bus scolaire",
+    to: "/dashboard/my-bus",
+    icon: <DirectionsBusIcon />,
+  },
   {
     label: "Mon bulletin",
     to: "/dashboard/my-bulletin",
@@ -396,7 +427,6 @@ const CANTINE_NAV_GROUPS = singleGroup([
 
 // Le chauffeur ne gère que son propre trajet, rien d'autre.
 const CHAUFFEUR_NAV_GROUPS = singleGroup([
-  OVERVIEW_ITEM,
   {
     label: "Mon trajet",
     to: "/dashboard/my-bus-trip",
@@ -668,11 +698,40 @@ export default function DashboardLayout() {
     return { ...group, items };
   });
 
+  const roleDashboardItem = ROLE_DASHBOARD_ITEMS[currentRole]
+    ? { ...ROLE_DASHBOARD_ITEMS[currentRole], icon: <DashboardIcon /> }
+    : null;
+  const roleNavGroups = roleDashboardItem
+    ? navGroups.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => item.to !== OVERVIEW_ITEM.to),
+      }))
+    : navGroups;
+
   const personalItems = [MY_ATTENDANCE_ITEM, MY_PAYROLL_ITEM];
   const navGroupsWithPersonalItems =
-    isSuperAdmin || isPrestataire || !currentRole || currentRole === "parent"
-      ? navGroups
-      : [{ title: "Mon espace", items: personalItems }, ...navGroups];
+    isSuperAdmin ||
+    isPrestataire ||
+    !currentRole ||
+    ["parent", "eleve"].includes(currentRole)
+      ? roleNavGroups
+      : [{ title: "Mon espace", items: personalItems }, ...roleNavGroups];
+
+  const finalNavGroups = roleDashboardItem
+    ? [
+        { title: null, items: [roleDashboardItem] },
+        ...navGroupsWithPersonalItems,
+      ]
+    : navGroupsWithPersonalItems;
+
+  const activeItemPath = finalNavGroups
+    .flatMap((group) => group.items)
+    .filter(
+      (item) =>
+        location.pathname === item.to ||
+        location.pathname.startsWith(`${item.to}/`),
+    )
+    .sort((first, second) => second.to.length - first.to.length)[0]?.to;
 
   async function handleLogout() {
     await logout();
@@ -680,9 +739,7 @@ export default function DashboardLayout() {
   }
 
   function isActive(item) {
-    return item.exact
-      ? location.pathname === item.to
-      : location.pathname.startsWith(item.to);
+    return item.to === activeItemPath;
   }
 
   function renderDrawerContent(isCollapsed) {
@@ -865,7 +922,7 @@ export default function DashboardLayout() {
             py: 2,
           }}
         >
-          {navGroupsWithPersonalItems.map((group, groupIndex) => (
+          {finalNavGroups.map((group, groupIndex) => (
             <Fragment key={group.title ?? `group-${groupIndex}`}>
               {group.title && !isCollapsed && (
                 <Typography
@@ -1017,6 +1074,23 @@ export default function DashboardLayout() {
     isSuperAdmin ||
     isPrestataire ||
     ["/dashboard/profile", "/dashboard/security"].includes(location.pathname);
+
+  if (schoolUsersLoading && !isSuperAdmin && !isPrestataire) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          bgcolor: "background.default",
+        }}
+        aria-busy="true"
+        aria-live="polite"
+      >
+        Chargement...
+      </Box>
+    );
+  }
 
   return (
     <Box
