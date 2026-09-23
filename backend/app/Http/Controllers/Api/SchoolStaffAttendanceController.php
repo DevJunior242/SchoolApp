@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Controller;
 use App\Models\School;
+use App\Models\SchoolAttendanceQrToken;
 use App\Models\SchoolStaffAttendance;
 use App\Models\SchoolUser;
 use App\Services\HrPermissionService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -39,7 +39,15 @@ class SchoolStaffAttendanceController extends Controller
         $this->authorizeHrStaff($request, $school);
         $token = Str::random(64);
         $expiresAt = now()->addSeconds(60);
-        Cache::put($this->cacheKey($school, $token), true, $expiresAt);
+        SchoolAttendanceQrToken::query()
+            ->where('school_id', $school->id)
+            ->where('expires_at', '<=', now())
+            ->delete();
+        SchoolAttendanceQrToken::create([
+            'school_id' => $school->id,
+            'token_hash' => hash('sha256', $token),
+            'expires_at' => $expiresAt,
+        ]);
 
         return response()->json([
             'token' => $token,
@@ -95,7 +103,13 @@ class SchoolStaffAttendanceController extends Controller
             abort(403, 'Seul un membre du personnel peut pointer.');
         }
 
-        if (! Cache::has($this->cacheKey($school, $validated['token']))) {
+        $qrToken = SchoolAttendanceQrToken::query()
+            ->where('school_id', $school->id)
+            ->where('token_hash', hash('sha256', $validated['token']))
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (! $qrToken) {
             throw ValidationException::withMessages([
                 'token' => ['Ce QR code est expiré ou invalide.'],
             ]);
@@ -167,10 +181,5 @@ class SchoolStaffAttendanceController extends Controller
         }
 
         return $query->pluck('user_id')->all();
-    }
-
-    private function cacheKey(School $school, string $token): string
-    {
-        return "staff-attendance-qr:{$school->id}:{$token}";
     }
 }
