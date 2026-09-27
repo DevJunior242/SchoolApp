@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 use App\Http\Controllers\Controller;
 use App\Models\School;
-use App\Models\SchoolAttendanceQrToken;
 use App\Models\SchoolStaffAttendance;
 use App\Models\SchoolStaffAttendanceDevice;
 use App\Models\SchoolStaffAttendanceDeviceRequest;
@@ -47,31 +46,11 @@ class SchoolStaffAttendanceController extends Controller
         return response()->json($records);
     }
 
-    public function qr(Request $request, School $school)
+    public function qr(Request $request, School $school, StaffAttendancePunchService $service)
     {
         $this->authorizeHrStaff($request, $school);
-        abort_if(
-            SchoolStaffAttendanceSetting::forSchool($school)->isPrinted(),
-            422,
-            'Le pointage est en mode QR imprimé : le QR dynamique est désactivé.'
-        );
-        $token = Str::random(64);
-        // Courte durée : une photo envoyée par WhatsApp arrive souvent trop tard.
-        $expiresAt = now()->addSeconds(30);
-        SchoolAttendanceQrToken::query()
-            ->where('school_id', $school->id)
-            ->where('expires_at', '<=', now())
-            ->delete();
-        SchoolAttendanceQrToken::create([
-            'school_id' => $school->id,
-            'token_hash' => hash('sha256', $token),
-            'expires_at' => $expiresAt,
-        ]);
 
-        return response()->json([
-            'token' => $token,
-            'expires_at' => $expiresAt->toISOString(),
-        ]);
+        return response()->json($service->issueRotatingToken($school));
     }
 
     public function myToday(Request $request, School $school)

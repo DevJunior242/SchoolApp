@@ -3,6 +3,7 @@ import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from '
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
+import { asArray } from "../utils/apiData.js";
 export default function AttendanceJustificationsPage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
@@ -16,7 +17,7 @@ export default function AttendanceJustificationsPage() {
     setError(null);
     try {
       const response = await api.get(`/schools/${schoolId}/attendances/pending-justifications`);
-      setPending(response.data);
+      setPending(asArray(response.data));
     } catch (err) {
       setError(err.response?.data?.message || 'Impossible de charger les justifications en attente.');
     }

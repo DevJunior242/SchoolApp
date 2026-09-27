@@ -35,9 +35,12 @@ class SchoolStaffAttendanceSetting extends Model
         'printed_token',
         'printed_token_hash',
         'printed_token_generated_at',
+        'kiosk_token',
+        'kiosk_token_hash',
+        'kiosk_token_generated_at',
     ];
 
-    protected $hidden = ['printed_token', 'printed_token_hash'];
+    protected $hidden = ['printed_token', 'printed_token_hash', 'kiosk_token', 'kiosk_token_hash'];
 
     protected $attributes = [
         'qr_mode' => self::MODE_ROTATING,
@@ -59,6 +62,8 @@ class SchoolStaffAttendanceSetting extends Model
             'radius_meters' => 'integer',
             'printed_token' => 'encrypted',
             'printed_token_generated_at' => 'datetime',
+            'kiosk_token' => 'encrypted',
+            'kiosk_token_generated_at' => 'datetime',
             'emergency_until' => 'datetime',
         ];
     }

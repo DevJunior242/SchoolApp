@@ -24,3 +24,7 @@ VPS OVH `51.91.251.26` (`ssh ovh`), partagé avec Intellino et Intellino RH (Pr�
 ## CGU et politique de confidentialité (2026-09-27)
 
 Pages texte `/terms` et `/privacy` (`components/LegalDocument.jsx`), contenu dans `frontend-ui/src/legal/content.js` (converti depuis les anciens PDF v1.0, mentions de l'éditeur complétées : siège Trame d'accueil Ouaga 2000, RCCM BFOUA012025B1312204, IFU 00279731J). « Télécharger (PDF) » génère le PDF au clic avec jsPDF (`utils/legalPdf.js`, même générateur qu'Intellino RH). Changement substantiel : `LEGAL_VERSION` (front) **et** `terms_version` (`backend/config/legal.php`). Les anciens PDF de `public/` ne sont plus utilisés.
+
+## Écran d'accueil « QR seul » (kiosque, repris d'Intellino RH le 2026-09-27)
+
+`/kiosque/:token` (public, hors `PublicLayout`, aucun compte connecté) affiche le QR renouvelé ; API publique `GET /api/kiosk/{token}` (throttle 20/min). Lien créé / remplacé / désactivé par la RH depuis la page Présence (`KioskLinkCard`, `GET|POST|DELETE /schools/{school}/hr/attendance/kiosk`, `SchoolKioskController`). Jeton chiffré + empreinte dans `school_staff_attendance_settings` (`kiosk_token*`). Mode écran uniquement (422 en mode imprimé). `StaffAttendancePunchService::issueRotatingToken()` sert la page RH et le kiosque. Test : `StaffAttendanceSecurityTest::test_kiosk_link_shows_qr_without_login_and_can_be_revoked`.

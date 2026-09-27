@@ -14,6 +14,7 @@ import { alpha } from '@mui/material/styles';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApiGet } from '../hooks/useApiGet.js';
 
+import { asArray } from "../utils/apiData.js";
 const DAYS = [
   { value: 1, label: 'Lundi' },
   { value: 2, label: 'Mardi' },
@@ -27,7 +28,7 @@ export default function TeacherTimetablePage() {
   const { user } = useAuth();
   const schoolId = user.current_school_id;
   const { data, loading, error } = useApiGet(schoolId ? `/schools/${schoolId}/my-timetable` : null);
-  const slots = data ?? [];
+  const slots = asArray(data);
 
   if (!schoolId) {
     return (

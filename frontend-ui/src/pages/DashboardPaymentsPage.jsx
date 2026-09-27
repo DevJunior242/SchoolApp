@@ -38,6 +38,7 @@ import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
+import { asArray } from "../utils/apiData.js";
 const STATUS_LABELS = {
   0: { label: "En attente", color: "warning" },
   1: { label: "Confirmé", color: "success" },
@@ -193,7 +194,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
   async function loadMethods() {
     try {
       const response = await api.get(`/schools/${schoolId}/payment-methods`);
-      setMethods(response.data);
+      setMethods(asArray(response.data));
     } catch (err) {
       setConfigError(
         err.response?.data?.message ||
@@ -211,7 +212,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
       const response = await api.get(`/schools/${schoolId}/fee-structures`, {
         params,
       });
-      setFeeStructures(response.data);
+      setFeeStructures(asArray(response.data));
     } catch (err) {
       setConfigError(
         err.response?.data?.message || "Impossible de charger les tranches.",
@@ -224,7 +225,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
     loadMethods();
     api
       .get(`/schools/${schoolId}/levels`)
-      .then((r) => setLevels(r.data))
+      .then((r) => setLevels(asArray(r.data)))
       .catch((err) =>
         setConfigError(
           err.response?.data?.message || "Impossible de charger les niveaux.",
@@ -320,7 +321,7 @@ export default function DashboardPaymentsPage({ embedded = false } = {}) {
         .get(`/schools/${schoolId}/students`, {
           params: { search: studentSearch, per_page: 5 },
         })
-        .then((r) => setStudentResults(r.data.data))
+        .then((r) => setStudentResults(asArray(r.data?.data)))
         .catch((err) =>
           setCollectError(
             err.response?.data?.message ||

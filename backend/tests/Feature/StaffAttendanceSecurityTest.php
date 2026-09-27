@@ -191,6 +191,39 @@ class StaffAttendanceSecurityTest extends TestCase
             ->assertJsonFragment(['flag_labels' => ['Position GPS hors de la zone du bureau']]);
     }
 
+    public function test_kiosk_link_shows_qr_without_login_and_can_be_revoked(): void
+    {
+        Sanctum::actingAs($this->hr);
+        $token = $this->postJson($this->url('kiosk'))->assertOk()->assertJsonPath('active', true)->json('token');
+
+        $this->app['auth']->forgetGuards();
+        $qr = $this->getJson("/api/kiosk/{$token}")
+            ->assertOk()
+            ->assertJsonPath('school_name', 'École Pointage Test')
+            ->json('token');
+
+        // Le QR du kiosque permet de pointer.
+        $this->punchAs($this->teacher, $qr)->assertOk();
+
+        // Un enseignant ne peut pas obtenir le lien.
+        Sanctum::actingAs($this->teacher);
+        $this->getJson($this->url('kiosk'))->assertForbidden();
+
+        // Un nouveau lien remplace l'ancien.
+        Sanctum::actingAs($this->hr);
+        $newToken = $this->postJson($this->url('kiosk'))->assertOk()->json('token');
+        $this->app['auth']->forgetGuards();
+        $this->getJson("/api/kiosk/{$token}")->assertNotFound();
+        $this->getJson("/api/kiosk/{$newToken}")->assertOk();
+
+        // Désactivé : plus aucun QR.
+        Sanctum::actingAs($this->hr);
+        $this->deleteJson($this->url('kiosk'))->assertOk()->assertJsonPath('active', false);
+        $this->app['auth']->forgetGuards();
+        $this->getJson("/api/kiosk/{$newToken}")->assertNotFound();
+        $this->getJson('/api/kiosk/'.str_repeat('a', 48))->assertNotFound();
+    }
+
     private function url(string $path): string
     {
         return rtrim("/api/schools/{$this->school->id}/hr/attendance/{$path}", '/');

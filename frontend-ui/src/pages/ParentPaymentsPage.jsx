@@ -23,6 +23,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
+import { asArray } from "../utils/apiData.js";
 const STATUS_LABELS = {
   0: { label: 'En attente de confirmation', color: 'warning' },
   1: { label: 'Confirmé', color: 'success' },
@@ -53,10 +54,10 @@ export default function ParentPaymentsPage() {
     if (!schoolId) return;
     Promise.all([
       api.get(`/schools/${schoolId}/my-children`).then((r) => {
-        setChildren(r.data);
+        setChildren(asArray(r.data));
         if (r.data.length > 0) setSelectedChildId(r.data[0].id);
       }),
-      api.get(`/schools/${schoolId}/payment-methods`).then((r) => setMethods(r.data)),
+      api.get(`/schools/${schoolId}/payment-methods`).then((r) => setMethods(asArray(r.data))),
     ])
       .catch((err) => setLoadError(err.response?.data?.message || 'Impossible de charger vos paiements.'))
       .finally(() => setLoading(false));

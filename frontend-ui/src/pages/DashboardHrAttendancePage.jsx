@@ -29,6 +29,7 @@ import api from "../api/axios.jsx";
 import { asArray, asObject, getApiErrorMessage } from "../utils/apiData.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import StaffAttendanceSettingsCard from "../components/StaffAttendanceSettingsCard.jsx";
+import KioskLinkCard from "../components/KioskLinkCard.jsx";
 
 const PUNCH_RESULT_LABELS = {
   check_in: "Arrivée",
@@ -569,6 +570,8 @@ avec votre propre téléphone, connecté au Wi-Fi du bureau.</p>
           </TableBody>
         </Table>
       </TableContainer>
+
+      {settings && !printedMode && <KioskLinkCard schoolId={schoolId} />}
 
       {settings && (
         <StaffAttendanceSettingsCard

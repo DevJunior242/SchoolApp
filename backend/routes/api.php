@@ -55,6 +55,7 @@ use App\Http\Controllers\Api\MarketplacePlanController;
 use App\Http\Controllers\Api\ServiceProviderController;
 use App\Http\Controllers\Api\TreasuryAccountController;
 use App\Http\Controllers\Api\SchoolStaffLeaveController;
+use App\Http\Controllers\Api\SchoolKioskController;
 use App\Http\Controllers\Api\SchoolStaffAttendanceController;
 use App\Http\Controllers\Api\SchoolPayrollController;
 use App\Http\Controllers\Api\TreasuryMovementController;
@@ -114,6 +115,8 @@ Route::middleware('throttle:enrollment-requests')->post('/schools/{school}/enrol
 // Formulaire public de demande de démo (homepage) : même logique, pas
 // rattaché à une école (le visiteur n'en a pas forcément une encore).
 Route::middleware('throttle:demo-requests')->post('/demo-requests', [DemoRequestController::class, 'store']);
+// Écran d'accueil « QR seul » : public, ouvert avec le lien secret créé par la RH.
+Route::middleware('throttle:20,1')->get('/kiosk/{token}', [SchoolKioskController::class, 'qr']);
 
 // Formules et moyens de paiement affichés avant inscription/paiement :
 // public, pas de donnée sensible.
@@ -249,6 +252,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/schools/{school}/hr/attendance/punch', [SchoolStaffAttendanceController::class, 'punch']);
         Route::get('/schools/{school}/hr/attendance/settings', [SchoolStaffAttendanceController::class, 'settings']);
         Route::get('/schools/{school}/hr/attendance/printed-qr', [SchoolStaffAttendanceController::class, 'printedQr']);
+        Route::get('/schools/{school}/hr/attendance/kiosk', [SchoolKioskController::class, 'show']);
         Route::get('/schools/{school}/hr/attendance/devices', [SchoolStaffAttendanceController::class, 'devices']);
         Route::get('/schools/{school}/hr/attendance/punches', [SchoolStaffAttendanceController::class, 'punches']);
         Route::post('/schools/{school}/hr/attendance/device-requests', [SchoolStaffAttendanceController::class, 'requestDevice']);
@@ -375,6 +379,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/schools/{school}/hr/attendance/{attendance}/correction', [SchoolStaffAttendanceController::class, 'correct']);
             Route::put('/schools/{school}/hr/attendance/settings', [SchoolStaffAttendanceController::class, 'updateSettings']);
             Route::post('/schools/{school}/hr/attendance/printed-qr', [SchoolStaffAttendanceController::class, 'regeneratePrintedQr']);
+            Route::post('/schools/{school}/hr/attendance/kiosk', [SchoolKioskController::class, 'regenerate']);
+            Route::delete('/schools/{school}/hr/attendance/kiosk', [SchoolKioskController::class, 'revoke']);
             Route::delete('/schools/{school}/hr/attendance/devices/{user}', [SchoolStaffAttendanceController::class, 'resetDevice']);
             Route::post('/schools/{school}/hr/attendance/device-requests/{deviceRequest}/review', [SchoolStaffAttendanceController::class, 'reviewDeviceRequest']);
             Route::post('/schools/{school}/hr/attendance/emergency', [SchoolStaffAttendanceController::class, 'emergency']);

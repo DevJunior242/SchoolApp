@@ -43,6 +43,7 @@ import { useLocation } from "react-router-dom";
 import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
 import QuickActions from "../components/QuickActions.jsx";
 
+import { asArray } from "../utils/apiData.js";
 const initialForm = {
   user_id: "",
   department: "",
@@ -176,7 +177,7 @@ export default function DashboardHrPage() {
             api.get("/roles"),
           ]);
 
-        setRhRoleId(rolesRes.data.find((role) => role.slug === "rh")?.id ?? "");
+        setRhRoleId(asArray(rolesRes.data).find((role) => role.slug === "rh")?.id ?? "");
 
         setLeaves(leavesRes.data || []);
         setHrManagers(managersRes.data.data || []);

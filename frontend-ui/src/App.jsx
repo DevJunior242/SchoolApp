@@ -7,6 +7,8 @@ import AppErrorBoundary from "./components/AppErrorBoundary.jsx";
 
 const PublicLayout = lazy(() => import("./layouts/PublicLayout.jsx"));
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
+// Écran d'accueil « QR seul » : plein écran, sans en-tête ni compte connecté.
+const KioskPage = lazy(() => import("./pages/KioskPage.jsx"));
 const SuperAdminActivationKeysPage = lazy(
   () => import("./pages/SuperAdminActivationKeysPage.jsx"),
 );
@@ -212,6 +214,7 @@ function App() {
     <AppErrorBoundary>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
+          <Route path="/kiosque/:token" element={<KioskPage />} />
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/create-school" element={<CreateSchoolPage />} />

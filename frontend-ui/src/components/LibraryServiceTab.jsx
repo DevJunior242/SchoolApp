@@ -21,6 +21,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import QrScanner from 'qr-scanner';
 import api from '../api/axios.jsx';
 
+import { asArray } from "../utils/apiData.js";
 /**
  * Emprunt/retour de livres, onglet "Service" de la page Bibliothèque —
  * même schéma scan-caméra + recherche manuelle en secours que la cantine,
@@ -132,13 +133,13 @@ function BorrowFlow({ schoolId }) {
   async function handleStudentSearch(e) {
     e.preventDefault();
     const response = await api.get(`/schools/${schoolId}/students`, { params: { search: studentTerm, per_page: 10 } });
-    setStudentResults(response.data.data);
+    setStudentResults(asArray(response.data?.data));
   }
 
   async function handleBookSearch(e) {
     e.preventDefault();
     const response = await api.get(`/schools/${schoolId}/library/books`, { params: { search: bookTerm, per_page: 10 } });
-    setBookResults(response.data.data);
+    setBookResults(asArray(response.data?.data));
   }
 
   function reset() {
@@ -383,12 +384,12 @@ function ReturnFlow({ schoolId }) {
     e.preventDefault();
     setStudentLoans(null);
     const response = await api.get(`/schools/${schoolId}/students`, { params: { search: studentTerm, per_page: 10 } });
-    setStudentResults(response.data.data);
+    setStudentResults(asArray(response.data?.data));
   }
 
   async function pickStudent(studentId) {
     const response = await api.get(`/schools/${schoolId}/students/${studentId}/library/lookup`);
-    setStudentLoans(response.data);
+    setStudentLoans(asArray(response.data));
   }
 
   async function handleReturn(loanId) {

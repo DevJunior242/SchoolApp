@@ -12,6 +12,7 @@ use App\Models\SchoolStaffAttendanceSetting;
 use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\IpUtils;
 
@@ -48,6 +49,36 @@ class StaffAttendancePunchService
      * @param  array{token: string, device_id?: ?string, latitude?: ?float, longitude?: ?float, accuracy?: ?float}  $input
      * @return array{message: string, attendance: SchoolStaffAttendance}
      */
+    /**
+     * QR dynamique (mode écran), partagé par la page Présence de la RH et par
+     * l'écran d'accueil « QR seul » (kiosque).
+     */
+    public function issueRotatingToken(School $school): array
+    {
+        abort_if(
+            SchoolStaffAttendanceSetting::forSchool($school)->isPrinted(),
+            422,
+            'Le pointage est en mode QR imprimé : le QR dynamique est désactivé.'
+        );
+
+        $token = Str::random(64);
+        // Courte durée : une photo envoyée par WhatsApp arrive souvent trop tard.
+        $expiresAt = now()->addSeconds(30);
+
+        SchoolAttendanceQrToken::query()
+            ->where('school_id', $school->id)
+            ->where('expires_at', '<=', now())
+            ->delete();
+
+        SchoolAttendanceQrToken::create([
+            'school_id' => $school->id,
+            'token_hash' => hash('sha256', $token),
+            'expires_at' => $expiresAt,
+        ]);
+
+        return ['token' => $token, 'expires_at' => $expiresAt->toISOString()];
+    }
+
     public function punch(School $school, User $user, array $input, ?string $ip, ?string $userAgent): array
     {
         $settings = SchoolStaffAttendanceSetting::forSchool($school);

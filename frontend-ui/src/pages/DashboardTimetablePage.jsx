@@ -23,6 +23,7 @@ import { Link as RouterLink, useParams } from "react-router-dom";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
+import { asArray } from "../utils/apiData.js";
 const DAYS = [
   { value: 1, label: "Lundi" },
   { value: 2, label: "Mardi" },
@@ -67,7 +68,7 @@ export default function DashboardTimetablePage() {
         .get(`/schools/${schoolId}/classes`, {
           params: { search: "", per_page: 1000 },
         })
-        .then((r) => setSchoolClass(r.data.data.find((c) => c.id === classId))),
+        .then((r) => setSchoolClass(asArray(r.data?.data).find((c) => c.id === classId))),
       loadSlots(),
     ])
       .catch((err) =>

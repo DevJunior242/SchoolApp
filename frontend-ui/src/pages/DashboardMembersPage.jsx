@@ -114,7 +114,7 @@ export default function DashboardMembersPage() {
   const invitations = asArray(invitationsData);
 
   useEffect(() => {
-    api.get("/roles").then((response) => setRoles(response.data));
+    api.get("/roles").then((response) => setRoles(asArray(response.data)));
   }, []);
 
   async function handleSubmit(event) {
