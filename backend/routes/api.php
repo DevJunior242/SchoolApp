@@ -247,6 +247,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/my-attendance/history', [SchoolStaffAttendanceController::class, 'myHistory']);
         Route::post('/schools/{school}/hr/attendance/qr', [SchoolStaffAttendanceController::class, 'qr']);
         Route::post('/schools/{school}/hr/attendance/punch', [SchoolStaffAttendanceController::class, 'punch']);
+        Route::get('/schools/{school}/hr/attendance/settings', [SchoolStaffAttendanceController::class, 'settings']);
+        Route::get('/schools/{school}/hr/attendance/printed-qr', [SchoolStaffAttendanceController::class, 'printedQr']);
+        Route::get('/schools/{school}/hr/attendance/devices', [SchoolStaffAttendanceController::class, 'devices']);
+        Route::get('/schools/{school}/hr/attendance/punches', [SchoolStaffAttendanceController::class, 'punches']);
+        Route::post('/schools/{school}/hr/attendance/device-requests', [SchoolStaffAttendanceController::class, 'requestDevice']);
+        Route::get('/schools/{school}/hr/attendance/device-requests', [SchoolStaffAttendanceController::class, 'deviceRequests']);
         Route::get('/schools/{school}/payroll/types', [SchoolPayrollController::class, 'types']);
         Route::post('/schools/{school}/payroll/types', [SchoolPayrollController::class, 'storeType']);
         Route::put('/schools/{school}/payroll/types/{type}', [SchoolPayrollController::class, 'updateType']);
@@ -367,6 +373,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/hr/leaves', [SchoolStaffLeaveController::class, 'store']);
             Route::put('/schools/{school}/hr/leaves/{leave}/status', [SchoolStaffLeaveController::class, 'updateStatus']);
             Route::put('/schools/{school}/hr/attendance/{attendance}/correction', [SchoolStaffAttendanceController::class, 'correct']);
+            Route::put('/schools/{school}/hr/attendance/settings', [SchoolStaffAttendanceController::class, 'updateSettings']);
+            Route::post('/schools/{school}/hr/attendance/printed-qr', [SchoolStaffAttendanceController::class, 'regeneratePrintedQr']);
+            Route::delete('/schools/{school}/hr/attendance/devices/{user}', [SchoolStaffAttendanceController::class, 'resetDevice']);
+            Route::post('/schools/{school}/hr/attendance/device-requests/{deviceRequest}/review', [SchoolStaffAttendanceController::class, 'reviewDeviceRequest']);
+            Route::post('/schools/{school}/hr/attendance/emergency', [SchoolStaffAttendanceController::class, 'emergency']);
             Route::prefix('schools/{school}')->group(function () {
                 Route::get('/classes', [ClassController::class, 'index']);
                 Route::post('/classes', [ClassController::class, 'store']);

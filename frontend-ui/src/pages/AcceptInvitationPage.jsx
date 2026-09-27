@@ -12,11 +12,16 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
+import { PhoneInput } from "react-international-phone";
+import "react-international-phone/style.css";
+import "../components/InternationalPhoneInput.css";
 import api from "../api/axios.jsx";
+import { useThemeMode } from "../context/ThemeModeContext.jsx";
 
 export default function AcceptInvitationPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { mode } = useThemeMode();
   const token = searchParams.get("token") || "";
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -112,13 +117,20 @@ export default function AcceptInvitationPage() {
               required={!phone}
               fullWidth
             />
-            <TextField
-              label="Téléphone"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              required={!email}
-              fullWidth
-            />
+            <Box className={`international-phone-input international-phone-input--${mode}`}>
+              <Box component="label" className="international-phone-input__label" htmlFor="phone">
+                Téléphone
+              </Box>
+              <PhoneInput
+                defaultCountry="bf"
+                value={phone}
+                // L'indicatif seul (ex: "+226") pré-rempli par le champ vaut "pas de téléphone".
+                onChange={(value, { country }) =>
+                  setPhone(value === `+${country.dialCode}` ? "" : value)
+                }
+                inputProps={{ id: "phone", name: "phone", required: !email }}
+              />
+            </Box>
             <TextField
               label="Mot de passe"
               type="password"

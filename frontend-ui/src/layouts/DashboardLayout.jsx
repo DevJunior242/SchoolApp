@@ -734,7 +734,7 @@ export default function DashboardLayout() {
     .sort((first, second) => second.to.length - first.to.length)[0]?.to;
 
   async function handleLogout() {
-    await logout();
+    if (!(await logout())) return;
     navigate("/");
   }
 

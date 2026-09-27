@@ -62,7 +62,7 @@ export default function Navbar() {
 
   async function handleLogout() {
     setMobileOpen(false);
-    await logout();
+    if (!(await logout())) return;
     navigate("/");
   }
 

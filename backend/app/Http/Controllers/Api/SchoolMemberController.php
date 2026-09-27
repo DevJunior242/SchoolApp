@@ -194,18 +194,35 @@ class SchoolMemberController extends Controller
         return response()->json([
             'invitation_url' => $frontendUrl . '/accept-invitation?token=' . $token,
             'expires_at' => $invitation->expires_at->toISOString(),
+            'school_name' => $school->name,
+            'role_name' => $role->name,
         ], 201);
     }
 
     public function acceptInvitation(Request $request)
     {
+        $request->merge([
+            'email' => is_string($request->email) ? strtolower(trim($request->email)) : $request->email,
+            'phone' => is_string($request->phone) ? trim($request->phone) : $request->phone,
+        ]);
+
         $validated = $request->validate([
             'token' => ['required', 'string', 'size:64'],
             'fullname' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'required_without:phone', 'email', 'max:255'],
-            'phone' => ['nullable', 'required_without:email', 'phone:INTERNATIONAL'],
+            'phone' => ['nullable', 'required_without:email', 'string', 'phone:INTERNATIONAL'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'email.required_without' => 'Renseignez un email ou un numéro de téléphone.',
+            'phone.required_without' => 'Renseignez un numéro de téléphone ou un email.',
+            'phone.phone' => 'Le numéro de téléphone doit être valide et inclure son indicatif international, par exemple +226 70 00 00 00.',
         ]);
+
+        // Format unique (+22670000000) pour que la détection de doublon et la
+        // connexion retrouvent le numéro quelle que soit la saisie (espaces…).
+        if (! empty($validated['phone'])) {
+            $validated['phone'] = phone($validated['phone'])->formatE164();
+        }
 
         $invitation = MemberInvitation::query()
             ->where('token_hash', hash('sha256', $validated['token']))

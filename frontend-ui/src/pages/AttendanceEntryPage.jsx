@@ -15,8 +15,15 @@ import {
 import { motion } from "motion/react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import api from "../api/axios.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { db } from "../offline/db.js";
+import {
+  countPending,
+  enqueue,
+  flushQueue,
+  QUEUE_CHANGED_EVENT,
+} from "../offline/sync.js";
 import { asArray } from "../utils/apiData.js";
 
 const STATUS_OPTIONS = [
@@ -56,6 +63,7 @@ export default function AttendanceEntryPage() {
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const { user } = useAuth();
   const [queuedCount, setQueuedCount] = useState(0);
   const [cachedStudents, setCachedStudents] = useState([]);
   const students = studentsData ?? cachedStudents;
@@ -65,10 +73,7 @@ export default function AttendanceEntryPage() {
   // existe pour qu'elle serve aussi à d'autres écrans hors-ligne plus tard),
   // donc il ne faut compter/traiter que nos propres entrées ici.
   async function refreshQueuedCount() {
-    const count = await db.syncQueue
-      .where({ type: "attendance", status: "pending" })
-      .count();
-    setQueuedCount(count);
+    setQueuedCount(await countPending(user?.id, "attendance"));
   }
 
   useEffect(() => {
@@ -106,55 +111,20 @@ export default function AttendanceEntryPage() {
     cacheStudents();
   }, [assignmentId, studentsData]);
 
-  // Envoie au serveur chaque présence encore en attente dans syncQueue,
-  // appelé au montage et à chaque retour de connexion (évènement "online").
-  async function flushAttendanceQueue() {
-    const pending = await db.syncQueue
-      .where({ type: "attendance", status: "pending" })
-      .toArray();
-
-    for (const item of pending) {
-      try {
-        await api.post(
-          `/assignments/${item.payload.assignmentId}/attendances`,
-          {
-            date: item.payload.date,
-            records: item.payload.records,
-          },
-        );
-
-        // Envoyé avec succès : plus besoin de la garder dans la file.
-        await db.syncQueue.delete(item.id);
-      } catch (error) {
-        if (!error.response) {
-          // Toujours hors ligne (pas de réponse serveur du tout) : inutile
-          // d'essayer les entrées suivantes, elles échoueront pareil.
-          break;
-        }
-
-        // Réponse serveur reçue mais en erreur (ex: validation) : ce n'est
-        // pas un problème réseau qui se résoudra tout seul, on arrête de
-        // réessayer cette entrée en la marquant "failed" plutôt que de la
-        // retenter indéfiniment à chaque retour de connexion.
-        await db.syncQueue.update(item.id, {
-          status: "failed",
-        });
-      }
-    }
-
-    await refreshQueuedCount();
-  }
-
+  // L'envoi des saisies en attente est commun à toute l'application (voir
+  // offline/sync.js et OfflineSyncManager) : ici on relance juste un envoi à
+  // l'ouverture et on suit le compteur.
   useEffect(() => {
-    flushAttendanceQueue();
+    flushQueue(user?.id);
+    refreshQueuedCount();
 
-    window.addEventListener("online", flushAttendanceQueue);
+    window.addEventListener(QUEUE_CHANGED_EVENT, refreshQueuedCount);
 
     return () => {
-      window.removeEventListener("online", flushAttendanceQueue);
+      window.removeEventListener(QUEUE_CHANGED_EVENT, refreshQueuedCount);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id]);
 
   async function loadAttendance(forDate) {
     setLoadingAttendance(true);
@@ -279,18 +249,7 @@ export default function AttendanceEntryPage() {
           })),
         );
 
-        await db.syncQueue.add({
-          id: crypto.randomUUID(),
-          type: "attendance",
-          status: "pending",
-          createdAt: Date.now(),
-
-          payload: {
-            assignmentId,
-            date,
-            records,
-          },
-        });
+        await enqueue("attendance", { assignmentId, date, records }, user?.id);
 
         await refreshQueuedCount();
 

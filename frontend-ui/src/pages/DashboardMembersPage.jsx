@@ -156,7 +156,9 @@ export default function DashboardMembersPage() {
         form,
       );
       const invitationUrl = response.data?.invitation_url;
-      const message = `Bonjour, voici votre lien pour rejoindre l'école. Saisissez vos informations puis attendez la validation de l'administration. Le lien est valable 24 heures : ${invitationUrl}`;
+      const schoolName = response.data?.school_name;
+      const roleName = response.data?.role_name;
+      const message = `Bonjour, vous êtes invité(e) à rejoindre ${schoolName ? `l'école « ${schoolName} »` : "l'école"}${roleName ? ` en tant que ${roleName}` : ""}. Saisissez vos informations puis attendez la validation de l'administration. Le lien est valable 24 heures : ${invitationUrl}`;
       const whatsappNumber = form.phone?.replace(/\D/g, "");
       const whatsappUrl = whatsappNumber
         ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`

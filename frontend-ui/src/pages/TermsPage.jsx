@@ -1,64 +1,6 @@
-import { Box, Button, Container, Typography } from "@mui/material";
-import DownloadIcon from "@mui/icons-material/Download";
-
-const TERMS_PDF_URL = `/${encodeURIComponent(
-  "Conditions Générales d’Utilisation — IntellIno Édu.pdf",
-)}`;
+import LegalDocument from "../components/LegalDocument.jsx";
+import { TERMS } from "../legal/content.js";
 
 export default function TermsPage() {
-  return (
-    <Container maxWidth="md" sx={{ py: { xs: 5, md: 8 } }}>
-      <Typography variant="h4" fontWeight={700} gutterBottom>
-        Conditions générales d'utilisation
-      </Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Version 1.0 — mise à jour le 7 septembre 2026
-      </Typography>
-
-      <Box
-        sx={{
-          display: "flex",
-          gap: 1,
-          justifyContent: { xs: "stretch", sm: "flex-end" },
-          flexDirection: { xs: "column", sm: "row" },
-          mb: 2,
-        }}
-      >
-        <Button
-          component="a"
-          href={TERMS_PDF_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          variant="contained"
-          sx={{ display: { xs: "inline-flex", md: "none" } }}
-        >
-          Ouvrir le document
-        </Button>
-        <Button
-          component="a"
-          href={TERMS_PDF_URL}
-          download
-          variant="outlined"
-          startIcon={<DownloadIcon />}
-        >
-          Télécharger les CGU
-        </Button>
-      </Box>
-
-      <Box
-        component="iframe"
-        src={TERMS_PDF_URL}
-        title="Conditions générales d'utilisation IntellIno Édu"
-        sx={{
-          display: { xs: "none", md: "block" },
-          width: "100%",
-          height: "900px",
-          border: 1,
-          borderColor: "divider",
-          borderRadius: 2,
-          bgcolor: "background.paper",
-        }}
-      />
-    </Container>
-  );
+  return <LegalDocument content={TERMS} filename="IntellIno-Edu-Conditions-generales-d-utilisation.pdf" />;
 }

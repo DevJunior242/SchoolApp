@@ -4,6 +4,7 @@ namespace App\Services\Ai;
 
 use App\Models\User;
 use App\Models\Event;
+use App\Models\Grade;
 use App\Models\School;
 use App\Models\Payment;
 use App\Models\Student;
@@ -11,6 +12,8 @@ use App\Models\Attendance;
 use App\Models\ClassStudent;
 use App\Models\FeeStructure;
 use App\Models\SchoolStudent;
+use App\Models\TimetableSlot;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use App\Services\StudentRiskService;
 
@@ -23,12 +26,22 @@ class ParentAssistantService
     private const SYSTEM_PROMPT = <<<'TXT'
 Tu es l'assistant d'un parent d'élève dans une école africaine. Tu ne dois
 JAMAIS inventer de chiffres : réponds uniquement à partir des données
-renvoyées par l'outil que tu as appelé. Réponds en français, en quelques
-phrases, sur un ton chaleureux et rassurant.
+renvoyées par les outils que tu as appelés. Réponds en français, en quelques
+phrases, sur un ton chaleureux et rassurant. Tu peux appeler plusieurs
+outils si la question porte sur plusieurs sujets ou plusieurs enfants.
 
 Tu n'as accès QU'aux informations concernant les enfants de ce parent
 précis, jamais à celles d'un autre élève ni à des données globales de
 l'école (finances de l'école, effectifs d'autres classes, etc.).
+
+Absences et retards : chaque ligne indique la matière, le professeur, le
+créneau horaire du cours prévu à l'emploi du temps et l'état du justificatif.
+L'heure exacte d'arrivée d'un élève en retard n'est PAS enregistrée : si le
+parent la demande, donne le créneau du cours concerné et précise que l'heure
+d'arrivée précise n'est pas disponible. Si le créneau est null, dis que le
+cours n'est pas planifié à l'emploi du temps. Quand un justificatif est
+"non justifiée" ou "rejetée", indique au parent qu'il peut en déposer un
+auprès de l'école.
 
 Important : une liste ou un montant à zéro renvoyé par un outil signifie
 qu'il n'y a AUCUNE absence/AUCUN impayé actuellement, pas que les données
@@ -41,6 +54,9 @@ de l'école, n'appelle aucun outil et réponds directement, brièvement, en
 rappelant que tu ne peux aider que sur ce sujet.
 TXT;
 
+    /** Nombre maximum d'allers-retours outils avant de forcer une réponse. */
+    private const MAX_TOOL_ROUNDS = 3;
+
     private const EVENT_TYPE_LABELS = [
         Event::TYPE_REUNION => 'réunion',
         Event::TYPE_EXAMEN => 'examen',
@@ -48,6 +64,48 @@ TXT;
         Event::TYPE_FERIE => 'jour férié',
         Event::TYPE_BULLETIN => 'remise des bulletins',
         Event::TYPE_AUTRE => 'autre',
+    ];
+
+    private const ATTENDANCE_TYPE_LABELS = [
+        Attendance::STATUS_ABSENT => 'absence',
+        Attendance::STATUS_RETARD => 'retard',
+    ];
+
+    private const JUSTIFICATION_LABELS = [
+        Attendance::JUSTIFICATION_NON_JUSTIFIEE => 'non justifiée',
+        Attendance::JUSTIFICATION_EN_ATTENTE => 'justificatif en attente de validation',
+        Attendance::JUSTIFICATION_JUSTIFIEE => 'justifiée',
+        Attendance::JUSTIFICATION_REJETEE => 'justificatif rejeté',
+    ];
+
+    private const JUSTIFICATION_FILTERS = [
+        'non_justifiee' => Attendance::JUSTIFICATION_NON_JUSTIFIEE,
+        'en_attente' => Attendance::JUSTIFICATION_EN_ATTENTE,
+        'justifiee' => Attendance::JUSTIFICATION_JUSTIFIEE,
+        'rejetee' => Attendance::JUSTIFICATION_REJETEE,
+    ];
+
+    private const DAY_LABELS = [
+        TimetableSlot::DAY_LUNDI => 'lundi',
+        TimetableSlot::DAY_MARDI => 'mardi',
+        TimetableSlot::DAY_MERCREDI => 'mercredi',
+        TimetableSlot::DAY_JEUDI => 'jeudi',
+        TimetableSlot::DAY_VENDREDI => 'vendredi',
+        TimetableSlot::DAY_SAMEDI => 'samedi',
+        7 => 'dimanche',
+    ];
+
+    private const GRADE_TYPE_LABELS = [
+        Grade::TYPE_DEVOIR => 'devoir',
+        Grade::TYPE_INTERROGATION => 'interrogation',
+        Grade::TYPE_COMPOSITION => 'composition',
+        Grade::TYPE_EXAMEN => 'examen',
+    ];
+
+    private const PAYMENT_STATUS_LABELS = [
+        Payment::STATUS_PENDING => 'en attente de confirmation',
+        Payment::STATUS_CONFIRMED => 'confirmé',
+        Payment::STATUS_REJECTED => 'rejeté',
     ];
 
     public function __construct(
@@ -64,37 +122,39 @@ TXT;
         }
 
         $messages = [
-            ['role' => 'system', 'content' => self::SYSTEM_PROMPT],
+            ['role' => 'system', 'content' => self::SYSTEM_PROMPT."\n\nNous sommes le ".$this->todayLabel().'.'],
             ['role' => 'user', 'content' => $question],
         ];
+        $tools = $this->toolDefinitions($children);
+        $tokenMap = [];
 
-        $first = $this->client->chat($messages, $this->toolDefinitions($children), 'auto');
-        $toolCalls = $first['tool_calls'] ?? [];
+        $reply = $this->client->chat($messages, $tools, 'auto');
 
-        if ($toolCalls === []) {
-            return $first['content'] ?? "Je n'ai pas pu traiter cette question.";
+        for ($round = 0; $round < self::MAX_TOOL_ROUNDS && ($reply['tool_calls'] ?? []) !== []; $round++) {
+            $messages[] = $reply;
+
+            foreach ($reply['tool_calls'] as $toolCall) {
+                $arguments = json_decode($toolCall['function']['arguments'] ?? '{}', true) ?: [];
+                [$result, $tokens] = $this->runTool($school, $children, $toolCall['function']['name'], $arguments);
+                $tokenMap += $tokens;
+
+                $messages[] = [
+                    'role' => 'tool',
+                    'tool_call_id' => $toolCall['id'],
+                    'content' => json_encode($result, JSON_UNESCAPED_UNICODE),
+                ];
+            }
+
+            $reply = $this->client->chat($messages, $tools, 'auto');
         }
 
-        $toolCall = $toolCalls[0];
-        $arguments = json_decode($toolCall['function']['arguments'] ?? '{}', true) ?: [];
-
-        [$result, $tokenMap] = $this->runTool($school, $children, $toolCall['function']['name'], $arguments);
-
-        $messages[] = $first;
-        $messages[] = [
-            'role' => 'tool',
-            'tool_call_id' => $toolCall['id'],
-            'content' => json_encode($result, JSON_UNESCAPED_UNICODE),
-        ];
-
-        $second = $this->client->chat($messages);
-        $answer = $second['content'] ?? "Je n'ai pas pu formuler de réponse.";
-
-        foreach ($tokenMap as $token => $realName) {
-            $answer = str_replace($token, $realName, $answer);
+        if (($reply['tool_calls'] ?? []) !== []) {
+            // Trop d'appels d'outils : on force une réponse finale sans outil.
+            $reply = $this->client->chat($messages, $tools, 'none');
         }
 
-        return $answer;
+        // strtr remplace les clés les plus longues d'abord (ENFANT_10 avant ENFANT_1).
+        return strtr($reply['content'] ?? "Je n'ai pas pu formuler de réponse.", $tokenMap);
     }
 
     private function children(User $parent, School $school): Collection
@@ -104,7 +164,8 @@ TXT;
                 ->where('school_id', $school->id)
                 ->where('status', SchoolStudent::STATUS_ACTIVE))
             ->with(['classStudents' => fn ($q) => $q->where('status', ClassStudent::STATUS_ACTIVE)->with('schoolClass.level.section')])
-            ->get();
+            ->get()
+            ->values();
     }
 
     /**
@@ -113,13 +174,41 @@ TXT;
      */
     private function runTool(School $school, Collection $children, string $name, array $arguments): array
     {
-        return match ($name) {
-            'absences_enfant' => $this->toolAbsencesEnfant($children, $arguments['nom_enfant'] ?? ''),
-            'moyenne_enfant' => $this->toolMoyenneEnfant($school, $children, $arguments['nom_enfant'] ?? ''),
-            'paiements_enfant' => $this->toolPaiementsEnfant($school, $children, $arguments['nom_enfant'] ?? ''),
-            'evenements_a_venir' => $this->toolEvenementsAVenir($school, $children, $arguments['nom_enfant'] ?? ''),
-            default => [['error' => 'Outil inconnu.'], []],
+        $nomEnfant = (string) ($arguments['nom_enfant'] ?? '');
+
+        if ($name === 'evenements_a_venir') {
+            return $this->toolEvenementsAVenir($school, $children, $nomEnfant);
+        }
+
+        $student = $this->findChild($children, $nomEnfant);
+
+        if (! $student) {
+            return [['error' => $this->childNotFoundMessage($children, $nomEnfant)], []];
+        }
+
+        // Jeton propre à chaque enfant : le vrai nom n'est jamais envoyé à
+        // l'IA, et plusieurs enfants peuvent être évoqués dans une réponse.
+        $token = 'ENFANT_'.($children->search(fn (Student $child) => $child->id === $student->id) + 1);
+        $classStudent = $this->activeClassStudent($school, $student);
+
+        $result = match ($name) {
+            'assiduite_enfant' => $this->toolAssiduiteEnfant($classStudent, $student, $arguments),
+            'notes_enfant' => $this->toolNotesEnfant($school, $classStudent, $student, $arguments),
+            'emploi_du_temps_enfant' => $this->toolEmploiDuTempsEnfant($classStudent, $arguments),
+            'paiements_enfant' => $this->toolPaiementsEnfant($school, $classStudent, $student),
+            default => null,
         };
+
+        if ($result === null) {
+            return [['error' => 'Outil inconnu.'], []];
+        }
+
+        return [[
+            'enfant' => $token,
+            'classe' => $classStudent?->schoolClass?->name,
+            'section' => $classStudent?->schoolClass?->level?->section?->name,
+            ...$result,
+        ], [$token => $student->fullname]];
     }
 
     private function findChild(Collection $children, string $nomEnfant): ?Student
@@ -135,75 +224,198 @@ TXT;
         return $matches->count() === 1 ? $matches->first() : null;
     }
 
-    private function toolAbsencesEnfant(Collection $children, string $nomEnfant): array
+    private function childNotFoundMessage(Collection $children, string $nomEnfant): string
     {
-        $student = $this->findChild($children, $nomEnfant);
-
-        if (! $student) {
-            return [['error' => "Précisez de quel enfant il s'agit (plusieurs enfants sont rattachés à votre compte)."], []];
-        }
-
-        $activeClassStudent = $student->classStudents->firstWhere('status', ClassStudent::STATUS_ACTIVE);
-        $token = 'ENFANT_CIBLE';
-
-        $dates = Attendance::query()
-            ->where('student_id', $student->id)
-            ->where('status', Attendance::STATUS_ABSENT)
-            ->latest('date')
-            ->limit(20)
-            ->pluck('date')
-            ->map(fn ($date) => $date->format('d/m/Y'))
-            ->values();
-
-        return [[
-            'enfant' => $token,
-            'classe' => $activeClassStudent?->schoolClass?->name,
-            'section' => $activeClassStudent?->schoolClass?->level?->section?->name,
-            'nombre_absences' => $dates->count(),
-            'dates_recentes' => $dates->all(),
-        ], [$token => $student->fullname]];
+        return trim($nomEnfant) === ''
+            ? "Précisez de quel enfant il s'agit (plusieurs enfants sont rattachés à votre compte)."
+            : "Aucun enfant (ou plusieurs) ne correspond à « {$nomEnfant} ». Précisez le prénom de l'enfant concerné.";
     }
 
-    private function toolMoyenneEnfant(School $school, Collection $children, string $nomEnfant): array
+    private function activeClassStudent(School $school, Student $student): ?ClassStudent
     {
-        $student = $this->findChild($children, $nomEnfant);
-
-        if (! $student) {
-            return [['error' => "Précisez de quel enfant il s'agit (plusieurs enfants sont rattachés à votre compte)."], []];
-        }
-
-        $token = 'ENFANT_CIBLE';
-        $score = $this->riskService->scoreFor($school, $student);
-
-        return [[
-            'enfant' => $token,
-            'classe' => $score['class_name'] ?? null,
-            'section' => $score['section_name'] ?? null,
-            'moyenne_generale' => $score['average'],
-            'absences' => $score['absences'],
-            'retards' => $score['retards'],
-        ], [$token => $student->fullname]];
-    }
-
-    private function toolPaiementsEnfant(School $school, Collection $children, string $nomEnfant): array
-    {
-        $student = $this->findChild($children, $nomEnfant);
-
-        if (! $student) {
-            return [['error' => "Précisez de quel enfant il s'agit (plusieurs enfants sont rattachés à votre compte)."], []];
-        }
-
-        $token = 'ENFANT_CIBLE';
-
-        $classStudent = ClassStudent::query()
+        return ClassStudent::query()
             ->where('student_id', $student->id)
             ->where('status', ClassStudent::STATUS_ACTIVE)
             ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
             ->latest('created_at')
             ->with(['schoolClass.level.section'])
             ->first();
+    }
 
-        $totalDue = $classStudent
+    /**
+     * Absences et retards de l'année en cours, avec la matière, le
+     * professeur, le créneau du cours et l'état du justificatif.
+     */
+    private function toolAssiduiteEnfant(?ClassStudent $classStudent, Student $student, array $arguments): array
+    {
+        $type = $arguments['type'] ?? 'tous';
+        $statuses = match ($type) {
+            'absence' => [Attendance::STATUS_ABSENT],
+            'retard' => [Attendance::STATUS_RETARD],
+            default => [Attendance::STATUS_ABSENT, Attendance::STATUS_RETARD],
+        };
+        $matiere = trim((string) ($arguments['matiere'] ?? ''));
+        $justification = self::JUSTIFICATION_FILTERS[$arguments['justification'] ?? ''] ?? null;
+        $schoolYearId = $classStudent?->schoolClass?->school_year_id;
+
+        $records = Attendance::query()
+            ->where('student_id', $student->id)
+            ->whereIn('status', $statuses)
+            ->when($schoolYearId, fn ($query) => $query->whereHas(
+                'classSubjectTeacher.schoolClass',
+                fn ($q) => $q->where('school_year_id', $schoolYearId)
+            ))
+            ->when($matiere !== '', fn ($query) => $query->whereHas(
+                'classSubjectTeacher.subject',
+                fn ($q) => $q->where('name', 'like', '%'.$matiere.'%')
+            ))
+            ->when($justification !== null, fn ($query) => $query->where('justification_status', $justification))
+            ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.teacher', 'classSubjectTeacher.timetableSlots'])
+            ->latest('date')
+            ->get();
+
+        $count = fn (int $status, ?int $justif = null) => $records
+            ->where('status', $status)
+            ->when($justif !== null, fn ($c) => $c->where('justification_status', $justif))
+            ->count();
+
+        $summary = [];
+        foreach (self::ATTENDANCE_TYPE_LABELS as $status => $label) {
+            if (! in_array($status, $statuses, true)) {
+                continue;
+            }
+            $summary[$label.'s'] = [
+                'total' => $count($status),
+                'justifiees' => $count($status, Attendance::JUSTIFICATION_JUSTIFIEE),
+                'en_attente' => $count($status, Attendance::JUSTIFICATION_EN_ATTENTE),
+                'non_justifiees' => $count($status, Attendance::JUSTIFICATION_NON_JUSTIFIEE),
+                'rejetees' => $count($status, Attendance::JUSTIFICATION_REJETEE),
+            ];
+        }
+
+        $details = $records->take(25)->map(function (Attendance $attendance) {
+            $cst = $attendance->classSubjectTeacher;
+            $slot = $cst?->timetableSlots->firstWhere('day_of_week', $attendance->date->dayOfWeekIso);
+
+            return [
+                'date' => $attendance->date->format('d/m/Y'),
+                'jour' => self::DAY_LABELS[$attendance->date->dayOfWeekIso] ?? null,
+                'type' => self::ATTENDANCE_TYPE_LABELS[$attendance->status] ?? 'autre',
+                'matiere' => $cst?->subject?->name,
+                'professeur' => $cst?->teacher?->fullname,
+                'creneau_cours' => $slot ? $this->timeRange($slot) : null,
+                'salle' => $slot?->room,
+                'justificatif' => self::JUSTIFICATION_LABELS[$attendance->justification_status] ?? 'non justifiée',
+                'motif' => $attendance->justification_reason,
+                'traite_le' => $attendance->justified_at?->format('d/m/Y'),
+            ];
+        });
+
+        return [
+            'filtres' => array_filter([
+                'type' => $type,
+                'matiere' => $matiere ?: null,
+                'justification' => $arguments['justification'] ?? null,
+            ]),
+            'resume' => $summary,
+            'details_recents' => $details->values()->all(),
+            'details_tronques' => $records->count() > 25,
+        ];
+    }
+
+    /**
+     * Moyenne générale, moyenne par matière et dernières notes.
+     */
+    private function toolNotesEnfant(School $school, ?ClassStudent $classStudent, Student $student, array $arguments): array
+    {
+        $matiere = trim((string) ($arguments['matiere'] ?? ''));
+        $schoolYearId = $classStudent?->schoolClass?->school_year_id;
+        $score = $this->riskService->scoreFor($school, $student);
+
+        $grades = Grade::query()
+            ->where('student_id', $student->id)
+            ->when($schoolYearId, fn ($query) => $query->whereHas(
+                'classSubjectTeacher.schoolClass',
+                fn ($q) => $q->where('school_year_id', $schoolYearId)
+            ))
+            ->when($matiere !== '', fn ($query) => $query->whereHas(
+                'classSubjectTeacher.subject',
+                fn ($q) => $q->where('name', 'like', '%'.$matiere.'%')
+            ))
+            ->with(['classSubjectTeacher.subject', 'season'])
+            ->orderByDesc('graded_at')
+            ->get();
+
+        $bySubject = $grades
+            ->groupBy(fn (Grade $grade) => $grade->classSubjectTeacher?->subject?->name ?? 'Autre')
+            ->map(function (Collection $subjectGrades, string $subject) {
+                $weight = $subjectGrades->sum('coefficient');
+
+                return [
+                    'matiere' => $subject,
+                    'moyenne_sur_20' => $weight > 0
+                        ? round($subjectGrades->sum(fn (Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $weight, 2)
+                        : null,
+                    'nombre_notes' => $subjectGrades->count(),
+                ];
+            })
+            ->sortBy('moyenne_sur_20')
+            ->values();
+
+        return [
+            'moyenne_generale_sur_20' => $score['average'],
+            'moyennes_par_matiere' => $bySubject->all(),
+            'dernieres_notes' => $grades->take(15)->map(fn (Grade $grade) => [
+                'date' => $grade->graded_at?->format('d/m/Y'),
+                'periode' => $grade->season?->label,
+                'matiere' => $grade->classSubjectTeacher?->subject?->name,
+                'type' => self::GRADE_TYPE_LABELS[$grade->evaluation_type] ?? $grade->evaluation_type,
+                'intitule' => $grade->title,
+                'note' => (float) $grade->score.'/'.(float) $grade->max_score,
+                'coefficient' => (float) $grade->coefficient,
+            ])->values()->all(),
+            'absences_annee' => $score['absences'],
+            'retards_annee' => $score['retards'],
+        ];
+    }
+
+    /**
+     * Cours d'une journée donnée pour la classe de l'enfant.
+     */
+    private function toolEmploiDuTempsEnfant(?ClassStudent $classStudent, array $arguments): array
+    {
+        $jour = mb_strtolower(trim((string) ($arguments['jour'] ?? 'aujourd_hui')));
+        $day = match ($jour) {
+            'demain' => now()->addDay()->dayOfWeekIso,
+            'aujourd_hui', 'aujourd\'hui', '' => now()->dayOfWeekIso,
+            default => array_search($jour, self::DAY_LABELS, true) ?: now()->dayOfWeekIso,
+        };
+
+        if (! $classStudent) {
+            return ['error' => "L'enfant n'est inscrit dans aucune classe active."];
+        }
+
+        $slots = TimetableSlot::query()
+            ->where('day_of_week', $day)
+            ->whereHas('classSubjectTeacher', fn ($q) => $q->where('class_id', $classStudent->class_id))
+            ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.teacher'])
+            ->orderBy('start_time')
+            ->get();
+
+        return [
+            'jour' => self::DAY_LABELS[$day],
+            'cours' => $slots->map(fn (TimetableSlot $slot) => [
+                'horaire' => $this->timeRange($slot),
+                'matiere' => $slot->classSubjectTeacher?->subject?->name,
+                'professeur' => $slot->classSubjectTeacher?->teacher?->fullname,
+                'salle' => $slot->room,
+            ])->values()->all(),
+        ];
+    }
+
+    private function toolPaiementsEnfant(School $school, ?ClassStudent $classStudent, Student $student): array
+    {
+        $fees = $classStudent
             ? FeeStructure::query()
                 ->where('school_id', $school->id)
                 ->where(fn ($query) => $query
@@ -211,23 +423,40 @@ TXT;
                     ->orWhereNull('level_id'))
                 ->where('category', '!=', FeeStructure::CATEGORY_CAFETERIA_SUBSCRIPTION)
                 ->where('school_year_id', $classStudent->schoolClass->school_year_id)
-                ->sum('amount')
-            : 0;
+                ->orderBy('due_date')
+                ->get()
+            : collect();
 
-        $totalConfirmed = Payment::query()
+        $totalDue = (float) $fees->sum('amount');
+
+        $payments = Payment::query()
             ->where('school_id', $school->id)
             ->where('student_id', $student->id)
-            ->where('status', Payment::STATUS_CONFIRMED)
-            ->sum('amount');
+            ->with('feeStructure')
+            ->latest('created_at')
+            ->get();
 
-        return [[
-            'enfant' => $token,
-            'classe' => $classStudent?->schoolClass?->name,
-            'section' => $classStudent?->schoolClass?->level?->section?->name,
-            'total_du' => round((float) $totalDue, 2),
-            'total_paye' => round((float) $totalConfirmed, 2),
-            'solde_restant' => round((float) $totalDue - (float) $totalConfirmed, 2),
-        ], [$token => $student->fullname]];
+        $totalConfirmed = (float) $payments->where('status', Payment::STATUS_CONFIRMED)->sum('amount');
+        $nextDue = $fees->first(fn (FeeStructure $fee) => $fee->due_date && $fee->due_date->gte(today()));
+
+        return [
+            'total_du' => round($totalDue, 2),
+            'total_paye' => round($totalConfirmed, 2),
+            'solde_restant' => round($totalDue - $totalConfirmed, 2),
+            'paiements_en_attente_de_confirmation' => round((float) $payments->where('status', Payment::STATUS_PENDING)->sum('amount'), 2),
+            'prochaine_echeance' => $nextDue ? [
+                'libelle' => $nextDue->label,
+                'montant' => round((float) $nextDue->amount, 2),
+                'date_limite' => $nextDue->due_date->format('d/m/Y'),
+            ] : null,
+            'derniers_paiements' => $payments->take(5)->map(fn (Payment $payment) => [
+                'date' => ($payment->confirmed_at ?? $payment->created_at)?->format('d/m/Y'),
+                'montant' => round((float) $payment->amount, 2),
+                'frais' => $payment->feeStructure?->label,
+                'statut' => self::PAYMENT_STATUS_LABELS[$payment->status] ?? 'inconnu',
+                'recu' => $payment->receipt_number,
+            ])->values()->all(),
+        ];
     }
 
     private function toolEvenementsAVenir(School $school, Collection $children, string $nomEnfant = ''): array
@@ -258,6 +487,18 @@ TXT;
         return [['evenements_a_venir' => $events->values()->all()], []];
     }
 
+    private function timeRange(TimetableSlot $slot): string
+    {
+        return substr((string) $slot->start_time, 0, 5).' - '.substr((string) $slot->end_time, 0, 5);
+    }
+
+    private function todayLabel(): string
+    {
+        $today = Carbon::today();
+
+        return self::DAY_LABELS[$today->dayOfWeekIso].' '.$today->format('d/m/Y');
+    }
+
     private function toolDefinitions(Collection $children): array
     {
         $nomEnfantRequired = $children->count() > 1;
@@ -270,25 +511,55 @@ TXT;
                         : "Optionnel : ce parent n'a qu'un seul enfant dans cette école."),
             ],
         ];
+        $matiereProperty = [
+            'matiere' => [
+                'type' => 'string',
+                'description' => 'Optionnel : nom (ou partie du nom) de la matière pour filtrer (ex: "maths", "anglais").',
+            ],
+        ];
+        $required = $nomEnfantRequired ? ['nom_enfant'] : [];
 
         return [
             $this->tool(
-                'absences_enfant',
-                "Utilise cet outil quand la question porte sur les ABSENCES d'un enfant du parent. Retourne la classe, la section, le nombre et les dates d'absence.",
-                $nomEnfantProperty,
-                $nomEnfantRequired ? ['nom_enfant'] : []
+                'assiduite_enfant',
+                "Utilise cet outil pour toute question sur les ABSENCES ou RETARDS d'un enfant : combien, quand, à quel cours/matière, avec quel professeur, à quelle heure (créneau du cours), s'il y a eu un justificatif et s'il a été accepté. Porte sur l'année scolaire en cours.",
+                $nomEnfantProperty + $matiereProperty + [
+                    'type' => [
+                        'type' => 'string',
+                        'enum' => ['absence', 'retard', 'tous'],
+                        'description' => "Filtrer sur les absences, les retards, ou les deux (par défaut 'tous').",
+                    ],
+                    'justification' => [
+                        'type' => 'string',
+                        'enum' => array_keys(self::JUSTIFICATION_FILTERS),
+                        'description' => "Optionnel : ne garder que les absences/retards ayant cet état de justificatif.",
+                    ],
+                ],
+                $required
             ),
             $this->tool(
-                'moyenne_enfant',
-                "Utilise cet outil quand la question porte sur la MOYENNE/les NOTES d'un enfant du parent. Retourne sa classe, sa section, sa moyenne générale et ses indicateurs.",
-                $nomEnfantProperty,
-                $nomEnfantRequired ? ['nom_enfant'] : []
+                'notes_enfant',
+                "Utilise cet outil quand la question porte sur la MOYENNE, les NOTES, les devoirs/interrogations/compositions d'un enfant, ou ses matières fortes/faibles. Retourne la moyenne générale, la moyenne par matière et les dernières notes.",
+                $nomEnfantProperty + $matiereProperty,
+                $required
+            ),
+            $this->tool(
+                'emploi_du_temps_enfant',
+                "Utilise cet outil quand la question porte sur l'EMPLOI DU TEMPS : quels cours l'enfant a aujourd'hui, demain ou un jour donné, à quelle heure, avec quel professeur, dans quelle salle.",
+                $nomEnfantProperty + [
+                    'jour' => [
+                        'type' => 'string',
+                        'enum' => ['aujourd_hui', 'demain', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
+                        'description' => "Jour souhaité (par défaut 'aujourd_hui').",
+                    ],
+                ],
+                $required
             ),
             $this->tool(
                 'paiements_enfant',
-                "Utilise cet outil quand la question porte sur les FRAIS DE SCOLARITÉ / PAIEMENTS / ce que doit un enfant du parent. Retourne le total dû, déjà payé et le solde restant.",
+                "Utilise cet outil quand la question porte sur les FRAIS DE SCOLARITÉ / PAIEMENTS / ce que doit un enfant du parent. Retourne le total dû, déjà payé, le solde restant, la prochaine échéance et les derniers paiements (avec leur statut).",
                 $nomEnfantProperty,
-                $nomEnfantRequired ? ['nom_enfant'] : []
+                $required
             ),
             $this->tool(
                 'evenements_a_venir',

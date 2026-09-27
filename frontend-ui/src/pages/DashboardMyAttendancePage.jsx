@@ -6,13 +6,12 @@ import {
   Card,
   CardContent,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
-import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import QrScanner from "qr-scanner";
 import api from "../api/axios.jsx";
-import { asArray } from "../utils/apiData.js";
+import { asArray, getApiErrorMessage } from "../utils/apiData.js";
+import { getCurrentPosition, getStaffDeviceId } from "../utils/staffDevice.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function DashboardMyAttendancePage() {
@@ -20,12 +19,14 @@ export default function DashboardMyAttendancePage() {
   const schoolId = user?.current_school_id;
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
-  const [token, setToken] = useState("");
+  const punchRef = useRef(null);
   const [status, setStatus] = useState(null);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [deviceMismatch, setDeviceMismatch] = useState(false);
+  const [requestingDevice, setRequestingDevice] = useState(false);
 
   async function loadStatus() {
     if (!schoolId) return;
@@ -39,8 +40,7 @@ export default function DashboardMyAttendancePage() {
       setHistory(asArray(historyResponse.data));
     } catch (requestError) {
       setError(
-        requestError.response?.data?.message ||
-          "Impossible de charger votre présence.",
+        getApiErrorMessage(requestError, "Impossible de charger votre présence."),
       );
     }
   }
@@ -64,8 +64,10 @@ export default function DashboardMyAttendancePage() {
       } catch (requestError) {
         if (!cancelled) {
           setError(
-            requestError.response?.data?.message ||
+            getApiErrorMessage(
+              requestError,
               "Impossible de charger votre présence.",
+            ),
           );
         }
       }
@@ -85,8 +87,8 @@ export default function DashboardMyAttendancePage() {
       (result) => {
         const value = result?.data?.trim();
         if (value) {
-          setToken(value);
           scanner.stop();
+          punchRef.current?.(value);
         }
       },
       {
@@ -108,36 +110,58 @@ export default function DashboardMyAttendancePage() {
     };
   }, [schoolId]);
 
-  async function handlePunch() {
-    if (!token) {
-      setError("Scannez d’abord le QR ou collez son contenu.");
-      return;
-    }
-
+  async function handlePunch(token) {
     setSubmitting(true);
     setError("");
     setSuccess("");
+    setDeviceMismatch(false);
 
     try {
+      const position = status?.gps_required ? await getCurrentPosition() : null;
       const response = await api.post(
         `/schools/${schoolId}/hr/attendance/punch`,
         {
           token,
+          device_id: getStaffDeviceId(),
+          ...(position || {}),
         },
       );
       setSuccess(response.data.message || "Pointage enregistré.");
-      setToken("");
       await loadStatus();
     } catch (requestError) {
-      const messages = requestError.response?.data?.errors;
+      setDeviceMismatch(requestError.response?.data?.code === "device_mismatch");
       setError(
-        messages
-          ? Object.values(messages).flat().join(" ")
-          : requestError.response?.data?.message ||
-              "Impossible d’enregistrer votre pointage.",
+        getApiErrorMessage(
+          requestError,
+          "Impossible d’enregistrer votre pointage.",
+        ),
       );
     } finally {
       setSubmitting(false);
+      // Relance la caméra pour un prochain scan (départ, nouvel essai).
+      setTimeout(() => scannerRef.current?.start().catch(() => {}), 3000);
+    }
+  }
+
+  useEffect(() => {
+    punchRef.current = handlePunch;
+  });
+
+  async function requestDeviceChange() {
+    setRequestingDevice(true);
+    setError("");
+    try {
+      const response = await api.post(
+        `/schools/${schoolId}/hr/attendance/device-requests`,
+        { device_id: getStaffDeviceId() },
+      );
+      setDeviceMismatch(false);
+      setSuccess(response.data?.message || "Demande envoyée à la RH.");
+      await loadStatus();
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, "Impossible d’envoyer la demande."));
+    } finally {
+      setRequestingDevice(false);
     }
   }
 
@@ -147,8 +171,10 @@ export default function DashboardMyAttendancePage() {
         Pointage du personnel
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Scannez le QR affiché par le RH pour enregistrer votre arrivée ou
-        départ.
+        Scannez le QR affiché à l’administration pour enregistrer votre
+        arrivée ou votre départ. Utilisez toujours le même téléphone
+        {status?.gps_required ? ", activez la localisation" : ""} et soyez
+        connecté au Wi-Fi du bureau si l’école l’exige.
       </Typography>
 
       {error && (
@@ -159,6 +185,30 @@ export default function DashboardMyAttendancePage() {
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess("")}>
           {success}
+        </Alert>
+      )}
+      {deviceMismatch && !status?.device_request_pending && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2 }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={requestDeviceChange}
+              disabled={requestingDevice}
+            >
+              {requestingDevice ? "Envoi..." : "Utiliser ce téléphone"}
+            </Button>
+          }
+        >
+          Vous avez changé de téléphone ? Demandez à la RH d’autoriser celui-ci.
+        </Alert>
+      )}
+      {status?.device_request_pending && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Votre demande de changement de téléphone est en attente de
+          validation par la RH.
         </Alert>
       )}
 
@@ -194,6 +244,11 @@ export default function DashboardMyAttendancePage() {
             <Typography variant="h6" gutterBottom>
               Scanner le QR
             </Typography>
+            {submitting && (
+              <Typography color="primary" sx={{ mb: 1 }}>
+                Enregistrement du pointage...
+              </Typography>
+            )}
             <Box
               sx={{
                 width: "100%",
@@ -217,34 +272,6 @@ export default function DashboardMyAttendancePage() {
           </CardContent>
         </Card>
       </Stack>
-
-      <Card variant="outlined">
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Pointage manuel
-          </Typography>
-          <TextField
-            label="Code QR"
-            value={token}
-            onChange={(event) => setToken(event.target.value.trim())}
-            fullWidth
-            multiline
-            minRows={4}
-            placeholder="Collez ici le contenu du QR si la caméra ne fonctionne pas"
-            sx={{ mb: 2 }}
-          />
-          <Button
-            variant="contained"
-            size="large"
-            fullWidth
-            startIcon={<QrCodeScannerIcon />}
-            onClick={handlePunch}
-            disabled={submitting || !token}
-          >
-            {submitting ? "Enregistrement..." : "Pointer"}
-          </Button>
-        </CardContent>
-      </Card>
 
       <Box sx={{ mt: 3 }}>
         <Typography variant="h6" gutterBottom>

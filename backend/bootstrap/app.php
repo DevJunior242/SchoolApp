@@ -26,6 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
             // 'school.plan' => EnsureSchoolPlanIncludesModule::class,
             'super.admin' => EnsureSuperAdmin::class,
         ]);
+
+        $middleware->replace(\Illuminate\Http\Middleware\TrustProxies::class, \App\Http\Middleware\TrustConfiguredProxies::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

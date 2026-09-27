@@ -18,6 +18,7 @@ class SchoolStaffAttendance extends Model
         'check_out',
         'check_in_source',
         'check_out_source',
+        'flags',
         'correction_reason',
         'corrected_by',
         'corrected_at',
@@ -28,6 +29,7 @@ class SchoolStaffAttendance extends Model
         'check_in' => 'datetime',
         'check_out' => 'datetime',
         'corrected_at' => 'datetime',
+        'flags' => 'array',
     ];
 
     public function school(): BelongsTo

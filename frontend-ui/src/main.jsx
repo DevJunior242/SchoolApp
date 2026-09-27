@@ -5,6 +5,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material'
 import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import OfflineSyncManager from './components/OfflineSyncManager.jsx'
 import { ThemeModeProvider, useThemeMode } from './context/ThemeModeContext.jsx'
 import { getTheme } from './theme.js'
 
@@ -17,6 +18,7 @@ function ThemedApp() {
       <BrowserRouter>
         <AuthProvider>
           <App />
+          <OfflineSyncManager />
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

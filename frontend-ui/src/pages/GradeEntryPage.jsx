@@ -20,6 +20,12 @@ import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { db } from "../offline/db.js";
+import {
+  countPending,
+  enqueue,
+  flushQueue,
+  QUEUE_CHANGED_EVENT,
+} from "../offline/sync.js";
 import { asArray } from "../utils/apiData.js";
 
 const EVALUATION_TYPES = [
@@ -99,10 +105,7 @@ export default function GradeEntryPage() {
   // générique partagée avec la saisie des présences (voir AttendanceEntryPage) ;
   // on filtre sur type ET status pour ne traiter que nos propres entrées ici.
   async function refreshQueuedCount() {
-    const count = await db.syncQueue
-      .where({ type: "grade", status: "pending" })
-      .count();
-    setQueuedCount(count);
+    setQueuedCount(await countPending(user?.id, "grade"));
   }
 
   useEffect(() => {
@@ -194,7 +197,7 @@ export default function GradeEntryPage() {
 
       // On ne supprime que les notes déjà synchronisées (pending: false) :
       // une note saisie hors-ligne et pas encore envoyée doit rester visible
-      // tant que flushGradeQueue ne l'a pas confirmée auprès du serveur.
+      // tant que flushQueue (offline/sync.js) ne l'a pas confirmée auprès du serveur.
       await db.grades.where({ assignmentId, pending: false }).delete();
       await db.grades.bulkPut(serverGrades);
 
@@ -212,56 +215,29 @@ export default function GradeEntryPage() {
     }
   }
 
-  // Envoie au serveur chaque note encore en attente dans syncQueue, appelé au
-  // montage et à chaque retour de connexion. Comme pour les présences, on ne
-  // filtre pas par assignmentId : ça permet de rattraper des notes mises en
-  // attente sur un autre cours visité pendant la même coupure réseau.
-  async function flushGradeQueue() {
-    const pending = await db.syncQueue
-      .where({ type: "grade", status: "pending" })
-      .toArray();
-
-    let anySynced = false;
-
-    for (const item of pending) {
-      try {
-        await api.post(
-          `/assignments/${item.payload.assignmentId}/grades`,
-          item.payload.form,
-        );
-
-        await db.syncQueue.delete(item.id);
-        // Même id que la note mise en cache lors de la saisie hors-ligne
-        // (voir handleSubmit) : on peut donc la retirer directement. Le
-        // prochain loadGrades() ira chercher la vraie version côté serveur.
-        await db.grades.delete(item.id);
-        anySynced = true;
-      } catch (error) {
-        if (!error.response) {
-          break;
-        }
-
-        await db.syncQueue.update(item.id, { status: "failed" });
-      }
-    }
-
-    await refreshQueuedCount();
-
-    if (anySynced) {
-      await loadGrades();
-    }
-  }
-
+  // L'envoi des notes en attente est commun à toute l'application (voir
+  // offline/sync.js et OfflineSyncManager) : ici on relance un envoi à
+  // l'ouverture, on suit le compteur et on recharge les notes quand une note
+  // de ce cours vient d'être envoyée.
   useEffect(() => {
-    flushGradeQueue();
+    function handleQueueChanged(event) {
+      refreshQueuedCount();
+      const syncedHere = (event.detail?.synced || []).some(
+        (item) => item.type === "grade" && item.payload?.assignmentId === assignmentId,
+      );
+      if (syncedHere) loadGrades();
+    }
 
-    window.addEventListener("online", flushGradeQueue);
+    flushQueue(user?.id);
+    refreshQueuedCount();
+
+    window.addEventListener(QUEUE_CHANGED_EVENT, handleQueueChanged);
 
     return () => {
-      window.removeEventListener("online", flushGradeQueue);
+      window.removeEventListener(QUEUE_CHANGED_EVENT, handleQueueChanged);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id, assignmentId]);
 
   useEffect(() => {
     async function load() {
@@ -332,7 +308,7 @@ export default function GradeEntryPage() {
       if (!err.response) {
         // Hors-ligne : on enregistre la note localement (pending: true) et on
         // la met en file d'attente. Même id des deux côtés (voir
-        // flushGradeQueue) pour pouvoir nettoyer la version locale une fois
+        // flushQueue dans offline/sync.js) pour pouvoir nettoyer la version locale une fois
         // envoyée.
         const tempId = crypto.randomUUID();
         const localGrade = {
@@ -349,13 +325,7 @@ export default function GradeEntryPage() {
         };
 
         await db.grades.put(localGrade);
-        await db.syncQueue.add({
-          id: tempId,
-          type: "grade",
-          status: "pending",
-          createdAt: Date.now(),
-          payload: { assignmentId, form },
-        });
+        await enqueue("grade", { assignmentId, form }, user?.id, tempId);
 
         setGrades((prev) => [localGrade, ...prev]);
         await refreshQueuedCount();

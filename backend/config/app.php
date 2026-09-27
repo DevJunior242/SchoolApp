@@ -54,6 +54,10 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // IP des proxies de confiance (séparées par des virgules, ou "*"),
+    // voir App\Http\Middleware\TrustConfiguredProxies.
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
 
     /*

@@ -1,5 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/axios.jsx";
+import {
+  claimOfflineData,
+  countPending,
+  flushQueue,
+  releaseOfflineData,
+} from "../offline/sync.js";
 
 const AuthContext = createContext(null);
 
@@ -32,6 +38,12 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
+  // Rattache les données hors-ligne du téléphone au compte connecté (et
+  // efface celles d'un autre compte).
+  useEffect(() => {
+    if (user?.id) claimOfflineData(user.id).catch(() => {});
+  }, [user?.id]);
+
   async function login(email, password) {
     const response = await api.post("/login", { email, password });
 
@@ -63,10 +75,28 @@ export function AuthProvider({ children }) {
     return response.data.user;
   }
 
+  // Renvoie false si l'utilisateur annule (saisies hors-ligne non envoyées).
   async function logout() {
+    if (user?.id) {
+      await flushQueue(user.id).catch(() => {});
+      const remaining = await countPending(user.id).catch(() => 0);
+      if (
+        remaining > 0 &&
+        !window.confirm(
+          `${remaining} saisie(s) faite(s) hors connexion n’ont pas encore été envoyées. ` +
+            "Elles seront envoyées à votre prochaine connexion sur ce téléphone, jamais avec un autre compte. " +
+            "Se déconnecter quand même ?",
+        )
+      ) {
+        return false;
+      }
+    }
+
     await api.post("/logout").catch(() => {});
     localStorage.removeItem("token");
+    await releaseOfflineData().catch(() => {});
     setUser(null);
+    return true;
   }
 
   async function refreshUser() {

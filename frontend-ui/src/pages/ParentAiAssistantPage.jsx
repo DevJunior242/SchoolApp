@@ -4,7 +4,10 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 const SUGGESTIONS = [
   "Est-ce que mon enfant a des absences récentes ?",
+  "À quels cours était-il en retard, et est-ce justifié ?",
   "Quelle est sa moyenne générale ?",
+  "Dans quelles matières a-t-il le plus de difficultés ?",
+  "Quels cours a-t-il demain ?",
   "Est-ce que j'ai fini de payer les frais de scolarité ?",
   "Quels événements sont prévus prochainement ?",
 ];

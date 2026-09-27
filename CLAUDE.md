@@ -24,3 +24,7 @@ Le serveur `62.238.60.188` héberge **deux applications séparées, sans rapport
 ssh root@62.238.60.188 "deploy-backend"    # git pull + composer install + migrate + cache clear + restart php-fpm/queue
 ssh root@62.238.60.188 "deploy-frontend"   # git pull + npm install + build
 ```
+
+## CGU et politique de confidentialité (2026-09-27)
+
+Pages texte `/terms` et `/privacy` (`components/LegalDocument.jsx`), contenu dans `frontend-ui/src/legal/content.js` (converti depuis les anciens PDF v1.0, mentions de l'éditeur complétées : siège Trame d'accueil Ouaga 2000, RCCM BFOUA012025B1312204, IFU 00279731J). « Télécharger (PDF) » génère le PDF au clic avec jsPDF (`utils/legalPdf.js`, même générateur qu'Intellino RH). Changement substantiel : `LEGAL_VERSION` (front) **et** `terms_version` (`backend/config/legal.php`). Les anciens PDF de `public/` ne sont plus utilisés.
