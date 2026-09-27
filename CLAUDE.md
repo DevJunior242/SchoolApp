@@ -2,28 +2,23 @@
 
 SaaS de gestion scolaire (Laravel + React) — `backend` et `frontend-ui`.
 
-## ⚠️ IMPORTANT : ce VPS héberge DEUX projets distincts
+## Déploiement (VPS OVH, mis à jour le 2026-09-27)
 
-Le serveur `62.238.60.188` héberge **deux applications séparées, sans rapport entre elles** :
+VPS OVH `51.91.251.26` (`ssh ovh`), partagé avec Intellino et Intellino RH (Présento) mais **projets totalement séparés** : ne jamais utiliser les scripts, ports, conteneurs ou bases des autres.
 
-| | **SchoolApp** (ce projet) | **Intellino / Martial SaaS** (autre projet, ne pas toucher) |
-|---|---|---|
-| Dossier VPS | `/var/www/SchoolApp/` | `/var/www/MartialSaaS/` |
-| Frontend | port **80** | port **8080** |
-| Backend API | port **8000** | port **8081** |
-| Scripts déploiement | `deploy-backend`, `deploy-frontend` | `deploy-martial-backend`, `deploy-martial-frontend` |
-| Base de données | `ibc_db` / user `ibc_app` | `martial_db` / user `martial_app` |
-| Queue worker (systemd) | `ibc-queue.service` | `martial-queue.service` |
-| Repos GitHub | `SchoolApp` | `intellino-backend`, `intellino-frontend` |
+| | **SchoolApp** | Intellino | Intellino RH |
+|---|---|---|---|
+| Domaine | edu.intellino.tech | intellino.tech | rh.intellino.tech |
+| Dossier | /var/www/schoolapp | /var/www/intellino | /var/www/rh |
+| Front servi | /var/www/schoolapp/frontend | /var/www/intellino-frontend | /var/www/rh-frontend |
+| Port API / MySQL | 8080 / 3306 | 8081 / 3307 | 8082 / 3308 |
+| Conteneurs | schoolapp-app / schoolapp-db | intellino-app / -db | rh-app / rh-db |
+| Alias | `deploy` | `deploy-intellino` | `deploy-rh` |
 
-**Ne jamais utiliser les scripts/ports/dossiers de Martial SaaS pour ce projet, et inversement.** Les deux projets partagent le même nginx (server blocks différents) et le même MySQL (bases différentes) — ils ne doivent jamais se marcher dessus.
-
-## Déploiement de CE projet
-
-```bash
-ssh root@62.238.60.188 "deploy-backend"    # git pull + composer install + migrate + cache clear + restart php-fpm/queue
-ssh root@62.238.60.188 "deploy-frontend"   # git pull + npm install + build
-```
+- Mise à jour : `git push` puis `ssh ovh` → `deploy` (`deploy.sh` du dépôt) : `git pull --ff-only`, reconstruction du conteneur, vérification de l'API (`/up`), front compilé dans `node:24-alpine` puis `rsync --delete` vers `/var/www/schoolapp/frontend`. S'arrête à la première erreur.
+- `backend/.env` et `backend/docker-compose.yml` n'existent que sur le serveur. Artisan : `docker exec -it schoolapp-app php artisan …`.
+- **Jamais de `composer require` dans le conteneur** : ajouter le paquet en local, committer `composer.json` + `composer.lock`, déployer. L'image est construite avec `--no-scripts`, c'est `start.sh` qui lance `package:discover` au démarrage.
+- Aucun fichier PHP ne doit avoir de ligne vide ou d'espace avant `<?php` : la sortie part avant les en-têtes et **toutes** les réponses de l'API deviennent vides (panne du 2026-09-27 causée par `config/cors.php`).
 
 ## CGU et politique de confidentialité (2026-09-27)
 

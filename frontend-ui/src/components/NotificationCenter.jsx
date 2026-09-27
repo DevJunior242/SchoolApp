@@ -13,6 +13,7 @@ import {
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import api from '../api/axios.jsx';
+import { asArray, asObject } from '../utils/apiData.js';
 
 function timeAgo(dateString) {
   const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
@@ -30,10 +31,18 @@ export default function NotificationCenter() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Une réponse inattendue (API en panne, page HTML) ne doit jamais faire
+  // tomber toute la barre du haut : la cloche reste simplement vide.
   async function loadNotifications() {
-    const response = await api.get('/notifications');
-    setNotifications(response.data.notifications);
-    setUnreadCount(response.data.unread_count);
+    try {
+      const response = await api.get('/notifications');
+      const data = asObject(response.data);
+      setNotifications(asArray(data.notifications));
+      setUnreadCount(Number(data.unread_count) || 0);
+    } catch {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
   }
 
   useEffect(() => {
@@ -41,8 +50,11 @@ export default function NotificationCenter() {
   }, []);
 
   async function handleMarkAllRead() {
-    await api.post('/notifications/mark-all-read');
-    await loadNotifications();
+    try {
+      await api.post('/notifications/mark-all-read');
+    } finally {
+      await loadNotifications();
+    }
   }
 
   return (
@@ -88,7 +100,7 @@ export default function NotificationCenter() {
             }}
           >
             <ListItemText
-              primary={n.data.message}
+              primary={n.data?.message}
               secondary={timeAgo(n.created_at)}
               slotProps={{
                 primary: { variant: 'body2' },
