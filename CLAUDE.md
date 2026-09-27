@@ -2,6 +2,12 @@
 
 SaaS de gestion scolaire (Laravel + React) — `backend` et `frontend-ui`.
 
+## Module RH du personnel : règle avec Intellino RH (décidée le 2026-09-27)
+
+- **Intellino RH (`/home/devjunior/Présento`) est la référence pour tout ce qui touche au personnel.** Une nouveauté RH naît là-bas, puis est reprise ici seulement si les écoles en ont besoin (ex. kiosque « QR seul »). Un bug corrigé dans l'un est vérifié dans l'autre.
+- SchoolApp garde un module RH suffisant pour une école (pointage, congés, paie simple) ; les fonctions avancées peuvent rester propres à Intellino RH.
+- Marchés distincts (écoles / entreprises) : pas de cannibalisation. Plus tard : paquet partagé une fois le module stable.
+
 ## Déploiement (VPS OVH, mis à jour le 2026-09-27)
 
 VPS OVH `51.91.251.26` (`ssh ovh`), partagé avec Intellino et Intellino RH (Présento) mais **projets totalement séparés** : ne jamais utiliser les scripts, ports, conteneurs ou bases des autres.
