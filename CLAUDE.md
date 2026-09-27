@@ -16,8 +16,9 @@ VPS OVH `51.91.251.26` (`ssh ovh`), partagé avec Intellino et Intellino RH (Pr�
 | Alias | `deploy` | `deploy-intellino` | `deploy-rh` |
 
 - Mise à jour : `git push` puis `ssh ovh` → `deploy` (`deploy.sh` du dépôt) : `git pull --ff-only`, reconstruction du conteneur, vérification de l'API (`/up`), front compilé dans `node:24-alpine` puis `rsync --delete` vers `/var/www/schoolapp/frontend`. S'arrête à la première erreur.
-- `backend/.env` et `backend/docker-compose.yml` n'existent que sur le serveur. Artisan : `docker exec -it schoolapp-app php artisan …`.
-- **Jamais de `composer require` dans le conteneur** : ajouter le paquet en local, committer `composer.json` + `composer.lock`, déployer. L'image est construite avec `--no-scripts`, c'est `start.sh` qui lance `package:discover` au démarrage.
+- Même modèle qu'Intellino RH : `backend/Dockerfile`, `backend/.dockerignore`, `backend/docker-compose.yml` (dans le dépôt, ports sur 127.0.0.1 seulement, `restart: unless-stopped`, réseau `schoolapp-network` en `external`) et `backend/start.sh`.
+- `backend/.env` n'existe que sur le serveur ; il contient aussi `DB_PASSWORD` et `DB_ROOT_PASSWORD`, lus par docker-compose (jamais de mot de passe dans le dépôt). Après modification : `docker compose up -d --force-recreate app`. Artisan : `docker exec -it schoolapp-app php artisan …`. MySQL : tunnel SSH vers 127.0.0.1:3306.
+- **Jamais de `composer require` dans le conteneur** : ajouter le paquet en local, committer `composer.json` + `composer.lock`, déployer. L'image est construite avec `--no-scripts` : `.dockerignore` exclut `bootstrap/cache/*.php` (un vieux `packages.php` copié dans l'image « oubliait » laravel-phone) et `start.sh` lance `package:discover` au démarrage.
 - Aucun fichier PHP ne doit avoir de ligne vide ou d'espace avant `<?php` : la sortie part avant les en-têtes et **toutes** les réponses de l'API deviennent vides (panne du 2026-09-27 causée par `config/cors.php`).
 
 ## CGU et politique de confidentialité (2026-09-27)

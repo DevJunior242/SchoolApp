@@ -1,0 +1,51 @@
+name: schoolapp
+
+# Même modèle qu'Intellino RH (/var/www/rh).
+# Mots de passe lus dans backend/.env (DB_PASSWORD, DB_ROOT_PASSWORD) : jamais dans ce fichier.
+services:
+  app:
+    container_name: schoolapp-app
+    build: .
+    image: schoolapp-backend
+    restart: unless-stopped
+    ports:
+      # Accessible seulement depuis le serveur (Nginx) : Docker contourne UFW.
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - storage:/var/www/html/storage
+
+  db:
+    container_name: schoolapp-db
+    image: mysql:8.0
+    restart: unless-stopped
+    ports:
+      # Tunnel SSH uniquement (TablePlus / DBeaver).
+      - "127.0.0.1:3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: schoolapp
+      MYSQL_USER: schoolapp
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      # Volumes existants (schoolapp_mysql_data, schoolapp_storage) : les données sont conservées.
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+  storage:
+
+networks:
+  default:
+    name: schoolapp-network
+    # Réseau créé à l'origine par l'ancien projet compose « backend » : réutilisé tel quel.
+    external: true

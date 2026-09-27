@@ -6,8 +6,11 @@ set -euo pipefail
 cd /var/www/schoolapp
 git pull --ff-only origin main
 
-# Backend (backend/docker-compose.yml et backend/.env n'existent que sur le serveur)
+# Backend (backend/.env n'existe que sur le serveur ; docker-compose.yml y lit les mots de passe MySQL)
 cd backend
+for key in DB_PASSWORD DB_ROOT_PASSWORD; do
+    grep -q "^${key}=" .env || { echo "❌ ${key} manquant dans backend/.env"; exit 1; }
+done
 docker compose up -d --build
 # Attendre le démarrage (start.sh : package:discover, cache, migrations) puis vérifier l'API
 for i in $(seq 1 30); do

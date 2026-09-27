@@ -4,7 +4,8 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
-    zip unzip curl git
+    zip unzip curl git \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
