@@ -40,13 +40,13 @@ export default function NotFoundPage() {
         >
           404
         </Typography>
-        <Typography variant="h5" fontWeight={700} sx={{ mt: 2, mb: 1 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>
           Page introuvable
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 4, maxWidth: 420 }}>
           Cette page n'existe pas ou a été déplacée. Vérifiez l'adresse, ou revenez à un endroit connu.
         </Typography>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="center">
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "center" }}>
           <Button component={RouterLink} to="/" variant="outlined">
             Retour à l'accueil
           </Button>
