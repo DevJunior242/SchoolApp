@@ -60,3 +60,13 @@ Pages texte `/terms` et `/privacy` (`components/LegalDocument.jsx`), contenu dan
 ## Position de l'établissement sur une carte (reprise d'Intellino RH, 2026-09-28)
 
 Contrôle GPS du pointage du personnel : la position se choisit sur une carte (`components/OfficeLocationPicker.jsx`, react-leaflet + tuiles et recherche d'adresse OpenStreetMap/Nominatim, vue **satellite Esri** + noms de lieux si `VITE_ESRI_API_KEY` est défini (bouton Plan / Satellite, satellite par défaut ; sans clé : plan seul), chargée à la demande par `lazy` dans `StaffAttendanceSettingsCard.jsx`) : clic sur l'établissement, cercle du rayon, réglette 20–1000 m ; latitude/longitude seulement dans « Saisir les coordonnées (avancé) ». Les tuiles ne sont pas mises en cache par la PWA (autre domaine, aucune règle `runtimeCaching`). OpenStreetMap ajouté aux prestataires de la politique de confidentialité.
+
+## Page `/dashboard` jamais blanche (corrigé le 2026-10-02)
+
+`pages/DashboardOverviewPage.jsx` redirige selon le rôle. Avant, elle renvoyait `null` (page blanche **sans erreur**, donc invisible pour `AppErrorBoundary`) pour le superadmin, le prestataire, un compte sans école en cours et un rôle absent de la liste.
+- superadmin → `/dashboard/all-schools` ;
+- prestataire → `/dashboard/my-marketplace-items` ;
+- sans école en cours → carte « Choisissez une école » (`/dashboard/schools`) ou « Créer une école » (`/create-school`) ;
+- rôle sans tableau de bord dédié → carte « Bienvenue » ;
+- pendant le chargement → indicateur de chargement.
+Règle : une page ne renvoie jamais `null` à la fin ; toujours un contenu, une redirection ou un message.
