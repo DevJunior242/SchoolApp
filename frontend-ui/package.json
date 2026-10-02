@@ -20,12 +20,14 @@
     "dexie-react-hooks": "^4.4.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "leaflet": "^1.9.4",
     "motion": "^12.42.2",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-international-phone": "^4.8.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.1"
   },
   "devDependencies": {

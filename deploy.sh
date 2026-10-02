@@ -21,9 +21,11 @@ docker exec schoolapp-app php artisan optimize
 curl -fsS -o /dev/null -H "Accept: application/json" http://127.0.0.1:8080/up \
     || { echo "❌ L'API ne répond pas : docker logs schoolapp-app --tail 50"; exit 1; }
 
-# Frontend : compilé dans un conteneur Node 24 pour ne pas dépendre du Node du serveur
+# Frontend : compilé dans un conteneur Node 24 pour ne pas dépendre du Node du serveur.
+# Version figée (la même qu'Intellino RH, vérifiée sur le serveur le 2026-10-02) : même image à chaque déploiement.
+NODE_IMAGE="node:24.21.0-alpine"
 cd ../frontend-ui
-docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/app -w /app node:24-alpine \
+docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/app -w /app "$NODE_IMAGE" \
     sh -c "npm ci --no-audit --no-fund && npm run build"
 # --delete : retire les anciens fichiers (sinon des milliers de vieux assets s'accumulent)
 sudo rsync -a --delete --chmod=D755,F644 --exclude .well-known dist/ /var/www/schoolapp/frontend/

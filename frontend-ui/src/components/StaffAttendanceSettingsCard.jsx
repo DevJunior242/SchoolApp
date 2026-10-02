@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import {
   Alert,
   Box,
@@ -19,7 +19,10 @@ import MyLocationIcon from "@mui/icons-material/MyLocation";
 import WifiIcon from "@mui/icons-material/Wifi";
 import api from "../api/axios.jsx";
 import { getApiErrorMessage } from "../utils/apiData.js";
-import { getCurrentPosition } from "../utils/staffDevice.js";
+import { locateDevice, locationErrorMessage } from "../utils/staffDevice.js";
+
+// Carte (Leaflet, repris d'Intellino RH) chargée seulement quand le contrôle GPS est activé.
+const OfficeLocationPicker = lazy(() => import("./OfficeLocationPicker.jsx"));
 
 function toForm(settings) {
   return {
@@ -73,12 +76,10 @@ export default function StaffAttendanceSettingsCard({ schoolId, settings, onSave
   async function useMyPosition() {
     setLocating(true);
     setError("");
-    const position = await getCurrentPosition();
+    const { position, reason } = await locateDevice();
     setLocating(false);
     if (!position) {
-      setError(
-        "Impossible d’obtenir votre position. Autorisez la localisation et réessayez depuis le bureau.",
-      );
+      setError(locationErrorMessage(reason, { place: "l’établissement" }));
       return;
     }
     setForm((previous) => ({
@@ -231,35 +232,23 @@ export default function StaffAttendanceSettingsCard({ schoolId, settings, onSave
 
         {form.require_gps && (
           <Box sx={{ mb: 2 }}>
-            <Typography fontWeight={600} gutterBottom>
-              Position du bureau
+            <Typography sx={{ fontWeight: 600 }} gutterBottom>
+              Position de l’établissement
             </Typography>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mb: 1 }}>
-              <TextField
-                size="small"
-                label="Latitude"
-                type="number"
-                value={form.latitude}
-                onChange={(event) => update("latitude", event.target.value)}
+            <Suspense fallback={<Typography color="text.secondary">Chargement de la carte…</Typography>}>
+              <OfficeLocationPicker
+                latitude={form.latitude}
+                longitude={form.longitude}
+                radius={form.radius_meters}
+                onChange={({ latitude, longitude }) => setForm((previous) => ({ ...previous, latitude, longitude }))}
+                onRadiusChange={(value) => update("radius_meters", value)}
+                locateButton={
+                  <Button startIcon={<MyLocationIcon />} onClick={useMyPosition} disabled={locating}>
+                    {locating ? "Localisation..." : "Utiliser ma position actuelle (sur place)"}
+                  </Button>
+                }
               />
-              <TextField
-                size="small"
-                label="Longitude"
-                type="number"
-                value={form.longitude}
-                onChange={(event) => update("longitude", event.target.value)}
-              />
-              <TextField
-                size="small"
-                label="Rayon (mètres)"
-                type="number"
-                value={form.radius_meters}
-                onChange={(event) => update("radius_meters", Number(event.target.value))}
-              />
-            </Stack>
-            <Button startIcon={<MyLocationIcon />} onClick={useMyPosition} disabled={locating}>
-              {locating ? "Localisation..." : "Utiliser ma position actuelle (depuis le bureau)"}
-            </Button>
+            </Suspense>
           </Box>
         )}
 

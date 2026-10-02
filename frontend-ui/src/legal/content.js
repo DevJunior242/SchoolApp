@@ -7,7 +7,7 @@
 
 export const LEGAL_VERSION = "1.0";
 export const LEGAL_PUBLISHED = "7 septembre 2026";
-export const LEGAL_UPDATED = "27 septembre 2026";
+export const LEGAL_UPDATED = "28 septembre 2026";
 
 export const TERMS = {
   "title": "Conditions générales d’utilisation",
@@ -993,7 +993,8 @@ export const PRIVACY = {
           "maintenance ;",
           "assistance technique ;",
           "surveillance technique ;",
-          "analyse de performance."
+          "analyse de performance ;",
+          "cartographie : plan et recherche d’adresse OpenStreetMap, vue satellite Esri, uniquement quand un responsable place l’établissement sur la carte dans les règles de pointage du personnel (aucune donnée d’élève ni de personnel n’est transmise)."
         ],
         "Ces prestataires peuvent traiter certaines données uniquement dans la mesure nécessaire à la fourniture du service concerné.",
         "IntellIno sélectionne ses prestataires avec une attention particulière portée à la sécurité et à la confidentialité.",
