@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\User;
+use App\Services\Auth\SessionService;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
@@ -35,7 +36,7 @@ class AuthController extends Controller
 
         event(new Registered($user));
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        $token = app(SessionService::class)->issue($user, $request);
 
         return response()->json([
             'user' => $user->load(['currentSchool.country', 'role']),
@@ -68,7 +69,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        $token = app(SessionService::class)->issue($user, $request);
 
         return response()->json([
             'user' => $user->load(['currentSchool.country', 'role']),

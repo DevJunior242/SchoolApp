@@ -25,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'section.access' => EnsureUserHasSectionAccess::class,
             // 'school.plan' => EnsureSchoolPlanIncludesModule::class,
             'super.admin' => EnsureSuperAdmin::class,
+            // Vérification de l'e-mail activable : voir REQUIRE_EMAIL_VERIFICATION.
+            'verified' => \App\Http\Middleware\EnsureEmailIsVerifiedWhenRequired::class,
         ]);
 
         $middleware->replace(\Illuminate\Http\Middleware\TrustProxies::class, \App\Http\Middleware\TrustConfiguredProxies::class);
@@ -48,5 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('health:notify-expiring-vaccinations')->daily();
         $schedule->command('library:notify-loan-due-dates')->daily();
         $schedule->command('schools:expire-trials')->daily();
+        // Sessions inutilisées depuis 30 jours : supprimées (SessionService).
+        $schedule->command('auth:prune-sessions')->dailyAt('03:15');
     })
     ->create();

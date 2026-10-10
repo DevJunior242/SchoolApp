@@ -29,6 +29,24 @@ Déjà faits et testés dans Intellino RH (`/home/devjunior/Présento`, voir son
    - Ici : décider quel rôle d'école a ce droit (fondateur / directeur).
 5. **Message « Vous étiez à X m » après un pointage** : `distance_meters` est déjà calculé ici ; vérifier que l'employé le voit (`DashboardMyAttendancePage.jsx`).
 
+## Appareils connectés et sessions (repris d'Intellino RH le 2026-10-04)
+
+Même système qu'Intellino RH (`SessionService`, voir son CLAUDE.md) :
+- tout jeton passe par `SessionService::issue` (inscription, connexion, code 2FA), jamais `createToken` directement : appareil, IP et `device_hash` (en-tête `X-Client-Id` envoyé par `api/axios.jsx`) ;
+- **expiration glissante** : jeton inutilisé depuis 30 jours refusé (`Sanctum::authenticateAccessTokensUsing`), supprimé par `auth:prune-sessions` (planifié à 03:15 dans `bootstrap/app.php`, et lancé aussi à chaque démarrage du conteneur) ;
+- **nouvel appareil** (`login_devices`) : e-mail `NewLoginNotification`, sauf pour le premier appareil du compte ;
+- **jeton copié** (utilisé depuis un autre type d'appareil, ex. curl) : `flagged_at`, e-mail `SessionUsedElsewhereNotification`, pastille « Activité inhabituelle » ;
+- page `/dashboard/security` : carte `components/ActiveSessionsCard.jsx` (`GET /me/sessions`, `DELETE /me/sessions/{id}`, `POST /me/sessions/logout-others`) ;
+- tests : `tests/Feature/SessionsTest.php`.
+
+## Tâches planifiées (activées le 2026-10-04)
+
+`start.sh` lance `php artisan schedule:work &` (comme Intellino RH) : les tâches de `withSchedule` dans `bootstrap/app.php` tournent chaque jour. Avant, aucune ne tournait en production. Activé quand aucune école réelle n'était inscrite :
+- `schools:expire-trials` : relance les écoles en fin d'essai, **passe en lecture seule** celles dont l'essai est fini, bloque celles qui dépassent le quota de personnel ;
+- `health:notify-expiring-vaccinations`, `library:notify-loan-due-dates` : e-mails ;
+- `auth:prune-sessions` (03:15) : supprime les sessions inutilisées depuis 30 jours.
+Toute nouvelle tâche ajoutée à `withSchedule` part en production au déploiement suivant.
+
 ## Déploiement (VPS OVH, mis à jour le 2026-09-27)
 
 VPS OVH `51.91.251.26` (`ssh ovh`), partagé avec Intellino et Intellino RH (Présento) mais **projets totalement séparés** : ne jamais utiliser les scripts, ports, conteneurs ou bases des autres.
@@ -70,3 +88,6 @@ Contrôle GPS du pointage du personnel : la position se choisit sur une carte (`
 - rôle sans tableau de bord dédié → carte « Bienvenue » ;
 - pendant le chargement → indicateur de chargement.
 Règle : une page ne renvoie jamais `null` à la fin ; toujours un contenu, une redirection ou un message.
+Vérifié le même jour : tous les rôles des seeders ont une redirection, et toutes les cibles comme tous les liens du menu ont une route. Ajouts :
+- `RoleProtectedRoute` affiche un indicateur de chargement au lieu de `null` ;
+- `<Route path="*">` (404) à l'intérieur de `/dashboard`, car une adresse inconnue y affichait le menu avec un contenu vide.

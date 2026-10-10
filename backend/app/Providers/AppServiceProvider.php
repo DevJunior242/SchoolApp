@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Services\Auth\SessionService;
+use Illuminate\Support\Facades\Event;
+use Laravel\Sanctum\Events\TokenAuthenticated;
+use Laravel\Sanctum\Sanctum;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use App\Notifications\Channels\BrevoChannel;
@@ -24,6 +28,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Notification::extend('brevo', fn ($app) => $app->make(BrevoChannel::class));
+
+        // Session inutilisée depuis 30 jours : le jeton ne marche plus (même volé).
+        Sanctum::authenticateAccessTokensUsing(
+            fn ($token, bool $isValid) => $isValid && SessionService::isFresh($token),
+        );
+        // Dernière IP / dernier appareil de chaque session, alerte si elle change d'appareil.
+        Event::listen(TokenAuthenticated::class, fn (TokenAuthenticated $event) => app(SessionService::class)->touch($event->token, request()));
 
         // Le throttle numérique "throttle:X,Y" de Laravel se limite par
         // domaine+IP, pas par route : deux routes protégées par ce raccourci

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getStaffDeviceId } from "../utils/staffDevice.js";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "https://edu.intellino.tech/api",
@@ -16,6 +17,13 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Identifiant aléatoire de ce navigateur : reconnaît un appareil déjà utilisé
+  // (pas d'alerte « nouvel appareil » à chaque reconnexion).
+  const clientId = getStaffDeviceId();
+  if (clientId) {
+    config.headers["X-Client-Id"] = clientId;
   }
 
   const schoolId = localStorage.getItem("current_school_id");

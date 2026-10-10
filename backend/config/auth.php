@@ -114,4 +114,10 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    | Exiger un e-mail vérifié pour les routes protégées par "verified".
+    | Désactivé pendant la phase de test ; mettre true pour le lancement.
+    */
+    'require_email_verification' => (bool) env('REQUIRE_EMAIL_VERIFICATION', false),
+
 ];

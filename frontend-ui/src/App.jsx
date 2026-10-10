@@ -401,6 +401,8 @@ function App() {
               path="demo-requests"
               element={<SuperAdminDemoRequestsPage />}
             />
+            {/* Adresse inconnue sous /dashboard : 404 au lieu d'un contenu vide. */}
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
       </Suspense>

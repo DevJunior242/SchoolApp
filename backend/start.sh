@@ -9,5 +9,10 @@ php artisan package:discover --ansi
 php artisan migrate --force
 php artisan optimize:clear
 php artisan optimize
+# Sessions inutilisées depuis 30 jours : supprimées à chaque démarrage (en plus de la nuit).
+php artisan auth:prune-sessions
 php artisan queue:work &
+# Tâches planifiées (bootstrap/app.php, withSchedule) : fin des essais, rappels
+# vaccins et bibliothèque, ménage des sessions. Même modèle qu'Intellino RH.
+php artisan schedule:work &
 exec php artisan serve --host=0.0.0.0 --port=8080 --no-reload

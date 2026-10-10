@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, Paper, Stack, TextField, Typography } from '@
 import QRCode from 'qrcode';
 import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import ActiveSessionsCard from '../components/ActiveSessionsCard.jsx';
 
 export default function AccountSecurityPage() {
   const { user, refreshUser } = useAuth();
@@ -280,6 +281,8 @@ export default function AccountSecurityPage() {
           </Box>
         )}
       </Paper>
+
+      <ActiveSessionsCard />
     </Box>
   );
 }

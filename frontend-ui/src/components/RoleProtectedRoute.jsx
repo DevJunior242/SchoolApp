@@ -1,4 +1,4 @@
-import { Button, Container, Paper, Typography } from "@mui/material";
+import { Box, Button, CircularProgress, Container, Paper, Typography } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSchools } from "../hooks/useSchools.js";
@@ -124,8 +124,13 @@ export default function RoleProtectedRoute({ children }) {
   const { schoolUsers, loading } = useSchools();
   const location = useLocation();
 
+  // Pas de `return null` : un écran vide ressemble à une panne.
   if (loading) {
-    return null;
+    return (
+      <Box sx={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   const globalRole = user?.role?.slug;

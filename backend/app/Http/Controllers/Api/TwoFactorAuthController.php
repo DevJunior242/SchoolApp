@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Auth\SessionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -209,7 +210,7 @@ class TwoFactorAuthController extends Controller
         // il ne doit pas rester valide pour de futures tentatives.
         Cache::forget("2fa-challenge:{$validated['token']}");
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        $token = app(SessionService::class)->issue($user, $request);
 
         return response()->json([
             'user' => $user->load(['currentSchool.country', 'role']),

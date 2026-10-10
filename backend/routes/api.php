@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\BusController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\BookController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\AdminController;
@@ -126,6 +127,10 @@ Route::get('/marketplace/payment-methods', [PaymentMethodController::class, 'pla
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    // Appareils connectés (page Sécurité) : voir et déconnecter ses sessions.
+    Route::get('/me/sessions', [SessionController::class, 'index']);
+    Route::delete('/me/sessions/{session}', [SessionController::class, 'destroy'])->middleware('throttle:20,1');
+    Route::post('/me/sessions/logout-others', [SessionController::class, 'destroyOthers'])->middleware('throttle:10,1');
     Route::post('/email/verification-notification', [AuthController::class, 'resendVerification'])
         ->middleware('throttle:verification-email');
 
