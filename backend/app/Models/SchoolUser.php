@@ -24,10 +24,11 @@ class SchoolUser extends Pivot
 
     const STATUS_LEFT = 2;
 
-    protected $fillable = ['school_id', 'user_id', 'role_id', 'status', 'is_owner'];
+    protected $fillable = ['school_id', 'user_id', 'role_id', 'status', 'is_owner', 'is_staff'];
 
     protected $casts = [
         'is_owner' => 'boolean',
+        'is_staff' => 'boolean',
         'status' => 'integer',
     ];
 

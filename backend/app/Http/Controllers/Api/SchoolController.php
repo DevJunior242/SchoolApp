@@ -50,6 +50,33 @@ class SchoolController extends Controller
         );
     }
 
+    /**
+     * Le créateur de l'école indique s'il travaille aussi comme salarié
+     * (menus « Mon pointage » / « Ma paie », droit de pointer). Les autres
+     * membres sont toujours considérés comme du personnel.
+     */
+    public function updateMyStaffStatus(Request $request, School $school)
+    {
+        $validated = $request->validate(['is_staff' => ['required', 'boolean']]);
+
+        $member = SchoolUser::query()
+            ->where('school_id', $school->id)
+            ->where('user_id', $request->user()->id)
+            ->where('status', SchoolUser::STATUS_ACTIVE)
+            ->with('role')
+            ->firstOrFail();
+
+        abort_unless(
+            $member->is_owner && $member->role?->slug === 'admin',
+            403,
+            'Seul le créateur de l’école peut modifier ce réglage.'
+        );
+
+        $member->update(['is_staff' => $validated['is_staff']]);
+
+        return response()->json($member->fresh(['role']));
+    }
+
     // Durée de l'essai gratuit pour une école créée sans clé d'activation
     // (une clé valide saute directement le trial, cf. store()).
     private const TRIAL_DAYS = 30;
@@ -124,6 +151,9 @@ class SchoolController extends Controller
                 'role_id' => $adminRole->id,
                 'status' => SchoolUser::STATUS_ACTIVE,
                 'is_owner' => true,
+                // Le fondateur n'est pas salarié par défaut (pas de pointage
+                // ni de paie) ; il peut l'activer, voir updateMyStaffStatus().
+                'is_staff' => false,
             ]);
 
             $user->update(['current_school_id' => $school->id]);

@@ -146,6 +146,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
 
     Route::get('/my-schools', [SchoolController::class, 'mine']);
+    Route::put('/schools/{school}/my-staff-status', [SchoolController::class, 'updateMyStaffStatus']);
 
     Route::middleware('throttle:activation-key-validate')->post('/activation-keys/validate', [ActivationKeyController::class, 'validateKey']);
 

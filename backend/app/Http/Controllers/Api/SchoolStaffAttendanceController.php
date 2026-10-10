@@ -314,6 +314,10 @@ class SchoolStaffAttendanceController extends Controller
         if (in_array($member->role?->slug, ['parent', 'eleve'], true)) {
             abort(403, 'Seul un membre du personnel peut pointer.');
         }
+
+        if (! $member->is_staff) {
+            abort(403, 'Vous n’êtes pas enregistré comme salarié de l’école. Activez « Je travaille aussi comme salarié de l’école » dans votre profil pour pointer.');
+        }
     }
 
     private function settingsPayload(Request $request, School $school, SchoolStaffAttendanceSetting $settings): array

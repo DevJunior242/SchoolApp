@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
+import OwnerStaffStatusCard from "../components/OwnerStaffStatusCard.jsx";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -220,6 +221,8 @@ export default function ProfilePage() {
           </Button>
         </Box>
       </Paper>
+
+      <OwnerStaffStatusCard />
 
       <Paper variant="outlined" sx={{ p: 3, maxWidth: 560 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>

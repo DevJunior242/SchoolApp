@@ -709,11 +709,14 @@ export default function DashboardLayout() {
     : navGroups;
 
   const personalItems = [MY_ATTENDANCE_ITEM, MY_PAYROLL_ITEM];
+  // is_staff === false : le fondateur qui n'est pas salarié de l'école
+  // (réglage « Je travaille aussi comme salarié » dans son profil).
   const navGroupsWithPersonalItems =
     isSuperAdmin ||
     isPrestataire ||
     !currentRole ||
-    ["parent", "eleve"].includes(currentRole)
+    ["parent", "eleve"].includes(currentRole) ||
+    currentMembership?.is_staff === false
       ? roleNavGroups
       : [{ title: "Mon espace", items: personalItems }, ...roleNavGroups];
 

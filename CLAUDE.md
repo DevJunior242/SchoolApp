@@ -91,3 +91,10 @@ Règle : une page ne renvoie jamais `null` à la fin ; toujours un contenu, une 
 Vérifié le même jour : tous les rôles des seeders ont une redirection, et toutes les cibles comme tous les liens du menu ont une route. Ajouts :
 - `RoleProtectedRoute` affiche un indicateur de chargement au lieu de `null` ;
 - `<Route path="*">` (404) à l'intérieur de `/dashboard`, car une adresse inconnue y affichait le menu avec un contenu vide.
+
+## Fondateur non salarié (`school_users.is_staff`, 2026-10-10)
+
+- `is_staff` vrai pour tous les membres, **faux pour le créateur de l'école** (`admin` + `is_owner`) : il n'a pas « Mon espace » (Mon pointage / Ma paie) dans le menu et le pointage lui est refusé (403).
+- Il peut l'activer lui-même dans Mon profil (« Je travaille aussi comme salarié de l'école », `OwnerStaffStatusCard`, `PUT /schools/{school}/my-staff-status`, réservé au créateur).
+- Différence voulue avec Intellino RH, où tout le monde pointe, dirigeant compris.
+- Tests : `tests/Feature/SchoolOwnerStaffStatusTest.php`.

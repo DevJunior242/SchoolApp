@@ -3,6 +3,14 @@ import api from '../api/axios.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { asArray } from '../utils/apiData.js';
 
+// Les menus utilisent leur propre useSchools() : un changement d'appartenance
+// (ex. « Je travaille aussi comme salarié ») le leur signale par cet évènement.
+const MEMBERSHIPS_CHANGED_EVENT = 'school-memberships-changed';
+
+export function notifySchoolMembershipsChanged() {
+  window.dispatchEvent(new Event(MEMBERSHIPS_CHANGED_EVENT));
+}
+
 export function useSchools() {
   const { refreshUser } = useAuth();
   const [schoolUsers, setSchoolUsers] = useState([]);
@@ -23,6 +31,8 @@ export function useSchools() {
 
   useEffect(() => {
     load();
+    window.addEventListener(MEMBERSHIPS_CHANGED_EVENT, load);
+    return () => window.removeEventListener(MEMBERSHIPS_CHANGED_EVENT, load);
   }, [load]);
 
   async function createSchool(data) {
