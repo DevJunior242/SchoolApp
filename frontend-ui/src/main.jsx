@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider, CssBaseline } from '@mui/material'
 import './index.css'
+// Dès le démarrage : Chrome/Edge envoient « beforeinstallprompt » très tôt.
+import './utils/installApp.js'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import OfflineSyncManager from './components/OfflineSyncManager.jsx'

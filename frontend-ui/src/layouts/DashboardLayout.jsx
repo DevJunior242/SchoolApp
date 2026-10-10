@@ -69,6 +69,7 @@ import { useSchools } from "../hooks/useSchools.js";
 import NotificationCenter from "../components/NotificationCenter.jsx";
 import MessagingIcon from "../components/MessagingIcon.jsx";
 import VerifyEmailBanner from "../components/VerifyEmailBanner.jsx";
+import InstallAppButton from "../components/InstallAppButton.jsx";
 import TrialStatusBanner from "../components/TrialStatusBanner.jsx";
 import SchoolSetupRequired from "../components/SchoolSetupRequired.jsx";
 import intellinoMark from "../assets/intellino-mark.svg";
@@ -1169,6 +1170,8 @@ export default function DashboardLayout() {
               />
             )}
           </Box>
+
+          <InstallAppButton />
 
           <IconButton
             color="inherit"
