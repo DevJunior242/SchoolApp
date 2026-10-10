@@ -98,3 +98,13 @@ Vérifié le même jour : tous les rôles des seeders ont une redirection, et to
 - Il peut l'activer lui-même dans Mon profil (« Je travaille aussi comme salarié de l'école », `OwnerStaffStatusCard`, `PUT /schools/{school}/my-staff-status`, réservé au créateur).
 - Différence voulue avec Intellino RH, où tout le monde pointe, dirigeant compris.
 - Tests : `tests/Feature/SchoolOwnerStaffStatusTest.php`.
+
+## Tableau de bord du professeur (2026-10-10)
+
+- `/dashboard/teacher` (`pages/TeacherDashboardPage.jsx`) : classes, élèves, appels à faire aujourd'hui (bouton « Faire l'appel » par cours), notes saisies sur 7 jours, moyenne par classe. Avant, le « Tableau de bord » du professeur était la liste « Mes cours » (`/my-assignments`).
+- API `GET /schools/{school}/my-teaching-summary` (`DashboardController::teacherSummary`) : existait sans page ; corrigée (filtre de section via `level`, l'ancien `classes.section_id` n'existe pas → erreur 500 pour un prof limité à une section), cours du jour limités à l'année en cours, `attendance_taken` par cours. Test : `TeacherDashboardSummaryTest`.
+- Raccourcis du professeur (`QuickActions`) : ne pas renvoyer vers `/dashboard/my-courses` (page élève) ni `/dashboard/assignments` (inexistante).
+
+## Effectif garçons / filles par classe (2026-10-10)
+
+`App\Services\ClassHeadcountService::forClasses()` : élèves inscrits dans la classe (`class_student` actif) **et** actifs dans l'école, comptés G / F / total. Utilisé par la page Classes (champ `effectif` de `GET /classes`, pastille « 47 élèves · 22 G / 25 F ») et le tableau de bord du professeur (`class_headcounts` de `my-teaching-summary`, carte « Effectif de mes classes »). Garder ce calcul unique pour que les chiffres concordent partout. Test : `ClassHeadcountTest`.

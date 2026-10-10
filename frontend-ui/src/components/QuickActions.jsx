@@ -86,30 +86,23 @@ const ACTIONS_BY_ROLE = {
       icon: <AccountBalanceWalletIcon />,
     },
   ],
+  // Pas de /dashboard/my-courses (cours de l'élève) ni /dashboard/assignments
+  // (n'existe pas) : notes et absences se saisissent depuis « Mes cours ».
   professeur: [
-    { label: "Mes cours", to: "/dashboard/my-courses", icon: <MenuBookIcon /> },
     {
-      label: "Saisir les notes",
-      to: "/dashboard/assignments",
-      icon: <AssignmentIcon />,
+      label: "Notes et absences",
+      to: "/dashboard/my-assignments",
+      icon: <MenuBookIcon />,
     },
     {
       label: "Mon emploi du temps",
       to: "/dashboard/my-timetable",
       icon: <ScheduleIcon />,
     },
-  ],
-  enseignant: [
-    { label: "Mes cours", to: "/dashboard/my-courses", icon: <MenuBookIcon /> },
     {
-      label: "Saisir les notes",
-      to: "/dashboard/assignments",
+      label: "Examens",
+      to: "/dashboard/exams",
       icon: <AssignmentIcon />,
-    },
-    {
-      label: "Mon emploi du temps",
-      to: "/dashboard/my-timetable",
-      icon: <ScheduleIcon />,
     },
   ],
   rh: [
@@ -124,7 +117,7 @@ const ACTIONS_BY_ROLE = {
 };
 
 export default function QuickActions({ role }) {
-  const actions = ACTIONS_BY_ROLE[role] ?? [];
+  const actions = ACTIONS_BY_ROLE[role === "enseignant" ? "professeur" : role] ?? [];
 
   if (actions.length === 0) return null;
 

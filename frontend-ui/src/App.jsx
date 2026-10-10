@@ -39,6 +39,9 @@ const DashboardOverviewPage = lazy(
   () => import("./pages/DashboardOverviewPage.jsx"),
 );
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage.jsx"));
+const TeacherDashboardPage = lazy(
+  () => import("./pages/TeacherDashboardPage.jsx"),
+);
 const StudentDashboardPage = lazy(
   () => import("./pages/StudentDashboardPage.jsx"),
 );
@@ -266,6 +269,7 @@ function App() {
             <Route index element={<DashboardOverviewPage />} />
             <Route path="admin" element={<AdminDashboardPage />} />
             <Route path="student" element={<StudentDashboardPage />} />
+            <Route path="teacher" element={<TeacherDashboardPage />} />
             <Route path="parent" element={<ParentDashboardPage />} />
             <Route path="schools" element={<DashboardSchoolsPage />} />
             <Route path="comptable" element={<DashboardComptablePage />} />

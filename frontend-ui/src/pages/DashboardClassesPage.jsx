@@ -439,6 +439,18 @@ export default function DashboardClassesPage() {
                               }}
                             />
                           )}
+
+                          {c?.effectif && (
+                            <Chip
+                              label={`${c.effectif.total} élève${c.effectif.total > 1 ? "s" : ""} · ${c.effectif.garcons} G / ${c.effectif.filles} F`}
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                height: 26,
+                                fontSize: "0.75rem",
+                              }}
+                            />
+                          )}
                         </Stack>
                       </Box>
 

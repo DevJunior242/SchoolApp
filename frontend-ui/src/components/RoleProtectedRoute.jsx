@@ -45,6 +45,7 @@ const ROLE_ROUTE_PREFIXES = {
   chauffeur: ["my-bus-trip"],
   cantine: ["cafeteria"],
   professeur: [
+    "teacher",
     "my-assignments",
     "my-timetable",
     "my-courses",
@@ -52,6 +53,7 @@ const ROLE_ROUTE_PREFIXES = {
     "ai-assistant",
   ],
   enseignant: [
+    "teacher",
     "my-assignments",
     "my-timetable",
     "my-courses",

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Grade;
 use App\Models\School;
+use App\Models\Attendance;
 use App\Models\ClassStudent;
 use Illuminate\Http\Request;
 use App\Models\TimetableSlot;
@@ -11,6 +12,7 @@ use Illuminate\Support\Collection;
 use App\Http\Controllers\Controller;
 use App\Services\StudentRiskService;
 use App\Services\SchoolSummaryService;
+use App\Services\ClassHeadcountService;
 use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
 
@@ -84,7 +86,12 @@ class DashboardController extends Controller
             ->whereHas('schoolClass', fn($query) => $query
                 ->where('school_id', $school->id)
                 ->whereHas('schoolYear', fn($q) => $q->where('is_current', true))
-                ->when($sectionIds, fn($classQuery, $ids) => $classQuery->whereIn('section_id', $ids)))
+                // La section d'une classe passe par son niveau (pas de colonne
+                // section_id sur classes).
+                ->when($sectionIds, fn($classQuery, $ids) => $classQuery->whereHas(
+                    'level',
+                    fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)
+                )))
             ->with(['subject', 'schoolClass'])
             ->get();
 
@@ -118,28 +125,54 @@ class DashboardController extends Controller
             ->filter(fn($row) => $row['moyenne'] !== null)
             ->values();
 
-        $todaySlots = TimetableSlot::query()
-            ->whereHas('classSubjectTeacher', fn($query) => $query
-                ->where('user_id', $userId)
-                ->whereHas('schoolClass', fn($q) => $q->where('school_id', $school->id)))
+        // Cours du jour limités aux affectations de l'année en cours (sinon
+        // l'emploi du temps de l'an dernier s'afficherait aussi).
+        $takenToday = $assignmentIds->isEmpty() ? collect() : Attendance::query()
+            ->whereIn('class_subject_teacher_id', $assignmentIds)
+            ->whereDate('date', today())
+            ->distinct()
+            ->pluck('class_subject_teacher_id')
+            ->flip();
+
+        $todaySlots = $assignmentIds->isEmpty() ? collect() : TimetableSlot::query()
+            ->whereIn('class_subject_teacher_id', $assignmentIds)
             ->where('day_of_week', now()->dayOfWeekIso)
             ->with(['classSubjectTeacher.subject', 'classSubjectTeacher.schoolClass'])
             ->orderBy('start_time')
             ->get()
             ->map(fn(TimetableSlot $slot) => [
+                'assignment_id' => $slot->class_subject_teacher_id,
                 'start_time' => substr($slot->start_time, 0, 5),
                 'end_time' => substr($slot->end_time, 0, 5),
                 'subject' => $slot->classSubjectTeacher->subject?->name,
                 'classe' => $slot->classSubjectTeacher->schoolClass?->name,
                 'room' => $slot->room,
-            ]);
+                'attendance_taken' => $takenToday->has($slot->class_subject_teacher_id),
+            ])
+            ->values();
+
+        $gradesLastWeek = $assignmentIds->isEmpty() ? 0 : Grade::query()
+            ->whereIn('class_subject_teacher_id', $assignmentIds)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
 
         return response()->json([
             'classes_count' => $classIds->count(),
             'subjects_count' => $assignments->pluck('subject_id')->unique()->count(),
             'students_count' => $studentsCount,
             'today_slots' => $todaySlots,
+            'attendance_pending_count' => $todaySlots->where('attendance_taken', false)->count(),
+            'grades_last_7_days' => $gradesLastWeek,
             'average_by_class' => $averageByClass,
+            // Effectif garçons / filles de chaque classe où il enseigne.
+            'class_headcounts' => app(ClassHeadcountService::class)
+                ->forClasses($school->id, $classIds)
+                ->map(fn (array $counts, string $classId) => [
+                    'classe' => $assignments->firstWhere('class_id', $classId)?->schoolClass?->name,
+                    ...$counts,
+                ])
+                ->sortBy('classe', SORT_NATURAL)
+                ->values(),
         ]);
     }
 }

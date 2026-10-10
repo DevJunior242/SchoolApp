@@ -36,8 +36,8 @@ const ROLE_DASHBOARD_PATHS = {
   bibliothecaire: "/dashboard/library",
   chauffeur: "/dashboard/my-bus-trip",
   cantine: "/dashboard/cafeteria",
-  professeur: "/dashboard/my-assignments",
-  enseignant: "/dashboard/my-assignments",
+  professeur: "/dashboard/teacher",
+  enseignant: "/dashboard/teacher",
   parent: "/dashboard/parent",
   eleve: "/dashboard/student",
 };

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Services\ClassHeadcountService;
 use App\Models\Level;
 use App\Models\School;
 use App\Models\SchoolUser;
@@ -51,6 +52,14 @@ class ClassController extends Controller
                 ->with(['level.section', 'classSubjectTeachers.subject', 'classSubjectTeachers.teacher'])
                 ->distinct()
                 ->paginate($request->integer('per_page', 10))
+                ->tap(function ($page) use ($school) {
+                    // Effectif garçons / filles / total de chaque classe.
+                    $headcounts = app(ClassHeadcountService::class)
+                        ->forClasses($school->id, $page->getCollection()->pluck('id'));
+                    $page->getCollection()->each(
+                        fn (SchoolClass $class) => $class->setAttribute('effectif', $headcounts[$class->id] ?? null)
+                    );
+                })
         );
     }
     public function store(Request $request, School $school)

@@ -100,8 +100,8 @@ const ROLE_DASHBOARD_ITEMS = {
   bibliothecaire: { label: "Tableau de bord", to: "/dashboard/library" },
   chauffeur: { label: "Tableau de bord", to: "/dashboard/my-bus-trip" },
   cantine: { label: "Tableau de bord", to: "/dashboard/cafeteria" },
-  professeur: { label: "Tableau de bord", to: "/dashboard/my-assignments" },
-  enseignant: { label: "Tableau de bord", to: "/dashboard/my-assignments" },
+  professeur: { label: "Tableau de bord", to: "/dashboard/teacher" },
+  enseignant: { label: "Tableau de bord", to: "/dashboard/teacher" },
   parent: {
     label: "Tableau de bord",
     to: "/dashboard/parent",
