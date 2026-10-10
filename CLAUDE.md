@@ -117,3 +117,7 @@ Vérifié le même jour : tous les rôles des seeders ont une redirection, et to
 ## Effectif garçons / filles par classe (2026-10-10)
 
 `App\Services\ClassHeadcountService::forClasses()` : élèves inscrits dans la classe (`class_student` actif) **et** actifs dans l'école, comptés G / F / total. Utilisé par la page Classes (champ `effectif` de `GET /classes`, pastille « 47 élèves · 22 G / 25 F ») et le tableau de bord du professeur (`class_headcounts` de `my-teaching-summary`, carte « Effectif de mes classes »). Garder ce calcul unique pour que les chiffres concordent partout. Test : `ClassHeadcountTest`.
+
+## Piège : filtre par section (corrigé le 2026-10-10)
+
+Les tables `classes` et `enrollment_requests` **n'ont pas de colonne `section_id`** : la section passe par le niveau → `whereHas('level', fn ($q) => $q->whereIn('section_id', $ids))`. Un `whereIn('section_id', …)` direct sur une classe ne plante que pour un membre limité à une section (500), donc passe inaperçu en test avec un admin principal. Corrigé dans `DashboardController::teacherSummary` et `SchoolSummaryService` (tableau de bord admin : classes, justifications, absents du jour, assiduité du mois, activité récente). `expenses` a bien un `section_id`. Test : `AdminDashboardAttendanceTest`.

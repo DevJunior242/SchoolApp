@@ -37,7 +37,7 @@ class SchoolSummaryService
         $classesCount = SchoolClass::query()
             ->where('school_id', $school->id)
             ->whereHas('schoolYear', fn($query) => $query->where('is_current', true))
-            ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('level', fn($q) => $q->whereIn('section_id', $ids)))
             ->count();
 
         $pendingPayments = Payment::query()
@@ -57,7 +57,7 @@ class SchoolSummaryService
                 'classSubjectTeacher.schoolClass',
                 fn($query) => $query
                     ->where('school_id', $school->id)
-                    ->when($sectionIds, fn($q, $ids) => $q->whereIn('section_id', $ids))
+                    ->when($sectionIds, fn($q, $ids) => $q->whereHas('level', fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
             )
             ->count();
 
@@ -68,7 +68,7 @@ class SchoolSummaryService
                 'classSubjectTeacher.schoolClass',
                 fn($query) => $query
                     ->where('school_id', $school->id)
-                    ->when($sectionIds, fn($q, $ids) => $q->whereIn('section_id', $ids))
+                    ->when($sectionIds, fn($q, $ids) => $q->whereHas('level', fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
             )
             ->count();
 
@@ -197,7 +197,7 @@ class SchoolSummaryService
                 'classSubjectTeacher.schoolClass',
                 fn($query) => $query
                     ->where('school_id', $school->id)
-                    ->when($sectionIds, fn($q, $ids) => $q->whereIn('section_id', $ids))
+                    ->when($sectionIds, fn($q, $ids) => $q->whereHas('level', fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
             )
             ->whereBetween('date', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
             ->get(['status']);
@@ -262,7 +262,8 @@ class SchoolSummaryService
 
         $enrollments = EnrollmentRequest::query()
             ->where('school_id', $school->id)
-            ->when($sectionIds, fn($query, $ids) => $query->whereIn('section_id', $ids))
+            // Pas de section_id sur enrollment_requests : la section passe par le niveau demandé.
+            ->when($sectionIds, fn($query, $ids) => $query->whereHas('level', fn($q) => $q->whereIn('section_id', $ids)))
             ->latest('created_at')
             ->limit($limit)
             ->get()
@@ -279,7 +280,7 @@ class SchoolSummaryService
                 'classSubjectTeacher.schoolClass',
                 fn($query) => $query
                     ->where('school_id', $school->id)
-                    ->when($sectionIds, fn($q, $ids) => $q->whereIn('section_id', $ids))
+                    ->when($sectionIds, fn($q, $ids) => $q->whereHas('level', fn($levelQuery) => $levelQuery->whereIn('section_id', $ids)))
             )
             ->with('student')
             ->latest('justified_at')
