@@ -11,6 +11,7 @@ import FacebookIcon from "@mui/icons-material/Facebook";
 import { Link as RouterLink } from "react-router-dom";
 import intellinoMark from "../assets/intellino-mark.svg";
 import { CookieConsentButton } from "./CookieConsent.jsx";
+import InstallAppButton from "./InstallAppButton.jsx";
 
 const SOCIAL_LINKS = [
   {
@@ -102,6 +103,7 @@ export default function Footer() {
             <CookieConsentButton
               sx={{ fontSize: "0.875rem", color: "text.secondary" }}
             />
+            <InstallAppButton variant="link" />
           </Stack>
           <Stack direction="row" spacing={1}>
             {SOCIAL_LINKS.map((link) => (

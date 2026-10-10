@@ -1,11 +1,15 @@
 import { useState, useSyncExternalStore } from "react";
 import {
+  Box,
   Button,
+  Card,
+  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
+  Link,
   Stack,
   Tooltip,
   Typography,
@@ -112,38 +116,98 @@ function InstallGuide() {
  * téléphone ou de la tablette, ou sur le Bureau / menu Démarrer d'un PC
  * (icône, sa propre fenêtre, sans barre d'adresse). Visible tant que
  * l'application n'est pas installée ; si le navigateur ne propose pas
- * l'installation lui-même, ouvre un guide adapté. Repris d'Intellino shop.
+ * l'installation lui-même, ouvre un guide adapté. Repris d'Intellino shop
+ * et de Caïlcédrat.
+ *
+ * variant : "button" (barre du tableau de bord), "card" (bas de l'accueil),
+ * "link" (pied de page).
  */
-export default function InstallAppButton() {
+export default function InstallAppButton({ variant = "button" }) {
   const promptReady = useSyncExternalStore(subscribeInstall, canPromptInstall, () => false);
   const [guideOpen, setGuideOpen] = useState(false);
 
   if (isInstalled()) return null;
 
-  const handleClick = () => (promptReady ? promptInstall() : setGuideOpen(true));
+  const install = () => (promptReady ? promptInstall() : setGuideOpen(true));
 
   return (
     <>
-      <Tooltip title="Mettre Intellino Édu sur l’écran d’accueil ou le Bureau">
-        <span>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<InstallMobileOutlined />}
-            onClick={handleClick}
-            sx={{ display: { xs: "none", md: "inline-flex" }, mr: 1 }}
-          >
-            Installer l’application
-          </Button>
-          <IconButton
-            onClick={handleClick}
-            aria-label="Installer l’application"
-            sx={{ display: { xs: "inline-flex", md: "none" } }}
-          >
-            <InstallMobileOutlined />
-          </IconButton>
-        </span>
-      </Tooltip>
+      {variant === "card" && (
+        <Card sx={{ borderRadius: 4, bgcolor: "primary.main", color: "primary.contrastText", border: 0 }}>
+          <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={3}
+              sx={{ alignItems: { sm: "center" } }}
+            >
+              <Box
+                component="img"
+                src="/icons/icon-192.png"
+                alt=""
+                sx={{ width: 72, height: 72, borderRadius: 3, bgcolor: "#fff", flexShrink: 0 }}
+              />
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="h5" fontWeight={700}>
+                  Votre école dans votre poche
+                </Typography>
+                <Typography sx={{ opacity: 0.85, mt: 0.5 }}>
+                  Installez l’application sur votre téléphone ou votre ordinateur :
+                  notes, absences, paiements et messages en un geste, sans passer par
+                  le navigateur.
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                color="inherit"
+                size="large"
+                startIcon={<InstallMobileOutlined />}
+                onClick={install}
+                sx={{ flexShrink: 0, whiteSpace: "nowrap", color: "primary.main", bgcolor: "#fff" }}
+              >
+                Installer l’application
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
+
+      {variant === "link" && (
+        <Link
+          component="button"
+          type="button"
+          onClick={install}
+          color="text.secondary"
+          underline="hover"
+          variant="body2"
+          sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}
+        >
+          <InstallMobileOutlined fontSize="small" />
+          Installer l’application
+        </Link>
+      )}
+
+      {variant === "button" && (
+        <Tooltip title="Mettre Intellino Édu sur l’écran d’accueil ou le Bureau">
+          <span>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<InstallMobileOutlined />}
+              onClick={install}
+              sx={{ display: { xs: "none", md: "inline-flex" }, mr: 1 }}
+            >
+              Installer l’application
+            </Button>
+            <IconButton
+              onClick={install}
+              aria-label="Installer l’application"
+              sx={{ display: { xs: "inline-flex", md: "none" } }}
+            >
+              <InstallMobileOutlined />
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
 
       <Dialog open={guideOpen} onClose={() => setGuideOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Installer l’application</DialogTitle>

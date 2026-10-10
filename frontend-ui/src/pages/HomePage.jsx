@@ -22,6 +22,7 @@ import eleveImg from "../assets/characters/eleve.webp";
 import dashboardImg from "../assets/characters/mock.webp";
 import { useApiGet } from "../hooks/useApiGet.js";
 import EnrollmentRequestModal from "../components/EnrollmentRequestModal.jsx";
+import InstallAppButton from "../components/InstallAppButton.jsx";
 const featuresList = [
   {
     icon: "👥",
@@ -963,6 +964,11 @@ function SchoolsSlider() {
             </Card>
           </motion.div>
         ))}
+      </Box>
+
+      {/* Installer l'application (comme Caïlcédrat) */}
+      <Box sx={{ mt: 6 }}>
+        <InstallAppButton variant="card" />
       </Box>
 
       <EnrollmentRequestModal
