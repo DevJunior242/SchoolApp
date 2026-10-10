@@ -41,12 +41,39 @@ class Student extends Model
         'medical_notes',
         'photo',
         'matricule',
+        'is_displaced',
+        'displaced_origin',
+        'has_disability',
+        'disability_type',
     ];
+
+    /** Types de handicap (clé stockée => libellé), pour l'inspection. */
+    public const DISABILITY_TYPES = [
+        'moteur' => 'Moteur',
+        'visuel' => 'Visuel',
+        'auditif' => 'Auditif',
+        'intellectuel' => 'Intellectuel',
+        'autre' => 'Autre',
+    ];
+
+    /**
+     * Données sensibles (PDI, handicap) : jamais sérialisées par défaut,
+     * pour qu'elles n'apparaissent pas dans les écrans des professeurs,
+     * parents, élèves ou autres services. Rendues visibles explicitement
+     * pour l'administration, voir SENSITIVE_VIEWER_ROLES.
+     */
+    public const SENSITIVE_FIELDS = ['is_displaced', 'displaced_origin', 'has_disability', 'disability_type'];
+
+    public const SENSITIVE_VIEWER_ROLES = ['admin', 'secretaire'];
+
+    protected $hidden = self::SENSITIVE_FIELDS;
 
     protected function casts(): array
     {
         return [
             'date_of_birth' => 'date',
+            'is_displaced' => 'boolean',
+            'has_disability' => 'boolean',
         ];
     }
 

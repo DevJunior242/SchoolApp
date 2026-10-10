@@ -80,6 +80,12 @@ class StudentController extends Controller
     {
         $this->authorizeStudentViewer($request, $school);
         $sectionIds = $this->restrictedSectionIds($request, $school);
+        $canSeeSituation = SchoolUser::query()
+            ->where('school_id', $school->id)
+            ->where('user_id', $request->user()->id)
+            ->where('status', SchoolUser::STATUS_ACTIVE)
+            ->whereHas('role', fn ($query) => $query->whereIn('slug', Student::SENSITIVE_VIEWER_ROLES))
+            ->exists();
 
         return response()->json(
             SchoolStudent::query()
@@ -118,7 +124,67 @@ class StudentController extends Controller
                     'busStop.bus',
                 ])
                 ->paginate($request->integer('per_page', 10))
+                ->through(function (SchoolStudent $schoolStudent) use ($canSeeSituation) {
+                    if ($canSeeSituation) {
+                        $schoolStudent->student?->makeVisible(Student::SENSITIVE_FIELDS);
+                    }
+
+                    return $schoolStudent;
+                })
         );
+    }
+
+    /**
+     * Situation de l'élève pour l'inspection (PDI, handicap, redoublant),
+     * modifiable par l'administration après l'inscription.
+     */
+    public function updateSituation(Request $request, School $school, Student $student)
+    {
+        $this->authorizeStudentRegistrar($request, $school);
+        abort_unless(
+            SchoolStudent::query()->where('school_id', $school->id)->where('student_id', $student->id)->exists(),
+            404
+        );
+
+        $validated = $request->validate([
+            'is_displaced' => ['required', 'boolean'],
+            'displaced_origin' => ['nullable', 'string', 'max:150'],
+            'has_disability' => ['required', 'boolean'],
+            'disability_type' => ['nullable', 'in:'.implode(',', array_keys(Student::DISABILITY_TYPES))],
+            'is_repeating' => ['required', 'boolean'],
+        ]);
+
+        DB::transaction(function () use ($school, $student, $validated) {
+            $student->update($this->situationAttributes($validated));
+
+            ClassStudent::query()
+                ->where('student_id', $student->id)
+                ->where('status', ClassStudent::STATUS_ACTIVE)
+                ->whereHas('schoolClass', fn ($query) => $query->where('school_id', $school->id))
+                ->update(['is_repeating' => $validated['is_repeating']]);
+        });
+
+        return response()->json($student->fresh()->makeVisible(Student::SENSITIVE_FIELDS));
+    }
+
+    /**
+     * Origine et type ne sont gardés que si la case correspondante est
+     * cochée (pas de type de handicap orphelin après un décochage).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function situationAttributes(array $data): array
+    {
+        $displaced = (bool) ($data['is_displaced'] ?? false);
+        $disabled = (bool) ($data['has_disability'] ?? false);
+
+        return [
+            'is_displaced' => $displaced,
+            'displaced_origin' => $displaced ? ($data['displaced_origin'] ?? null) : null,
+            'has_disability' => $disabled,
+            'disability_type' => $disabled ? ($data['disability_type'] ?? null) : null,
+        ];
     }
 
     /**
@@ -164,6 +230,7 @@ class StudentController extends Controller
             'birth_place' => $entry['birth_place'] ?? null,
             'blood_type' => $entry['blood_type'] ?? null,
             'medical_notes' => $entry['medical_notes'] ?? null,
+            ...$this->situationAttributes($entry),
         ]);
 
         $parentUser = $this->resolveUser([
@@ -210,7 +277,7 @@ class StudentController extends Controller
         // trimestre/semestre.
         ClassStudent::query()->updateOrCreate(
             ['class_id' => $class->id, 'student_id' => $student->id],
-            ['status' => ClassStudent::STATUS_ACTIVE]
+            ['status' => ClassStudent::STATUS_ACTIVE, 'is_repeating' => (bool) ($entry['is_repeating'] ?? false)]
         );
 
         // Le matricule doit atteindre le parent (et l'élève s'il a son

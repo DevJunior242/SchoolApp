@@ -18,7 +18,9 @@ class ClassStudent extends Pivot
 
     const STATUS_TRANSFERRED_OUT = 2;
 
-    protected $fillable = ['class_id', 'student_id', 'status'];
+    protected $fillable = ['class_id', 'student_id', 'status', 'is_repeating'];
+
+    protected $casts = ['is_repeating' => 'boolean'];
 
     public function schoolClass(): BelongsTo
     {

@@ -22,6 +22,13 @@ class StoreStudentsRequest extends FormRequest
             'students.*.blood_type' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9+-]+$/'],
             'students.*.medical_notes' => ['nullable', 'string'],
 
+            // Données pour l'inspection (PDI, handicap, redoublant).
+            'students.*.is_displaced' => ['nullable', 'boolean'],
+            'students.*.displaced_origin' => ['nullable', 'string', 'max:150'],
+            'students.*.has_disability' => ['nullable', 'boolean'],
+            'students.*.disability_type' => ['nullable', 'in:'.implode(',', array_keys(\App\Models\Student::DISABILITY_TYPES))],
+            'students.*.is_repeating' => ['nullable', 'boolean'],
+
             'students.*.class_id' => ['required', 'uuid', 'exists:classes,id'],
             'students.*.matricule' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9._\/-]+$/'],
             'students.*.previous_school' => ['nullable', 'string', 'max:255', "regex:/^[\p{L}\p{M}0-9 .,_'’()\/-]+$/u"],

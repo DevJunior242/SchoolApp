@@ -404,6 +404,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/schools/{school}/classes/{schoolClass}/teachers/{assignment}', [ClassTeacherController::class, 'destroy']);
 
             Route::post('/schools/{school}/students', [StudentController::class, 'store']);
+            Route::put('/schools/{school}/students/{student}/situation', [StudentController::class, 'updateSituation']);
 
             Route::post('/schools/{school}/exam-types', [ExamTypeController::class, 'store']);
             Route::post('/schools/{school}/subjects', [SubjectController::class, 'store']);

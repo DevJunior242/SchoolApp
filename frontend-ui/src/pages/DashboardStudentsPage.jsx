@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   Checkbox,
   Dialog,
   DialogActions,
@@ -32,13 +33,15 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SearchIcon from "@mui/icons-material/Search";
 import InternationalPhoneField from "../components/InternationalPhoneField.jsx";
+import StudentSituationFields from "../components/StudentSituationFields.jsx";
+import { DISABILITY_TYPES, EMPTY_SITUATION } from "../utils/studentSituation.js";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
 import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useSchools } from "../hooks/useSchools.js";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
-import { asArray } from "../utils/apiData.js";
+import { asArray, getApiErrorMessage } from "../utils/apiData.js";
 
 const RELATIONSHIPS = [
   { value: "pere", label: "Père" },
@@ -59,6 +62,29 @@ function emptyRow() {
     parent_email: "",
     parent_phone: "",
     parent_relationship: "",
+    ...EMPTY_SITUATION,
+  };
+}
+
+function situationOf(schoolStudent) {
+  const student = schoolStudent?.student ?? {};
+  const currentClass = asArray(student.class_students)[0];
+  return {
+    is_displaced: Boolean(student.is_displaced),
+    displaced_origin: student.displaced_origin ?? "",
+    has_disability: Boolean(student.has_disability),
+    disability_type: student.disability_type ?? "",
+    is_repeating: Boolean(currentClass?.is_repeating),
+  };
+}
+
+function situationPayload(situation) {
+  return {
+    is_displaced: situation.is_displaced,
+    displaced_origin: situation.displaced_origin || null,
+    has_disability: situation.has_disability,
+    disability_type: situation.disability_type || null,
+    is_repeating: situation.is_repeating,
   };
 }
 
@@ -74,6 +100,28 @@ function calculateAge(dateString) {
 
 function currentClassOf(schoolStudent) {
   return schoolStudent.student.class_students?.[0]?.school_class ?? null;
+}
+
+function SituationChips({ situation }) {
+  const disabilityLabel = DISABILITY_TYPES.find(
+    (type) => type.value === situation.disability_type,
+  )?.label;
+  const chips = [
+    situation.is_displaced && "PDI",
+    situation.has_disability &&
+      `Handicap${disabilityLabel ? ` (${disabilityLabel.toLowerCase()})` : ""}`,
+    situation.is_repeating && "Redoublant",
+  ].filter(Boolean);
+
+  if (chips.length === 0) return null;
+
+  return (
+    <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: "wrap" }}>
+      {chips.map((label) => (
+        <Chip key={label} size="small" variant="outlined" label={label} />
+      ))}
+    </Stack>
+  );
 }
 
 function classLabel(schoolClass) {
@@ -129,6 +177,10 @@ export default function DashboardStudentsPage() {
   );
   const busList = asArray(buses);
   const [busDialogStudent, setBusDialogStudent] = useState(null);
+  const [situationStudent, setSituationStudent] = useState(null);
+  const [situationForm, setSituationForm] = useState(EMPTY_SITUATION);
+  const [situationSaving, setSituationSaving] = useState(false);
+  const [situationError, setSituationError] = useState(null);
   const [selectedStopId, setSelectedStopId] = useState("");
   const [busSubmitting, setBusSubmitting] = useState(false);
 
@@ -195,6 +247,27 @@ export default function DashboardStudentsPage() {
     setError(null);
   }
 
+  async function handleSaveSituation(e) {
+    e.preventDefault();
+    setSituationSaving(true);
+    setSituationError(null);
+    try {
+      await api.put(
+        `/schools/${schoolId}/students/${situationStudent.student.id}/situation`,
+        situationPayload(situationForm),
+      );
+      setSituationStudent(null);
+      setSuccess("Situation de l’élève enregistrée.");
+      await reload();
+    } catch (err) {
+      setSituationError(
+        getApiErrorMessage(err, "Impossible d’enregistrer la situation."),
+      );
+    } finally {
+      setSituationSaving(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
@@ -212,6 +285,7 @@ export default function DashboardStudentsPage() {
           parent_email: row.parent_email || null,
           parent_phone: row.parent_phone || null,
           parent_relationship: row.parent_relationship,
+          ...situationPayload(row),
         })),
       };
       await api.post(`/schools/${schoolId}/students`, payload);
@@ -349,6 +423,9 @@ export default function DashboardStudentsPage() {
                         {student.student?.fullname}{" "}
                         {student.student?.user ? "" : "(mineur)"}
                       </Typography>
+                      {canRegister && (
+                        <SituationChips situation={situationOf(student)} />
+                      )}
                     </TableCell>
                     <TableCell>{student.student?.user?.email || "-"}</TableCell>
                     <TableCell>
@@ -365,7 +442,8 @@ export default function DashboardStudentsPage() {
                       {(canSeeBulletin ||
                         canSeeHealth ||
                         canSeeCafeteria ||
-                        canAssignBus) && (
+                        canAssignBus ||
+                        canRegister) && (
                         <IconButton
                           size="small"
                           onClick={(event) => openActionsMenu(event, student)}
@@ -432,6 +510,18 @@ export default function DashboardStudentsPage() {
             onClick={closeActionsMenu}
           >
             Badge QR
+          </MenuItem>
+        )}
+        {canRegister && (
+          <MenuItem
+            onClick={() => {
+              setSituationStudent(menuStudent);
+              setSituationForm(situationOf(menuStudent));
+              setSituationError(null);
+              closeActionsMenu();
+            }}
+          >
+            Situation (inspection)
           </MenuItem>
         )}
         {canAssignBus && (
@@ -660,6 +750,12 @@ export default function DashboardStudentsPage() {
                             name={`parent_phone_${index}`}
                           />
                         </Stack>
+                        <StudentSituationFields
+                          value={row}
+                          onChange={(field, value) =>
+                            updateRow(index, field, value)
+                          }
+                        />
                       </Stack>
                     </CardContent>
                   </Card>
@@ -723,6 +819,38 @@ export default function DashboardStudentsPage() {
             <Button onClick={() => setBusDialogStudent(null)}>Annuler</Button>
             <Button type="submit" variant="contained" disabled={busSubmitting}>
               {busSubmitting ? "Enregistrement..." : "Enregistrer"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(situationStudent)}
+        onClose={() => setSituationStudent(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          Situation de {situationStudent?.student?.fullname}
+        </DialogTitle>
+        <Box component="form" onSubmit={handleSaveSituation}>
+          <DialogContent>
+            {situationError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {situationError}
+              </Alert>
+            )}
+            <StudentSituationFields
+              value={situationForm}
+              onChange={(field, value) =>
+                setSituationForm((previous) => ({ ...previous, [field]: value }))
+              }
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setSituationStudent(null)}>Annuler</Button>
+            <Button type="submit" variant="contained" disabled={situationSaving}>
+              {situationSaving ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </DialogActions>
         </Box>

@@ -105,6 +105,14 @@ Vérifié le même jour : tous les rôles des seeders ont une redirection, et to
 - API `GET /schools/{school}/my-teaching-summary` (`DashboardController::teacherSummary`) : existait sans page ; corrigée (filtre de section via `level`, l'ancien `classes.section_id` n'existe pas → erreur 500 pour un prof limité à une section), cours du jour limités à l'année en cours, `attendance_taken` par cours. Test : `TeacherDashboardSummaryTest`.
 - Raccourcis du professeur (`QuickActions`) : ne pas renvoyer vers `/dashboard/my-courses` (page élève) ni `/dashboard/assignments` (inexistante).
 
+## Données pour l'inspection : PDI, handicap, redoublant (2026-10-10)
+
+- `students.is_displaced` + `displaced_origin` (PDI), `students.has_disability` + `disability_type` (`Student::DISABILITY_TYPES` : moteur, visuel, auditif, intellectuel, autre), `class_student.is_repeating` (propre à l'année/classe). Migration `2026_10_10_000002`.
+- **Données sensibles** : dans `$hidden` du modèle `Student` (`SENSITIVE_FIELDS`), donc jamais envoyées par défaut ; rendues visibles seulement dans `GET /students` pour `admin` et `secretaire` (`SENSITIVE_VIEWER_ROLES`). Ne pas les retirer de `$hidden`.
+- Saisie à l'inscription et via « Situation (inspection) » dans la liste des élèves (`PUT /schools/{school}/students/{student}/situation`, admin/secrétariat) ; composant `components/StudentSituationFields.jsx`, constantes `utils/studentSituation.js`.
+- Pas encore fait : la page « Rapport pour l'inspection » (attendre une copie du vrai formulaire de l'inspection) et la mention dans la politique de confidentialité (`legal/content.js` + `LEGAL_VERSION`).
+- Tests : `StudentInspectionFieldsTest`.
+
 ## Effectif garçons / filles par classe (2026-10-10)
 
 `App\Services\ClassHeadcountService::forClasses()` : élèves inscrits dans la classe (`class_student` actif) **et** actifs dans l'école, comptés G / F / total. Utilisé par la page Classes (champ `effectif` de `GET /classes`, pastille « 47 élèves · 22 G / 25 F ») et le tableau de bord du professeur (`class_headcounts` de `my-teaching-summary`, carte « Effectif de mes classes »). Garder ce calcul unique pour que les chiffres concordent partout. Test : `ClassHeadcountTest`.
