@@ -272,6 +272,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/exam-types', [ExamTypeController::class, 'index']);
         Route::get('/schools/{school}/subjects', [SubjectController::class, 'index']);
         Route::get('/schools/{school}/exams', [ExamController::class, 'index']);
+        // Lectures : hors du groupe d'écriture (verified / school.writable),
+        // sinon un professeur à l'e-mail non vérifié ou une école en lecture
+        // seule reçoit un 403 rien qu'en ouvrant la page Examens ou Classes.
+        // Les contrôleurs vérifient eux-mêmes les droits.
+        Route::get('/schools/{school}/classes', [ClassController::class, 'index']);
+        Route::get('/schools/{school}/teachers', [TeacherController::class, 'index']);
         Route::get('/schools/{school}/exams/{exam}', [ExamController::class, 'show']);
         Route::get('/schools/{school}/exams/{exam}/targets', [ExamTargetController::class, 'index']);
         Route::get('/schools/{school}/exams/{exam}/subjects', [ExamSubjectController::class, 'index']);
@@ -370,7 +376,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/schools/{school}/members/{member}', [SchoolMemberController::class, 'destroy']);
             Route::prefix('schools/{school}')->group(function () {
                 // Teachers
-                Route::get('/teachers', [TeacherController::class, 'index']);
                 Route::post('/teachers', [TeacherController::class, 'store']);
                 Route::put('/teachers/{schoolUser}', [TeacherController::class, 'update']);
                 Route::delete('/teachers/{schoolUser}', [TeacherController::class, 'destroy']);
@@ -390,7 +395,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/hr/attendance/device-requests/{deviceRequest}/review', [SchoolStaffAttendanceController::class, 'reviewDeviceRequest']);
             Route::post('/schools/{school}/hr/attendance/emergency', [SchoolStaffAttendanceController::class, 'emergency']);
             Route::prefix('schools/{school}')->group(function () {
-                Route::get('/classes', [ClassController::class, 'index']);
                 Route::post('/classes', [ClassController::class, 'store']);
                 Route::put('/classes/{class}', [ClassController::class, 'update']); // ✅
                 Route::delete('/classes/{class}', [ClassController::class, 'destroy']); // ✅
