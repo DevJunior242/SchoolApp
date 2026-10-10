@@ -5,9 +5,9 @@
 // Changement substantiel : changer LEGAL_VERSION ici ET `terms_version` dans
 // backend/config/legal.php (version acceptée enregistrée à l'inscription).
 
-export const LEGAL_VERSION = "1.0";
+export const LEGAL_VERSION = "1.1";
 export const LEGAL_PUBLISHED = "7 septembre 2026";
-export const LEGAL_UPDATED = "28 septembre 2026";
+export const LEGAL_UPDATED = "10 octobre 2026";
 
 export const TERMS = {
   "title": "Conditions générales d’utilisation",
@@ -708,7 +708,9 @@ export const PRIVACY = {
           "classe ;",
           "niveau ;",
           "année scolaire ;",
-          "informations relatives à l’inscription ;",
+          "informations relatives à l’inscription, dont le redoublement de l’année en cours ;",
+          "situation de déplacement interne (élève PDI) et commune ou province d’origine, lorsque l’établissement la renseigne ;",
+          "situation de handicap et type de handicap, lorsque l’établissement la renseigne ;",
           "informations scolaires ;",
           "résultats ;",
           "notes ;",
@@ -956,7 +958,15 @@ export const PRIVACY = {
       "blocks": [
         "Certaines informations peuvent, selon les circonstances, constituer des données particulièrement sensibles.",
         "IntellIno recommande aux établissements de ne pas introduire dans la plateforme des informations sensibles qui ne sont pas nécessaires à leur activité.",
-        "Lorsque certaines catégories particulières de données sont nécessaires à un traitement légitime, l’établissement doit s’assurer que leur traitement respecte les exigences légales applicables."
+        "Lorsque certaines catégories particulières de données sont nécessaires à un traitement légitime, l’établissement doit s’assurer que leur traitement respecte les exigences légales applicables.",
+        { "subtitle": "Situation de déplacement interne (PDI) et de handicap des élèves" },
+        "L’établissement peut indiquer si un élève est déplacé interne (avec sa commune ou province d’origine) ou en situation de handicap (avec le type de handicap). Ces informations servent à établir les effectifs demandés par l’inspection et l’administration de l’éducation, et à adapter l’accueil de l’élève.",
+        [
+          "elles ne sont visibles que par l’administrateur et le secrétariat de l’établissement, jamais par les enseignants, les autres parents ou les élèves ;",
+          "le rapport destiné à l’inspection ne contient que des chiffres (effectifs par classe, garçons et filles), aucun nom d’élève ;",
+          "leur saisie est facultative : l’établissement ne les renseigne que lorsqu’elles sont nécessaires ;",
+          "lorsque la case est décochée, l’origine ou le type de handicap est effacé."
+        ]
       ]
     },
     {
