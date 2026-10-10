@@ -273,6 +273,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/exam-types', [ExamTypeController::class, 'index']);
         Route::get('/schools/{school}/subjects', [SubjectController::class, 'index']);
         Route::get('/schools/{school}/exams', [ExamController::class, 'index']);
+        Route::get('/schools/{school}/reports/inspection', [\App\Http\Controllers\Api\InspectionReportController::class, 'show']);
         // Lectures : hors du groupe d'écriture (verified / school.writable),
         // sinon un professeur à l'e-mail non vérifié ou une école en lecture
         // seule reçoit un 403 rien qu'en ouvrant la page Examens ou Classes.

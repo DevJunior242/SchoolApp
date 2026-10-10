@@ -110,7 +110,8 @@ Vérifié le même jour : tous les rôles des seeders ont une redirection, et to
 - `students.is_displaced` + `displaced_origin` (PDI), `students.has_disability` + `disability_type` (`Student::DISABILITY_TYPES` : moteur, visuel, auditif, intellectuel, autre), `class_student.is_repeating` (propre à l'année/classe). Migration `2026_10_10_000002`.
 - **Données sensibles** : dans `$hidden` du modèle `Student` (`SENSITIVE_FIELDS`), donc jamais envoyées par défaut ; rendues visibles seulement dans `GET /students` pour `admin` et `secretaire` (`SENSITIVE_VIEWER_ROLES`). Ne pas les retirer de `$hidden`.
 - Saisie à l'inscription et via « Situation (inspection) » dans la liste des élèves (`PUT /schools/{school}/students/{student}/situation`, admin/secrétariat) ; composant `components/StudentSituationFields.jsx`, constantes `utils/studentSituation.js`.
-- Pas encore fait : la page « Rapport pour l'inspection » (attendre une copie du vrai formulaire de l'inspection) et la mention dans la politique de confidentialité (`legal/content.js` + `LEGAL_VERSION`).
+- **Rapport pour l'inspection** : `/dashboard/inspection-report` (`pages/InspectionReportPage.jsx`, menu admin et secrétariat), API `GET /schools/{school}/reports/inspection` (`InspectionReportController`, mêmes rôles, section respectée). Par niveau puis classe : effectif, dont PDI, dont handicap, dont redoublants (G/F/T) + handicap par type ; année scolaire en cours, élèves actifs seulement, aucun nom. Export PDF (jsPDF + autotable, paysage, zone signature/cachet) et « Excel » = CSV `;` avec BOM (pas de bibliothèque Excel). **Version standard** : à ajuster aux colonnes exactes du formulaire officiel dès qu'on en a une copie. Test : `InspectionReportTest`.
+- Pas encore fait : la mention dans la politique de confidentialité (`legal/content.js` + `LEGAL_VERSION`).
 - Tests : `StudentInspectionFieldsTest`.
 
 ## Effectif garçons / filles par classe (2026-10-10)

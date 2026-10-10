@@ -144,6 +144,11 @@ const ADMIN_NAV_GROUPS = [
     title: "Académique",
     items: [
       { label: "Élèves", to: "/dashboard/students", icon: <School2Icon /> },
+      {
+        label: "Rapport inspection",
+        to: "/dashboard/inspection-report",
+        icon: <DescriptionIcon />,
+      },
       { label: "Classes", to: "/dashboard/classes", icon: <MenuBookIcon /> },
       { label: "Professeurs", to: "/dashboard/teachers", icon: <PersonIcon /> },
       {
@@ -512,6 +517,11 @@ const SUPERADMIN_NAV_GROUPS = singleGroup([
 const SECRETAIRE_NAV_GROUPS = singleGroup([
   OVERVIEW_ITEM,
   { label: "Élèves", to: "/dashboard/students", icon: <School2Icon /> },
+  {
+    label: "Rapport inspection",
+    to: "/dashboard/inspection-report",
+    icon: <DescriptionIcon />,
+  },
   {
     label: "Comptabilité",
     to: "/dashboard/accounting",
