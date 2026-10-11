@@ -213,6 +213,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/assignments/{assignment}/grades', [GradeController::class, 'index']);
     Route::get('/assignments/{assignment}/attendances', [AttendanceController::class, 'index']);
     Route::get('/assignments/{assignment}/course-contents', [CourseContentController::class, 'index']);
+    Route::get('/assignments/{assignment}/appreciations', [\App\Http\Controllers\Api\BulletinAppreciationController::class, 'subjectIndex']);
     Route::get('/course-contents/{content}/download', [CourseContentController::class, 'download']);
     Route::get('/course-contents/{content}/correction/download', [CourseContentController::class, 'downloadCorrection']);
 
@@ -221,6 +222,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/assignments/{assignment}/grades/{grade}', [GradeController::class, 'destroy']);
         Route::post('/assignments/{assignment}/attendances', [AttendanceController::class, 'store']);
         Route::post('/assignments/{assignment}/course-contents', [CourseContentController::class, 'store']);
+        Route::put('/assignments/{assignment}/appreciations', [\App\Http\Controllers\Api\BulletinAppreciationController::class, 'subjectUpdate']);
         Route::post('/course-contents/{content}/correction', [CourseContentController::class, 'storeCorrection']);
         Route::delete('/course-contents/{content}', [CourseContentController::class, 'destroy']);
         Route::post('/school-subscriptions/{subscription}/declare-payment', [SchoolSubscriptionController::class, 'declarePayment']);
@@ -301,6 +303,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/marketplace/providers', [ServiceProviderController::class, 'index']);
         Route::get('/schools/{school}/students/{student}/bulletin', [BulletinController::class, 'show']);
         Route::get('/schools/{school}/classes/{schoolClass}/bulletins', [BulletinController::class, 'forClass']);
+        Route::get('/schools/{school}/classes/{schoolClass}/appreciations', [\App\Http\Controllers\Api\BulletinAppreciationController::class, 'generalIndex']);
+        Route::get('/schools/{school}/my-head-classes', [\App\Http\Controllers\Api\BulletinAppreciationController::class, 'myHeadClasses']);
         Route::get('/schools/{school}/bulletin-templates', [\App\Http\Controllers\Api\BulletinTemplateController::class, 'index']);
         Route::get('/schools/{school}/payment-methods', [PaymentMethodController::class, 'index']);
         Route::get('/schools/{school}/fee-structures', [FeeStructureController::class, 'index']);
@@ -409,6 +413,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/schools/{school}/students', [StudentController::class, 'store']);
             Route::put('/schools/{school}/students/{student}/situation', [StudentController::class, 'updateSituation']);
             Route::put('/schools/{school}/bulletin-templates/{section}', [\App\Http\Controllers\Api\BulletinTemplateController::class, 'update']);
+            Route::put('/schools/{school}/classes/{schoolClass}/appreciations', [\App\Http\Controllers\Api\BulletinAppreciationController::class, 'generalUpdate']);
+            Route::put('/schools/{school}/classes/{schoolClass}/head-teacher', [\App\Http\Controllers\Api\BulletinAppreciationController::class, 'setHeadTeacher']);
 
             Route::post('/schools/{school}/exam-types', [ExamTypeController::class, 'store']);
             Route::post('/schools/{school}/subjects', [SubjectController::class, 'store']);

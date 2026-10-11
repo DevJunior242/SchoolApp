@@ -9,6 +9,9 @@ export default function TeacherAssignmentsPage() {
   const schoolId = user.current_school_id;
   const { data, loading, error } = useApiGet(schoolId ? `/schools/${schoolId}/my-assignments` : null);
   const assignments = data ?? [];
+  // Classes dont il est titulaire : il y écrit l'appréciation générale.
+  const { data: headClassesData } = useApiGet(schoolId ? `/schools/${schoolId}/my-head-classes` : null);
+  const headClasses = Array.isArray(headClassesData) ? headClassesData : [];
 
   if (!schoolId) {
     return (
@@ -35,6 +38,29 @@ export default function TeacherAssignmentsPage() {
         </Alert>
       )}
 
+      {headClasses.length > 0 && (
+        <Card variant="outlined" sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+              Classes dont vous êtes titulaire
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {headClasses.map((headClass) => (
+                <Button
+                  key={headClass.id}
+                  size="small"
+                  variant="contained"
+                  component={RouterLink}
+                  to={`/dashboard/head-classes/${headClass.id}/appreciations`}
+                >
+                  Appréciations générales · {headClass.name}
+                </Button>
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
+
       <Grid container spacing={2}>
         {assignments.map((a, i) => (
           <Grid key={a.id} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -54,6 +80,9 @@ export default function TeacherAssignmentsPage() {
                     </Button>
                     <Button size="small" variant="outlined" component={RouterLink} to={`/dashboard/assignments/${a.id}/course-contents`}>
                       Contenu
+                    </Button>
+                    <Button size="small" variant="outlined" component={RouterLink} to={`/dashboard/assignments/${a.id}/appreciations`}>
+                      Appréciations
                     </Button>
                   </Stack>
                 </CardContent>

@@ -31,6 +31,17 @@ import { useAuth } from "../context/AuthContext";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 import { asArray } from "../utils/apiData.js";
 import ClassBulletinsDialog from "../components/ClassBulletinsDialog.jsx";
+import ClassHeadTeacherDialog from "../components/ClassHeadTeacherDialog.jsx";
+
+// Nom du titulaire, retrouvé parmi les professeurs de la classe.
+function headTeacherName(schoolClass) {
+  if (!schoolClass?.head_teacher_id) return null;
+  return (
+    (schoolClass.class_subject_teachers ?? []).find(
+      (assignment) => assignment.teacher?.id === schoolClass.head_teacher_id,
+    )?.teacher?.fullname ?? null
+  );
+}
 
 export default function DashboardClassesPage() {
   const { user } = useAuth();
@@ -46,6 +57,7 @@ export default function DashboardClassesPage() {
     getSchoolAdminAccess(membership);
   const canManageClasses = isAdmin;
   const [bulletinsClass, setBulletinsClass] = useState(null);
+  const [headTeacherClass, setHeadTeacherClass] = useState(null);
 
   const activeSections = useMemo(
     () =>
@@ -517,6 +529,23 @@ export default function DashboardClassesPage() {
                               </MenuItem>
 
                               <MenuItem
+                                component={RouterLink}
+                                to={`/dashboard/head-classes/${c?.id}/appreciations`}
+                                onClick={() => setAnchorEl(null)}
+                              >
+                                Appréciations générales
+                              </MenuItem>
+
+                              <MenuItem
+                                onClick={() => {
+                                  setHeadTeacherClass(c);
+                                  setAnchorEl(null);
+                                }}
+                              >
+                                Titulaire
+                              </MenuItem>
+
+                              <MenuItem
                                 onClick={() => {
                                   setAssignClass(c);
                                   setAnchorEl(null);
@@ -585,6 +614,27 @@ export default function DashboardClassesPage() {
                           onClick={() => setBulletinsClass(c)}
                         >
                           Bulletins (PDF)
+                        </Button>
+                      )}
+
+                      {canManageClasses && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          component={RouterLink}
+                          to={`/dashboard/head-classes/${c?.id}/appreciations`}
+                        >
+                          Appréciations générales
+                        </Button>
+                      )}
+
+                      {canManageClasses && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => setHeadTeacherClass(c)}
+                        >
+                          {headTeacherName(c) ? `Titulaire : ${headTeacherName(c)}` : "Choisir le titulaire"}
                         </Button>
                       )}
 
@@ -999,6 +1049,14 @@ export default function DashboardClassesPage() {
           <Button onClick={() => setViewTeachersClass(null)}>Fermer</Button>
         </DialogActions>
       </Dialog>
+      {headTeacherClass && (
+        <ClassHeadTeacherDialog
+          schoolId={schoolId}
+          schoolClass={headTeacherClass}
+          onClose={() => setHeadTeacherClass(null)}
+          onSaved={reload}
+        />
+      )}
       {bulletinsClass && (
         <ClassBulletinsDialog
           schoolId={schoolId}

@@ -26,8 +26,10 @@ export function formatRank(rank, size) {
 }
 
 /** Colonnes du tableau des matières, selon les cases cochées du modèle. */
-export function bulletinColumns(template) {
+export function bulletinColumns(template, subjects = []) {
   const t = template ?? {};
+  // Colonne « Appréciation » seulement si au moins un professeur en a écrit une.
+  const hasAppreciations = t.show_appreciations !== false && subjects.some((s) => s.appreciation);
   const scale = t.grading_scale ?? 20;
   return [
     { key: "subject", label: "Matière", value: (s) => s.subject ?? "—" },
@@ -44,6 +46,7 @@ export function bulletinColumns(template) {
     t.show_min_max && { key: "min", label: "Plus faible", value: (s) => formatAverage(s.min, scale).replace(`/${scale}`, ""), align: "center" },
     t.show_min_max && { key: "max", label: "Plus forte", value: (s) => formatAverage(s.max, scale).replace(`/${scale}`, ""), align: "center" },
     t.show_subject_rank && { key: "rank", label: "Rang", value: (s) => (s.rank ? `${s.rank}${s.rank === 1 ? "er" : "e"}` : "—"), align: "center" },
+    hasAppreciations && { key: "appreciation", label: "Appréciation", value: (s) => s.appreciation ?? "" },
   ].filter(Boolean);
 }
 
@@ -55,9 +58,28 @@ export function bulletinSummary(bulletin) {
     ["Moyenne générale", formatAverage(bulletin.overall_average, scale)],
     t.show_rank !== false && ["Rang", formatRank(bulletin.rank, bulletin.class_size)],
     t.show_class_average && ["Moyenne de la classe", formatAverage(bulletin.class_average, scale)],
+    t.show_attendance !== false && bulletin.attendance && ["Absences et retards", attendanceLabel(bulletin.attendance)],
     bulletin.distinction && ["Distinction", bulletin.distinction],
     bulletin.decision && ["Décision", bulletin.decision],
   ].filter(Boolean);
+}
+
+/** « 3 absences (dont 2 justifiées) · 1 retard » ; une absence = une séance de cours manquée. */
+export function attendanceLabel(attendance) {
+  const absences = attendance?.absences ?? 0;
+  const justified = attendance?.justified ?? 0;
+  const lates = attendance?.lates ?? 0;
+  const absenceText =
+    absences === 0
+      ? "Aucune absence"
+      : `${absences} absence${absences > 1 ? "s" : ""}${justified ? ` (dont ${justified} justifiée${justified > 1 ? "s" : ""})` : ""}`;
+  return `${absenceText} · ${lates === 0 ? "aucun retard" : `${lates} retard${lates > 1 ? "s" : ""}`}`;
+}
+
+/** Appréciation générale à afficher (si le modèle les montre). */
+export function generalAppreciation(bulletin) {
+  if (bulletin?.template?.show_appreciations === false) return null;
+  return bulletin?.general_appreciation || null;
 }
 
 async function loadImage(url) {
@@ -117,7 +139,12 @@ function drawBulletin(doc, bulletin, logo) {
   doc.setFontSize(10);
   const student = bulletin.student ?? {};
   doc.text(`Élève : ${student.fullname ?? ""}`, 14, y);
-  doc.text(`Classe : ${bulletin.class?.name ?? ""}`, pageWidth - 14, y, { align: "right" });
+  doc.text(
+    `Classe : ${bulletin.class?.name ?? ""}${bulletin.class?.head_teacher ? ` · Titulaire : ${bulletin.class.head_teacher}` : ""}`,
+    pageWidth - 14,
+    y,
+    { align: "right" },
+  );
   y += 5;
   doc.text(
     [student.matricule && `Matricule : ${student.matricule}`, student.date_of_birth && `Né(e) le ${student.date_of_birth}`]
@@ -129,7 +156,7 @@ function drawBulletin(doc, bulletin, logo) {
   doc.text(`Année scolaire : ${bulletin.school_year ?? ""}`, pageWidth - 14, y, { align: "right" });
   y += 4;
 
-  const columns = bulletinColumns(t);
+  const columns = bulletinColumns(t, bulletin.subjects ?? []);
   autoTable(doc, {
     startY: y + 2,
     head: [columns.map((column) => column.label)],
@@ -150,9 +177,23 @@ function drawBulletin(doc, bulletin, logo) {
     theme: "grid",
   });
 
+  let bottom = doc.lastAutoTable.finalY;
+  const appreciation = generalAppreciation(bulletin);
+  if (appreciation) {
+    autoTable(doc, {
+      startY: bottom + 4,
+      head: [[`Appréciation générale${bulletin.class?.head_teacher ? ` — ${bulletin.class.head_teacher}` : ""}`]],
+      body: [[appreciation]],
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [240, 240, 240], textColor: [30, 30, 30] },
+      theme: "grid",
+    });
+    bottom = doc.lastAutoTable.finalY;
+  }
+
   const signatures = t.signatures ?? [];
   if (signatures.length > 0) {
-    const top = doc.lastAutoTable.finalY + 12;
+    const top = bottom + 12;
     const width = (pageWidth - 28) / signatures.length;
     doc.setFontSize(10);
     signatures.forEach((label, index) => {

@@ -39,6 +39,9 @@ const DashboardOverviewPage = lazy(
   () => import("./pages/DashboardOverviewPage.jsx"),
 );
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage.jsx"));
+const AppreciationsEntryPage = lazy(
+  () => import("./pages/AppreciationsEntryPage.jsx"),
+);
 const BulletinTemplatesPage = lazy(
   () => import("./pages/BulletinTemplatesPage.jsx"),
 );
@@ -306,6 +309,14 @@ function App() {
             <Route
               path="assignments/:assignmentId/grades"
               element={<GradeEntryPage />}
+            />
+            <Route
+              path="assignments/:assignmentId/appreciations"
+              element={<AppreciationsEntryPage />}
+            />
+            <Route
+              path="head-classes/:classId/appreciations"
+              element={<AppreciationsEntryPage />}
             />
             <Route
               path="students/:studentId/bulletin"

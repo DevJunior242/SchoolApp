@@ -13,6 +13,7 @@ const ROLE_ROUTE_PREFIXES = {
     "students",
     "inspection-report",
     "bulletin-templates",
+    "head-classes",
     "exams",
     "parents",
     "library",
@@ -48,6 +49,7 @@ const ROLE_ROUTE_PREFIXES = {
   cantine: ["cafeteria"],
   professeur: [
     "teacher",
+    "head-classes",
     "my-assignments",
     "my-timetable",
     "my-courses",
@@ -56,6 +58,7 @@ const ROLE_ROUTE_PREFIXES = {
   ],
   enseignant: [
     "teacher",
+    "head-classes",
     "my-assignments",
     "my-timetable",
     "my-courses",

@@ -38,6 +38,8 @@ const COLUMN_OPTIONS = [
   ["show_min_max", "Plus forte et plus faible moyenne"],
   ["show_subject_rank", "Rang dans chaque matière"],
   ["show_rank", "Rang général dans la classe"],
+  ["show_appreciations", "Appréciations des professeurs et du titulaire"],
+  ["show_attendance", "Absences et retards de la période"],
 ];
 
 // Formulaire du modèle d'une section : on repart des valeurs du serveur à

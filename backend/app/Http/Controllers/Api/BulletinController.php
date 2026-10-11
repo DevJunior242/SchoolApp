@@ -134,7 +134,7 @@ class BulletinController extends Controller
                 'gender' => $student->gender,
             ],
             'school' => ['name' => $school->name, 'logo_url' => $school->logo_url],
-            'class' => ['name' => $schoolClass->name, 'level' => $schoolClass->level?->name],
+            'class' => ['name' => $schoolClass->name, 'level' => $schoolClass->level?->name, 'head_teacher' => $result['head_teacher']],
             'school_year' => $schoolClass->schoolYear?->label,
             'season_id' => $seasonId,
             'bulletin_type' => $result['bulletin_type'],
@@ -147,6 +147,8 @@ class BulletinController extends Controller
             'distinction' => $data['distinction'],
             'decision' => $data['decision'],
             'passed' => $data['passed'],
+            'general_appreciation' => $data['general_appreciation'],
+            'attendance' => $data['attendance'],
             // Ancien nom de la décision de fin d'année, gardé pour compatibilité.
             'mention' => $data['decision'],
             'template' => $result['template']->presentation(),

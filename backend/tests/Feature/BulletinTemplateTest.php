@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Attendance;
 use App\Models\ClassStudent;
 use App\Models\ClassSubjectTeacher;
 use App\Models\Country;
@@ -172,6 +173,67 @@ class BulletinTemplateTest extends TestCase
         $this->getJson($classUrl)->assertForbidden();
         $this->getJson($this->url('Awa'))->assertOk()->assertJsonPath('rank', 1);
         $this->getJson($this->url('Bachir'))->assertForbidden();
+    }
+
+    public function test_appreciations_head_teacher_and_attendance_on_bulletin(): void
+    {
+        $teacher = User::query()->findOrFail($this->maths->user_id);
+        SchoolUser::query()->create([
+            'school_id' => $this->school->id, 'user_id' => $teacher->id,
+            'role_id' => Role::query()->firstOrCreate(['slug' => 'professeur'], ['name' => 'Professeur'])->id,
+            'status' => SchoolUser::STATUS_ACTIVE,
+        ]);
+        $outsider = $this->member('professeur');
+        $awa = $this->students['Awa']->id;
+        $season = ['season_id' => $this->t1->id];
+
+        // Appréciation de matière : seul le professeur du cours.
+        Sanctum::actingAs($outsider);
+        $this->putJson("/api/assignments/{$this->maths->id}/appreciations", $season + ['items' => [['student_id' => $awa, 'content' => 'Non']]])
+            ->assertForbidden();
+        Sanctum::actingAs($teacher);
+        $this->putJson("/api/assignments/{$this->maths->id}/appreciations", $season + ['items' => [['student_id' => $awa, 'content' => 'Très bon trimestre']]])
+            ->assertOk()
+            ->assertJsonFragment(['student_id' => $awa, 'content' => 'Très bon trimestre']);
+
+        // Titulaire : doit enseigner dans la classe ; seul l'admin le choisit.
+        $headUrl = "/api/schools/{$this->school->id}/classes/{$this->class->id}/head-teacher";
+        $this->putJson($headUrl, ['user_id' => $teacher->id])->assertForbidden();
+        Sanctum::actingAs($this->admin);
+        $this->putJson($headUrl, ['user_id' => $outsider->id])->assertStatus(422);
+        $this->putJson($headUrl, ['user_id' => $teacher->id])->assertOk();
+
+        // Appréciation générale : le titulaire.
+        Sanctum::actingAs($teacher);
+        $this->getJson("/api/schools/{$this->school->id}/my-head-classes")->assertOk()->assertJsonPath('0.name', '6e A');
+        $this->putJson("/api/schools/{$this->school->id}/classes/{$this->class->id}/appreciations?season_id={$this->t1->id}", ['items' => [['student_id' => $awa, 'content' => 'Élève sérieuse']]])
+            ->assertOk();
+
+        // Absences du trimestre : 2 absences (1 justifiée) + 1 retard ; une absence hors période ignorée.
+        foreach ([[0, Attendance::JUSTIFICATION_JUSTIFIEE], [0, 0], [2, 0]] as $i => [$status, $justification]) {
+            Attendance::query()->create([
+                'class_subject_teacher_id' => $this->maths->id, 'student_id' => $awa,
+                'date' => now()->subDays($i + 1)->toDateString(), 'status' => $status, 'justification_status' => $justification,
+            ]);
+        }
+        Attendance::query()->create([
+            'class_subject_teacher_id' => $this->french->id, 'student_id' => $awa,
+            'date' => now()->addMonths(2)->toDateString(), 'status' => 0,
+        ]);
+
+        Sanctum::actingAs($this->admin);
+        $this->getJson($this->url('Awa'))
+            ->assertOk()
+            ->assertJsonPath('subjects.0.appreciation', 'Très bon trimestre')
+            ->assertJsonPath('subjects.1.appreciation', null)
+            ->assertJsonPath('general_appreciation', 'Élève sérieuse')
+            ->assertJsonPath('class.head_teacher', 'Prof Test')
+            ->assertJsonPath('attendance', ['absences' => 2, 'justified' => 1, 'lates' => 1]);
+
+        // Effacer le texte supprime l'appréciation.
+        Sanctum::actingAs($teacher);
+        $this->putJson("/api/assignments/{$this->maths->id}/appreciations", $season + ['items' => [['student_id' => $awa, 'content' => '']]])->assertOk();
+        $this->assertDatabaseMissing('bulletin_appreciations', ['student_id' => $awa, 'class_subject_teacher_id' => $this->maths->id]);
     }
 
     private function url(string $name, bool $annual = false): string

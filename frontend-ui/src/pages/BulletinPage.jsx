@@ -29,6 +29,7 @@ import {
   bulletinSummary,
   bulletinTitle,
   downloadBulletinsPdf,
+  generalAppreciation,
 } from "../utils/bulletinPdf.js";
 
 export default function BulletinPage({ studentId: studentIdProp = null }) {
@@ -84,8 +85,9 @@ export default function BulletinPage({ studentId: studentIdProp = null }) {
   }
 
   const template = bulletin?.template ?? {};
-  const columns = bulletinColumns(template);
   const subjects = asArray(bulletin?.subjects);
+  const columns = bulletinColumns(template, subjects);
+  const appreciation = generalAppreciation(bulletin);
 
   return (
     <Box>
@@ -172,6 +174,9 @@ export default function BulletinPage({ studentId: studentIdProp = null }) {
 
             <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1, mb: 2 }}>
               <Chip size="small" variant="outlined" label={`Classe : ${bulletin.class?.name ?? "—"}`} />
+              {bulletin.class?.head_teacher && (
+                <Chip size="small" variant="outlined" label={`Titulaire : ${bulletin.class.head_teacher}`} />
+              )}
               <Chip size="small" variant="outlined" label={`Année : ${bulletin.school_year ?? "—"}`} />
               {bulletin.student?.matricule && (
                 <Chip size="small" variant="outlined" label={`Matricule : ${bulletin.student.matricule}`} />
@@ -232,6 +237,15 @@ export default function BulletinPage({ studentId: studentIdProp = null }) {
                 />
               ))}
             </Stack>
+
+            {appreciation && (
+              <Box sx={{ mt: 2, p: 2, borderRadius: 1, bgcolor: "action.hover" }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Appréciation générale{bulletin.class?.head_teacher ? ` — ${bulletin.class.head_teacher}` : ""}
+                </Typography>
+                <Typography>{appreciation}</Typography>
+              </Box>
+            )}
           </CardContent>
         </Card>
       )}

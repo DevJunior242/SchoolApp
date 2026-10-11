@@ -49,6 +49,8 @@ class BulletinTemplate extends Model
         'show_min_max' => false,
         'show_subject_rank' => false,
         'show_rank' => true,
+        'show_appreciations' => true,
+        'show_attendance' => true,
         'header_lines' => [],
         'motto' => null,
         'signatures' => ['Le titulaire', 'Le directeur', 'Le parent'],
@@ -58,7 +60,8 @@ class BulletinTemplate extends Model
         'school_id', 'section_id', 'grading_scale', 'calculation_mode', 'evaluation_weights',
         'pass_threshold', 'pass_label', 'fail_label', 'distinctions',
         'show_teacher', 'show_coefficient', 'show_class_average', 'show_min_max',
-        'show_subject_rank', 'show_rank', 'header_lines', 'motto', 'signatures',
+        'show_subject_rank', 'show_rank', 'show_appreciations', 'show_attendance',
+        'header_lines', 'motto', 'signatures',
     ];
 
     protected function casts(): array
@@ -74,6 +77,8 @@ class BulletinTemplate extends Model
             'show_min_max' => 'boolean',
             'show_subject_rank' => 'boolean',
             'show_rank' => 'boolean',
+            'show_appreciations' => 'boolean',
+            'show_attendance' => 'boolean',
             'header_lines' => 'array',
             'signatures' => 'array',
         ];
@@ -134,7 +139,8 @@ class BulletinTemplate extends Model
     {
         return $this->only([
             'grading_scale', 'show_teacher', 'show_coefficient', 'show_class_average',
-            'show_min_max', 'show_subject_rank', 'show_rank', 'header_lines', 'motto', 'signatures',
+            'show_min_max', 'show_subject_rank', 'show_rank', 'show_appreciations', 'show_attendance',
+            'header_lines', 'motto', 'signatures',
         ]);
     }
 }

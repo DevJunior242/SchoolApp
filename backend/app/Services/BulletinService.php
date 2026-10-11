@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Attendance;
+use App\Models\BulletinAppreciation;
 use App\Models\BulletinTemplate;
 use App\Models\ClassStudent;
 use App\Models\ClassSubjectTeacher;
@@ -28,7 +30,7 @@ class BulletinService
      */
     public function forClass(School $school, SchoolClass $class, ?Season $season): array
     {
-        $class->loadMissing(['level', 'schoolYear']);
+        $class->loadMissing(['level', 'schoolYear', 'headTeacher']);
         $template = BulletinTemplate::forSection($school->id, $class->level?->section_id);
         $scale = $template->grading_scale ?: 20;
 
@@ -91,10 +93,13 @@ class BulletinService
             ];
         }
 
+        $appreciations = $this->appreciations($class, $season);
+        $attendance = $this->attendance($assignments->pluck('id'), $studentIds, $season);
+
         $classOverall = array_filter($overall, fn ($value) => $value !== null);
         $toScale = fn (?float $value) => $value === null ? null : round($value * $scale / 20, 2);
 
-        $students = $studentIds->mapWithKeys(function ($studentId) use ($assignments, $averages, $subjectStats, $overall, $overallRanks, $template, $toScale, $season) {
+        $students = $studentIds->mapWithKeys(function ($studentId) use ($assignments, $averages, $subjectStats, $overall, $overallRanks, $template, $toScale, $season, $appreciations, $attendance) {
             $average = $toScale($overall[$studentId]);
             $passed = $season === null && $average !== null ? $average >= $template->passThreshold() : null;
             $decision = $passed === null ? null : ($passed ? $template->pass_label : $template->fail_label);
@@ -112,7 +117,10 @@ class BulletinService
                     'min' => $toScale($subjectStats[$assignment->id]['min']),
                     'max' => $toScale($subjectStats[$assignment->id]['max']),
                     'rank' => $subjectStats[$assignment->id]['ranks'][$studentId] ?? null,
+                    'appreciation' => $appreciations[$studentId][$assignment->id] ?? null,
                 ])->values()->all(),
+                'general_appreciation' => $appreciations[$studentId][''] ?? null,
+                'attendance' => $attendance[$studentId] ?? ['absences' => 0, 'justified' => 0, 'lates' => 0],
                 'overall_average' => $average,
                 'rank' => $overallRanks[$studentId] ?? null,
                 'distinction' => $template->distinctionFor($average),
@@ -126,9 +134,65 @@ class BulletinService
             'bulletin_type' => $season?->type ?? self::TYPE_ANNUEL,
             'period_label' => $season?->label ?? "Bulletin annuel — {$class->schoolYear->label}",
             'class_size' => $studentIds->count(),
+            'head_teacher' => $class->headTeacher?->fullname,
             'class_average' => $toScale($classOverall ? array_sum($classOverall) / count($classOverall) : null),
             'students' => $students,
         ];
+    }
+
+    /**
+     * Appréciations de la période (ou de l'année) : [student_id][assignment_id
+     * ou '' pour la générale] => texte.
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function appreciations(SchoolClass $class, ?Season $season): array
+    {
+        $result = [];
+        BulletinAppreciation::query()
+            ->where('class_id', $class->id)
+            ->where('season_id', $season?->id)
+            ->get()
+            ->each(function (BulletinAppreciation $appreciation) use (&$result) {
+                $result[$appreciation->student_id][$appreciation->class_subject_teacher_id ?? ''] = $appreciation->content;
+            });
+
+        return $result;
+    }
+
+    /**
+     * Absences (séances de cours manquées, dont justifiées) et retards de la
+     * période, relevés par l'appel des professeurs de la classe.
+     *
+     * @return array<string, array{absences: int, justified: int, lates: int}>
+     */
+    private function attendance(Collection $assignmentIds, Collection $studentIds, ?Season $season): array
+    {
+        if ($assignmentIds->isEmpty() || $studentIds->isEmpty()) {
+            return [];
+        }
+
+        $result = [];
+        Attendance::query()
+            ->whereIn('class_subject_teacher_id', $assignmentIds)
+            ->whereIn('student_id', $studentIds)
+            ->whereIn('status', [Attendance::STATUS_ABSENT, Attendance::STATUS_RETARD])
+            ->when($season?->start_date && $season?->end_date, fn ($query) => $query->whereBetween('date', [$season->start_date, $season->end_date]))
+            ->get(['student_id', 'status', 'justification_status'])
+            ->each(function (Attendance $record) use (&$result) {
+                $row = $result[$record->student_id] ?? ['absences' => 0, 'justified' => 0, 'lates' => 0];
+                if ((int) $record->status === Attendance::STATUS_RETARD) {
+                    $row['lates']++;
+                } else {
+                    $row['absences']++;
+                    if ((int) $record->justification_status === Attendance::JUSTIFICATION_JUSTIFIEE) {
+                        $row['justified']++;
+                    }
+                }
+                $result[$record->student_id] = $row;
+            });
+
+        return $result;
     }
 
     /**

@@ -23,7 +23,7 @@ class SchoolClass extends Model
 
     protected $table = 'classes';
 
-    protected $fillable = ['school_id', 'level_id', 'school_year_id', 'name'];
+    protected $fillable = ['school_id', 'level_id', 'school_year_id', 'name', 'head_teacher_id'];
 
 
 
@@ -35,6 +35,12 @@ class SchoolClass extends Model
     public function level(): BelongsTo
     {
         return $this->belongsTo(Level::class);
+    }
+
+    /** Professeur titulaire : écrit l'appréciation générale du bulletin. */
+    public function headTeacher(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'head_teacher_id');
     }
 
     public function schoolYear(): BelongsTo

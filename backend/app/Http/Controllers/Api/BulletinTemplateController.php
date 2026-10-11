@@ -74,6 +74,8 @@ class BulletinTemplateController extends Controller
             'show_min_max' => ['boolean'],
             'show_subject_rank' => ['boolean'],
             'show_rank' => ['boolean'],
+            'show_appreciations' => ['boolean'],
+            'show_attendance' => ['boolean'],
             'header_lines' => ['nullable', 'array', 'max:6'],
             'header_lines.*' => ['nullable', 'string', 'max:120'],
             'motto' => ['nullable', 'string', 'max:150'],
