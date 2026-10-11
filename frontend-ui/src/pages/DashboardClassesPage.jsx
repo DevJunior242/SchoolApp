@@ -30,6 +30,7 @@ import { usePaginatedList } from "../hooks/usePaginatedList.js";
 import { useAuth } from "../context/AuthContext";
 import { getSchoolAdminAccess } from "../utils/schoolAdminAccess.js";
 import { asArray } from "../utils/apiData.js";
+import ClassBulletinsDialog from "../components/ClassBulletinsDialog.jsx";
 
 export default function DashboardClassesPage() {
   const { user } = useAuth();
@@ -44,6 +45,7 @@ export default function DashboardClassesPage() {
   const { isAdmin, isPrincipalAdmin, isGeneralAdmin, assignedSectionIds } =
     getSchoolAdminAccess(membership);
   const canManageClasses = isAdmin;
+  const [bulletinsClass, setBulletinsClass] = useState(null);
 
   const activeSections = useMemo(
     () =>
@@ -507,6 +509,15 @@ export default function DashboardClassesPage() {
                             <>
                               <MenuItem
                                 onClick={() => {
+                                  setBulletinsClass(c);
+                                  setAnchorEl(null);
+                                }}
+                              >
+                                Bulletins (PDF)
+                              </MenuItem>
+
+                              <MenuItem
+                                onClick={() => {
                                   setAssignClass(c);
                                   setAnchorEl(null);
                                 }}
@@ -566,6 +577,16 @@ export default function DashboardClassesPage() {
                       >
                         Emploi du temps
                       </Button>
+
+                      {canManageClasses && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => setBulletinsClass(c)}
+                        >
+                          Bulletins (PDF)
+                        </Button>
+                      )}
 
                       {canManageClasses && (
                         <Button
@@ -978,6 +999,13 @@ export default function DashboardClassesPage() {
           <Button onClick={() => setViewTeachersClass(null)}>Fermer</Button>
         </DialogActions>
       </Dialog>
+      {bulletinsClass && (
+        <ClassBulletinsDialog
+          schoolId={schoolId}
+          schoolClass={bulletinsClass}
+          onClose={() => setBulletinsClass(null)}
+        />
+      )}
     </Box>
   );
 }

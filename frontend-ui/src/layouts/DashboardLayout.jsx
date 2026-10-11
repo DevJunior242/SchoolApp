@@ -158,6 +158,11 @@ const ADMIN_NAV_GROUPS = [
         icon: <FamilyRestroomIcon />,
       },
       {
+        label: "Modèles de bulletin",
+        to: "/dashboard/bulletin-templates",
+        icon: <DescriptionIcon />,
+      },
+      {
         label: "Examens",
         to: "/dashboard/exams",
         icon: <FactCheckIcon />,

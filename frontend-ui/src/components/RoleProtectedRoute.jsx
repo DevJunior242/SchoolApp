@@ -12,6 +12,7 @@ const ROLE_ROUTE_PREFIXES = {
     "classes",
     "students",
     "inspection-report",
+    "bulletin-templates",
     "exams",
     "parents",
     "library",

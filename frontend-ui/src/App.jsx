@@ -39,6 +39,9 @@ const DashboardOverviewPage = lazy(
   () => import("./pages/DashboardOverviewPage.jsx"),
 );
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage.jsx"));
+const BulletinTemplatesPage = lazy(
+  () => import("./pages/BulletinTemplatesPage.jsx"),
+);
 const InspectionReportPage = lazy(
   () => import("./pages/InspectionReportPage.jsx"),
 );
@@ -274,6 +277,7 @@ function App() {
             <Route path="student" element={<StudentDashboardPage />} />
             <Route path="teacher" element={<TeacherDashboardPage />} />
             <Route path="inspection-report" element={<InspectionReportPage />} />
+            <Route path="bulletin-templates" element={<BulletinTemplatesPage />} />
             <Route path="parent" element={<ParentDashboardPage />} />
             <Route path="schools" element={<DashboardSchoolsPage />} />
             <Route path="comptable" element={<DashboardComptablePage />} />

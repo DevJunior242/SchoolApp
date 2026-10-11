@@ -300,6 +300,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schools/{school}/my-children-courses', [CourseContentController::class, 'forParentCourses']);
         Route::get('/schools/{school}/marketplace/providers', [ServiceProviderController::class, 'index']);
         Route::get('/schools/{school}/students/{student}/bulletin', [BulletinController::class, 'show']);
+        Route::get('/schools/{school}/classes/{schoolClass}/bulletins', [BulletinController::class, 'forClass']);
+        Route::get('/schools/{school}/bulletin-templates', [\App\Http\Controllers\Api\BulletinTemplateController::class, 'index']);
         Route::get('/schools/{school}/payment-methods', [PaymentMethodController::class, 'index']);
         Route::get('/schools/{school}/fee-structures', [FeeStructureController::class, 'index']);
         Route::get('/schools/{school}/fee-categories', [FeeCategoryController::class, 'index']);
@@ -406,6 +408,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::post('/schools/{school}/students', [StudentController::class, 'store']);
             Route::put('/schools/{school}/students/{student}/situation', [StudentController::class, 'updateSituation']);
+            Route::put('/schools/{school}/bulletin-templates/{section}', [\App\Http\Controllers\Api\BulletinTemplateController::class, 'update']);
 
             Route::post('/schools/{school}/exam-types', [ExamTypeController::class, 'store']);
             Route::post('/schools/{school}/subjects', [SubjectController::class, 'store']);

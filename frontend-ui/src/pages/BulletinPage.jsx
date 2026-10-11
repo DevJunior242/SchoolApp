@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
   Chip,
+  LinearProgress,
   MenuItem,
   Stack,
   Table,
@@ -20,12 +22,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useApiGet } from "../hooks/useApiGet.js";
-
-const BULLETIN_TYPE_LABELS = {
-  trimestre: "Bulletin trimestriel",
-  semestre: "Bulletin semestriel",
-  annuel: "Bulletin annuel",
-};
+import { asArray, getApiErrorMessage } from "../utils/apiData.js";
+import {
+  bulletinColumns,
+  bulletinFileName,
+  bulletinSummary,
+  bulletinTitle,
+  downloadBulletinsPdf,
+} from "../utils/bulletinPdf.js";
 
 export default function BulletinPage({ studentId: studentIdProp = null }) {
   const { user } = useAuth();
@@ -41,41 +45,47 @@ export default function BulletinPage({ studentId: studentIdProp = null }) {
   const [bulletin, setBulletin] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       setLoading(true);
+      setError(null);
       try {
         const response = await api.get(
           `/schools/${user.current_school_id}/students/${studentId}/bulletin`,
-          {
-            params: seasonId ? { season_id: seasonId } : {},
-          },
+          { params: seasonId ? { season_id: seasonId } : {} },
         );
-        setBulletin(response.data);
-      } catch {
-        setError("Impossible de charger le bulletin.");
+        if (!cancelled) setBulletin(response.data);
+      } catch (requestError) {
+        if (!cancelled) {
+          setBulletin(null);
+          setError(getApiErrorMessage(requestError, "Impossible de charger le bulletin."));
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [user.current_school_id, studentId, seasonId]);
 
-  // Le titre du document sert de nom de fichier suggéré par le navigateur
-  // lors de l'export PDF : on veut que le type de bulletin y apparaisse
-  // clairement (trimestriel/semestriel/annuel), pas juste "EduAfrique".
-  useEffect(() => {
-    if (!bulletin) return;
-    const previousTitle = document.title;
-    document.title = `Bulletin - ${bulletin.student?.fullname} - ${bulletin.period_label}`;
-    return () => {
-      document.title = previousTitle;
-    };
-  }, [bulletin]);
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      await downloadBulletinsPdf([bulletin], bulletinFileName(bulletin));
+    } finally {
+      setDownloading(false);
+    }
+  }
 
-  if (loading) return <p>Chargement...</p>;
+  const template = bulletin?.template ?? {};
+  const columns = bulletinColumns(template);
+  const subjects = asArray(bulletin?.subjects);
 
   return (
     <Box>
@@ -83,134 +93,147 @@ export default function BulletinPage({ studentId: studentIdProp = null }) {
         ← Retour
       </Button>
 
-      {error && <Typography color="error">{error}</Typography>}
+      <Stack
+        direction="row"
+        sx={{ justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}
+      >
+        <Typography variant="h5" fontWeight={700}>
+          Bulletin{bulletin ? ` — ${bulletin.student?.fullname}` : ""}
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<DownloadIcon />}
+          onClick={handleDownload}
+          disabled={!bulletin || downloading}
+        >
+          {downloading ? "Préparation..." : "Télécharger (PDF)"}
+        </Button>
+      </Stack>
 
-      {bulletin && (
-        <>
-          <Stack
-            direction="row"
-            sx={{
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 3,
-              flexWrap: "wrap",
-              gap: 2,
-            }}
-          >
-            <Typography variant="h5" fontWeight={700}>
-              Bulletin — {bulletin.student?.fullname}
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<DownloadIcon />}
-              onClick={() => window.print()}
-            >
-              Télécharger (PDF)
-            </Button>
-          </Stack>
+      <TextField
+        select
+        label="Période"
+        value={seasonId}
+        onChange={(e) => setSeasonId(e.target.value)}
+        sx={{ mb: 3, maxWidth: 280 }}
+        fullWidth
+      >
+        <MenuItem value="">Année complète</MenuItem>
+        {asArray(seasons).map((s) => (
+          <MenuItem key={s.id} value={s.id}>
+            {s.label}
+          </MenuItem>
+        ))}
+      </TextField>
 
-          <TextField
-            select
-            label="Période"
-            value={seasonId}
-            onChange={(e) => setSeasonId(e.target.value)}
-            sx={{ mb: 3, maxWidth: 280 }}
-            fullWidth
-          >
-            <MenuItem value="">Année complète</MenuItem>
-            {(seasons ?? []).map((s) => (
-              <MenuItem key={s.id} value={s.id}>
-                {s.label}
-              </MenuItem>
-            ))}
-          </TextField>
+      {loading && <LinearProgress sx={{ mb: 2 }} />}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-          <Box id="bulletin-print">
+      {bulletin && !loading && (
+        <Card variant="outlined">
+          <CardContent>
             <Stack
-              direction="row"
-              sx={{
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 1,
-                flexWrap: "wrap",
-                gap: 2,
-              }}
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              sx={{ alignItems: { sm: "center" }, mb: 2 }}
             >
-              <Box>
+              {bulletin.school?.logo_url && (
+                <Box
+                  component="img"
+                  src={bulletin.school.logo_url}
+                  alt=""
+                  sx={{ width: 64, height: 64, objectFit: "contain" }}
+                />
+              )}
+              <Box sx={{ flex: 1, textAlign: { sm: "center" } }}>
+                {asArray(template.header_lines).map((line) => (
+                  <Typography key={line} variant="caption" display="block" color="text.secondary">
+                    {line}
+                  </Typography>
+                ))}
                 <Typography variant="h6" fontWeight={700}>
-                  {user.current_school?.name}
+                  {bulletin.school?.name}
                 </Typography>
-                <Typography color="text.secondary">
-                  {bulletin.student?.fullname} — {bulletin.period_label}
-                </Typography>
+                {template.motto && (
+                  <Typography variant="caption" color="text.secondary">
+                    {template.motto}
+                  </Typography>
+                )}
               </Box>
-              <Chip
-                label={`Moyenne générale : ${bulletin.overall_average ?? "—"}`}
-                color="primary"
-                sx={{ fontWeight: 700, fontSize: "1rem", py: 2.5 }}
-              />
             </Stack>
 
-            <Stack direction="row" sx={{ mb: 2, gap: 1, flexWrap: "wrap" }}>
-              <Chip
-                label={
-                  BULLETIN_TYPE_LABELS[bulletin.bulletin_type] ??
-                  bulletin.bulletin_type
-                }
-                variant="outlined"
-                size="small"
-              />
-              {bulletin.mention && (
-                <Chip
-                  label={bulletin.mention}
-                  color={
-                    bulletin.mention.startsWith("Admis") ? "success" : "error"
-                  }
-                  size="small"
-                  sx={{ fontWeight: 600 }}
-                />
+            <Typography variant="subtitle1" fontWeight={700} sx={{ textAlign: "center", mb: 2 }}>
+              {bulletinTitle(bulletin)} — {bulletin.period_label}
+            </Typography>
+
+            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1, mb: 2 }}>
+              <Chip size="small" variant="outlined" label={`Classe : ${bulletin.class?.name ?? "—"}`} />
+              <Chip size="small" variant="outlined" label={`Année : ${bulletin.school_year ?? "—"}`} />
+              {bulletin.student?.matricule && (
+                <Chip size="small" variant="outlined" label={`Matricule : ${bulletin.student.matricule}`} />
               )}
             </Stack>
 
-            <Card variant="outlined">
-              <CardContent sx={{ p: 0 }}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Matière</TableCell>
-                      <TableCell>Professeur</TableCell>
-                      <TableCell align="center">Coef.</TableCell>
-                      <TableCell align="center">Notes saisies</TableCell>
-                      <TableCell align="right">Moyenne</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {bulletin.subjects.map((s) => (
-                      <TableRow key={s.subject}>
-                        <TableCell>{s.subject}</TableCell>
-                        <TableCell>{s.teacher}</TableCell>
-                        <TableCell align="center">{s.coefficient}</TableCell>
-                        <TableCell align="center">{s.grades_count}</TableCell>
-                        <TableCell align="right">
-                          <Typography fontWeight={700}>
-                            {s.average ?? "—"}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
+            <Box sx={{ overflowX: "auto", mb: 2 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    {columns.map((column) => (
+                      <TableCell key={column.key} align={column.align ?? "left"}>
+                        {column.label}
+                      </TableCell>
                     ))}
-                    {bulletin.subjects.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} align="center">
-                          Aucune matière enseignée pour l'instant.
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {subjects.map((subject) => (
+                    <TableRow key={subject.subject}>
+                      {columns.map((column) => (
+                        <TableCell
+                          key={column.key}
+                          align={column.align ?? "left"}
+                          sx={column.key === "average" ? { fontWeight: 700 } : undefined}
+                        >
+                          {column.value(subject)}
                         </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </Box>
-        </>
+                      ))}
+                    </TableRow>
+                  ))}
+                  {subjects.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} align="center">
+                        Aucune matière enseignée pour l'instant.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Box>
+
+            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
+              {bulletinSummary(bulletin).map(([label, value]) => (
+                <Chip
+                  key={label}
+                  label={`${label} : ${value}`}
+                  color={
+                    label === "Décision"
+                      ? bulletin.passed
+                        ? "success"
+                        : "error"
+                      : label === "Moyenne générale"
+                        ? "primary"
+                        : "default"
+                  }
+                  sx={{ fontWeight: 600 }}
+                />
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
       )}
     </Box>
   );

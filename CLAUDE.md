@@ -121,3 +121,13 @@ Vérifié le même jour : tous les rôles des seeders ont une redirection, et to
 ## Piège : filtre par section (corrigé le 2026-10-10)
 
 Les tables `classes` et `enrollment_requests` **n'ont pas de colonne `section_id`** : la section passe par le niveau → `whereHas('level', fn ($q) => $q->whereIn('section_id', $ids))`. Un `whereIn('section_id', …)` direct sur une classe ne plante que pour un membre limité à une section (500), donc passe inaperçu en test avec un admin principal. Corrigé dans `DashboardController::teacherSummary` et `SchoolSummaryService` (tableau de bord admin : classes, justifications, absents du jour, assiduité du mois, activité récente). `expenses` a bien un `section_id`. Test : `AdminDashboardAttendanceTest`.
+
+## Bulletins configurables par section (étape 1, 2026-10-11)
+
+- Table `bulletin_templates` (une ligne par école + section ; sans ligne = `BulletinTemplate::DEFAULTS`, le modèle « standard ») : barème 10/20 (affichage seulement, notes stockées et calculées sur 20), mode de calcul (`grade_coefficient` = coefficient de chaque note, `type_weights` = poids par type d'évaluation), seuil et libellés de passage, distinctions (`gte`/`lt`, la première qui correspond), colonnes affichées, lignes d'en-tête, devise, signatures.
+- `App\Services\BulletinService::forClass()` calcule **toute la classe** (rang « olympique » avec ex aequo, moyenne de classe, plus forte/plus faible, rang par matière). `GET /students/{student}/bulletin` garde ses anciens champs (`subjects`, `overall_average`, `mention`…) et ajoute `rank`, `class_size`, `class_average`, `distinction`, `decision`, `passed`, `template`, `school`, `class`.
+- `GET /classes/{schoolClass}/bulletins` : toute la classe (admin seulement), bouton « Bulletins (PDF) » sur la page Classes (`ClassBulletinsDialog`).
+- Réglages : `/dashboard/bulletin-templates` (`BulletinTemplatesPage`, admin, un onglet par section), API `GET|PUT /bulletin-templates[/{section}]` (`BulletinTemplateController`, section respectée).
+- PDF : `utils/bulletinPdf.js` (jsPDF, A4, une page par élève ; `buildBulletinsDoc` testable hors navigateur).
+- Pas d'exemple réel de bulletin pour l'instant : modèle standard à ajuster quand on en aura. Étapes suivantes prévues : appréciations des professeurs, absences sur le bulletin, bulletin par compétences (maternelle).
+- Test : `BulletinTemplateTest`.

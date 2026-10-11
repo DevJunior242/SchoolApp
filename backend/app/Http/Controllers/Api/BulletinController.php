@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Grade;
+use App\Models\SchoolClass;
 use App\Models\School;
 use App\Models\Season;
 use App\Models\Student;
@@ -10,8 +10,8 @@ use App\Models\SchoolUser;
 use App\Models\ClassStudent;
 use Illuminate\Http\Request;
 use App\Models\ParentStudent;
-use Illuminate\Support\Collection;
-use App\Models\ClassSubjectTeacher;
+use App\Services\BulletinService;
+use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Concerns\ValidatesSchoolSection;
 use App\Http\Controllers\Api\Concerns\AuthorizesSchoolDirecteur;
@@ -20,25 +20,21 @@ class BulletinController extends Controller
 {
     use AuthorizesSchoolDirecteur, ValidatesSchoolSection;
 
-    const MENTION_ADMIS = 'Admis(e) en classe supérieure';
-
-    const MENTION_REDOUBLE = 'Doit redoubler';
-
     /**
      * Bulletin d'un élève. Avec `season_id`, ne montre que ce trimestre/
      * semestre précis. Sans, c'est le bulletin annuel : la moyenne de
      * chaque matière est la moyenne des moyennes de chaque période (pas un
      * pool de toutes les notes de l'année, qui donnerait un poids inégal
-     * aux périodes selon leur nombre de notes).
+     * aux périodes selon leur nombre de notes). Calcul et présentation
+     * selon le modèle de bulletin de la section (BulletinService).
      */
-    public function show(Request $request, School $school, Student $student)
+    public function show(Request $request, School $school, Student $student, BulletinService $service)
     {
         $this->authorizeBulletinViewer($request, $school, $student);
 
         $validated = $request->validate([
             'season_id' => ['nullable', 'uuid', 'exists:seasons,id'],
         ]);
-        $seasonId = $validated['season_id'] ?? null;
 
         $classStudent = ClassStudent::query()
             ->where('student_id', $student->id)
@@ -59,7 +55,49 @@ class BulletinController extends Controller
             $this->activeSchoolClass($school, $classStudent->schoolClass)
         );
 
-        $schoolYear = $classStudent->schoolClass->schoolYear;
+        $seasonId = $validated['season_id'] ?? null;
+        $result = $this->computeForClass($school, $classStudent->schoolClass, $seasonId, $service);
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+
+        return response()->json($this->studentPayload($school, $classStudent->schoolClass, $student, $result, $seasonId));
+    }
+
+    /**
+     * Bulletins de toute une classe (impression groupée), réservé à
+     * l'administrateur, section respectée.
+     */
+    public function forClass(Request $request, School $school, SchoolClass $schoolClass, BulletinService $service)
+    {
+        $this->authorizeRoles($request, $school, ['admin'], 'Seul l’administrateur peut éditer les bulletins de toute une classe.');
+        $this->authorizeLevelSection($request, $school, $this->activeSchoolClass($school, $schoolClass));
+
+        $validated = $request->validate([
+            'season_id' => ['nullable', 'uuid', 'exists:seasons,id'],
+        ]);
+        $seasonId = $validated['season_id'] ?? null;
+
+        $result = $this->computeForClass($school, $schoolClass, $seasonId, $service);
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+
+        $students = Student::query()
+            ->whereIn('id', $result['students']->keys())
+            ->orderBy('fullname')
+            ->get();
+
+        return response()->json([
+            'bulletins' => $students
+                ->map(fn (Student $student) => $this->studentPayload($school, $schoolClass, $student, $result, $seasonId))
+                ->values(),
+        ]);
+    }
+
+    private function computeForClass(School $school, SchoolClass $schoolClass, ?string $seasonId, BulletinService $service): array|JsonResponse
+    {
+        $schoolYear = $schoolClass->schoolYear;
         $selectedSeason = $seasonId ? Season::query()->find($seasonId) : null;
 
         if ($seasonId && (! $selectedSeason || $selectedSeason->school_id !== $school->id || $selectedSeason->school_year_id !== $schoolYear->id)) {
@@ -69,110 +107,49 @@ class BulletinController extends Controller
             ], 422);
         }
 
-        $assignments = ClassSubjectTeacher::query()
-            ->where('class_id', $classStudent->class_id)
-            ->with([
-                'subject',
-                'teacher',
-                'grades' => fn($query) => $query->where('student_id', $student->id),
-            ])
-            ->get();
-
-        if ($selectedSeason) {
-            $subjects = $assignments->map(fn(ClassSubjectTeacher $assignment) => $this->subjectForSeason(
-                $assignment,
-                $assignment->grades->where('season_id', $selectedSeason->id)
-            ));
-            $bulletinType = $selectedSeason->type;
-            $periodLabel = $selectedSeason->label;
-        } else {
-            $seasons = $schoolYear->seasons()->orderBy('order')->get();
-            if ($seasons->isEmpty()) {
-                return response()->json([
-                    'message' => "Aucune période scolaire n'est configurée pour l'année {$schoolYear->label}.",
-                    'code' => 'seasons_not_configured',
-                ], 422);
-            }
-            $subjects = $assignments->map(fn(ClassSubjectTeacher $assignment) => $this->subjectForYear($assignment, $seasons));
-            $bulletinType = 'annuel';
-            $periodLabel = "Bulletin annuel — {$schoolYear->label}";
+        if (! $selectedSeason && ! $schoolYear->seasons()->exists()) {
+            return response()->json([
+                'message' => "Aucune période scolaire n'est configurée pour l'année {$schoolYear->label}.",
+                'code' => 'seasons_not_configured',
+            ], 422);
         }
 
-        // La moyenne générale pondère chaque matière par son coefficient
-        // (Maths coef 4 pèse plus que Musique coef 1), pas une simple
-        // moyenne à plat des moyennes de matières.
-        $withAverage = $subjects->filter(fn($s) => $s['average'] !== null);
-        $totalCoefficient = $withAverage->sum('coefficient');
-        $overallAverage = $totalCoefficient > 0
-            ? round($withAverage->sum(fn($s) => $s['average'] * $s['coefficient']) / $totalCoefficient, 2)
-            : null;
+        return $service->forClass($school, $schoolClass, $selectedSeason);
+    }
 
-        // La mention (passage/redoublement) ne concerne que le bulletin de
-        // fin d'année, pas un bulletin de trimestre/semestre isolé.
-        $mention = null;
-        if (! $selectedSeason && $overallAverage !== null) {
-            $mention = $overallAverage >= 10 ? self::MENTION_ADMIS : self::MENTION_REDOUBLE;
-        }
+    /**
+     * Réponse d'un bulletin. Les champs historiques (subjects,
+     * overall_average, mention…) sont gardés pour les écrans existants.
+     */
+    private function studentPayload(School $school, SchoolClass $schoolClass, Student $student, array $result, ?string $seasonId): array
+    {
+        $data = $result['students'][$student->id];
 
-        return response()->json([
-            'student' => ['id' => $student->id, 'fullname' => $student->fullname],
+        return [
+            'student' => [
+                'id' => $student->id,
+                'fullname' => $student->fullname,
+                'matricule' => $student->matricule,
+                'date_of_birth' => $student->date_of_birth?->format('d/m/Y'),
+                'gender' => $student->gender,
+            ],
+            'school' => ['name' => $school->name, 'logo_url' => $school->logo_url],
+            'class' => ['name' => $schoolClass->name, 'level' => $schoolClass->level?->name],
+            'school_year' => $schoolClass->schoolYear?->label,
             'season_id' => $seasonId,
-            'bulletin_type' => $bulletinType,
-            'period_label' => $periodLabel,
-            'subjects' => $subjects->values(),
-            'overall_average' => $overallAverage,
-            'mention' => $mention,
-        ]);
-    }
-
-    /**
-     * Moyenne d'une matière sur une seule période : pondérée par le
-     * coefficient de chaque note (composition compte plus qu'un devoir).
-     */
-    private function subjectForSeason(ClassSubjectTeacher $assignment, Collection $grades): array
-    {
-        $totalWeight = $grades->sum('coefficient');
-        $average = $totalWeight > 0
-            ? round($grades->sum(fn(Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight, 2)
-            : null;
-
-        return [
-            'subject' => $assignment->subject->name,
-            'teacher' => $assignment->teacher->fullname,
-            'coefficient' => (float) $assignment->coefficient,
-            'grades_count' => $grades->count(),
-            'average' => $average,
-        ];
-    }
-
-    /**
-     * Moyenne annuelle d'une matière : moyenne des moyennes de chaque
-     * période où l'élève a eu au moins une note (les périodes sans note
-     * n'entrent pas dans le calcul, plutôt que de compter comme 0).
-     */
-    private function subjectForYear(ClassSubjectTeacher $assignment, Collection $seasons): array
-    {
-        $periodAverages = [];
-
-        foreach ($seasons as $season) {
-            $seasonGrades = $assignment->grades->where('season_id', $season->id);
-            $totalWeight = $seasonGrades->sum('coefficient');
-
-            if ($totalWeight > 0) {
-                $periodAverages[] = $seasonGrades->sum(fn(Grade $g) => ($g->score / $g->max_score) * 20 * $g->coefficient) / $totalWeight;
-            }
-        }
-
-        $average = count($periodAverages) > 0
-            ? round(array_sum($periodAverages) / count($periodAverages), 2)
-            : null;
-
-        return [
-            'subject' => $assignment->subject->name,
-            'teacher' => $assignment->teacher->fullname,
-            'coefficient' => (float) $assignment->coefficient,
-            'grades_count' => $assignment->grades->count(),
-            'average' => $average,
+            'bulletin_type' => $result['bulletin_type'],
+            'period_label' => $result['period_label'],
+            'subjects' => $data['subjects'],
+            'overall_average' => $data['overall_average'],
+            'rank' => $data['rank'],
+            'class_size' => $result['class_size'],
+            'class_average' => $result['class_average'],
+            'distinction' => $data['distinction'],
+            'decision' => $data['decision'],
+            'passed' => $data['passed'],
+            // Ancien nom de la décision de fin d'année, gardé pour compatibilité.
+            'mention' => $data['decision'],
+            'template' => $result['template']->presentation(),
         ];
     }
 
