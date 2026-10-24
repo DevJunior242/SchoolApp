@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+# Aucune erreur PHP affichée au visiteur (l'image officielle n'a pas de php.ini : display_errors vaut On par défaut).
+# Les erreurs vont dans `docker logs`. Rend aussi les failles du type PHP2Shell plus difficiles à exploiter.
+RUN printf "display_errors=Off\ndisplay_startup_errors=Off\nlog_errors=On\n" > /usr/local/etc/php/conf.d/errors.ini
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
